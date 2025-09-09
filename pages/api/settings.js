@@ -5,14 +5,15 @@ export default async function handler(req, res) {
       const settings = {
         categories: process.env.NEWS_CATEGORIES ? 
           JSON.parse(process.env.NEWS_CATEGORIES) : 
-          ['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'],
+          ['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international', 'other'],
         
         categoryKeywords: process.env.CATEGORY_KEYWORDS ?
           JSON.parse(process.env.CATEGORY_KEYWORDS) : {
             'cybersecurity-nl': ['beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 'hack', 'malware'],
             'cybersecurity-international': ['security', 'cybersecurity', 'hack', 'breach', 'malware', 'ransomware', 'phishing', 'vulnerability', 'exploit'],
-            'tech-nl': ['technologie', 'software', 'AI', 'machine learning', 'blockchain', 'cloud'],
-            'tech-international': ['technology', 'software', 'artificial intelligence', 'machine learning', 'blockchain', 'cloud', 'innovation'],
+            'bouwcertificaten-nl': ['bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'energielabel', 'bouwvergunning', 'woningbouw', 'certificering', 'bouwtoezicht'],
+            'ai-companion-international': ['AI companion', 'AI assistant', 'virtual assistant', 'chatbot', 'conversational AI', 'AI girlfriend', 'AI boyfriend', 'character AI'],
+            'ai-learning-international': ['AI learning', 'machine learning', 'deep learning', 'AI education', 'AI training', 'AI tutorial', 'AI course', 'neural networks'],
             'other': ['news', 'nieuws', 'update', 'announcement']
           },
         

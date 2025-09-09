@@ -17,7 +17,7 @@ export default function DashboardPage() {
   
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international', 'other'])
   const [selectedStatus, setSelectedStatus] = useState<string>('pending')
   const [cacheStatus, setCacheStatus] = useState<any>(null)
 
@@ -251,7 +251,7 @@ export default function DashboardPage() {
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">Categories</label>
             <div className="flex flex-wrap gap-3">
-              {['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'].map((category) => (
+              {['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international', 'other'].map((category) => (
                 <button
                   key={category}
                   onClick={() => toggleCategory(category)}
@@ -265,11 +265,12 @@ export default function DashboardPage() {
                     selectedCategories.includes(category) ? 'bg-white' : 'bg-gray-400'
                   }`} />
                   <span>
-                    {category === 'cybersecurity-nl' && 'Cybersecurity NL'}
-                    {category === 'cybersecurity-international' && 'Cybersecurity International'}
-                    {category === 'tech-nl' && 'Tech NL'}
-                    {category === 'tech-international' && 'Tech International'}
-                    {category === 'other' && 'Other'}
+                    {category === 'cybersecurity-nl' && '🇳🇱 Cybersecurity NL'}
+                    {category === 'cybersecurity-international' && '🌍 Cybersecurity International'}
+                    {category === 'bouwcertificaten-nl' && '🏗️ Bouwcertificaten NL'}
+                    {category === 'ai-companion-international' && '🤖 AI Companion'}
+                    {category === 'ai-learning-international' && '🎓 AI Learning'}
+                    {category === 'other' && '📰 Other'}
                   </span>
                 </button>
               ))}

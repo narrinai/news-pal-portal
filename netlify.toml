@@ -4,6 +4,7 @@
 
 [build.environment]
   SECRETS_SCAN_ENABLED = "false"
+  NODE_VERSION = "18.18.0"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

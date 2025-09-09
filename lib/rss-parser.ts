@@ -32,7 +32,7 @@ export async function parseArticlesFromFeed(
   feed: any, 
   source: string, 
   category: NewsArticle['category'],
-  maxArticles: number = 30,
+  maxArticles: number = 50,
   customKeywords?: string[],
   disableFiltering = false,
   categoryKeywords?: {[key: string]: string[]}
@@ -162,8 +162,8 @@ export async function fetchAllFeeds(disableFiltering = false, categoryKeywords?:
   
   console.log(`Processing ${enabledFeeds.length} enabled RSS feeds`)
   
-  // Process feeds in smaller batches to avoid timeouts - limit to 15 feeds max
-  const feedsToProcess = enabledFeeds.slice(0, 15)
+  // Process feeds in smaller batches to avoid timeouts - limit to 20 feeds max
+  const feedsToProcess = enabledFeeds.slice(0, 20)
   console.log(`Processing ${feedsToProcess.length} feeds (limited from ${enabledFeeds.length} to prevent timeouts)`)
   
   const batchSize = 3
@@ -179,7 +179,7 @@ export async function fetchAllFeeds(disableFiltering = false, categoryKeywords?:
           feed, 
           rssFeed.name, 
           rssFeed.category as NewsArticle['category'],
-          rssFeed.maxArticles || 30,
+          rssFeed.maxArticles || 50,
           rssFeed.keywords,
           disableFiltering,
           categoryKeywords

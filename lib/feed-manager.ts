@@ -22,7 +22,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     name: 'Tweakers',
     category: 'cybersecurity-nl',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'nos-tech',
@@ -30,7 +30,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     name: 'NOS Tech',
     category: 'cybersecurity-nl', 
     enabled: true,
-    maxArticles: 25
+    maxArticles: 40
   },
   {
     id: 'nu-tech',
@@ -38,7 +38,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     name: 'NU.nl Tech',
     category: 'cybersecurity-nl',
     enabled: true,
-    maxArticles: 25
+    maxArticles: 40
   },
   {
     id: 'techzine',
@@ -46,7 +46,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     name: 'Techzine',
     category: 'cybersecurity-nl',
     enabled: true,
-    maxArticles: 25
+    maxArticles: 40
   }
 ]
 
@@ -58,7 +58,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'The Hacker News',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'krebs',
@@ -66,7 +66,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'Krebs on Security',
     category: 'cybersecurity-international', 
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'securityweek',
@@ -74,7 +74,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'Security Week',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'threatpost',
@@ -82,7 +82,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'Threatpost',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'darkreading',
@@ -90,7 +90,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'Dark Reading',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'bleepingcomputer',
@@ -98,7 +98,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'BleepingComputer',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'csoonline',
@@ -106,7 +106,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'CSO Online',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   }
 ]
 
@@ -118,7 +118,7 @@ const BOUWCERTIFICATEN_NL_FEEDS: RSSFeedConfig[] = [
     name: 'Tweakers',
     category: 'bouwcertificaten-nl',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'computable',
@@ -126,7 +126,7 @@ const BOUWCERTIFICATEN_NL_FEEDS: RSSFeedConfig[] = [
     name: 'Computable',
     category: 'tech-nl',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'techzine',
@@ -134,7 +134,7 @@ const BOUWCERTIFICATEN_NL_FEEDS: RSSFeedConfig[] = [
     name: 'Techzine',
     category: 'tech-nl',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'iculture',
@@ -154,7 +154,7 @@ const TECH_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'TechCrunch',
     category: 'tech-international',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'ars-technica',
@@ -162,7 +162,7 @@ const TECH_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'Ars Technica',
     category: 'tech-international',
     enabled: true,
-    maxArticles: 30
+    maxArticles: 50
   },
   {
     id: 'wired',

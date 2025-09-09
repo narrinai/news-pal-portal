@@ -179,6 +179,39 @@ export default function DashboardPage() {
     }
   }
 
+  const deselectArticle = async (articleId: string) => {
+    try {
+      console.log('Deselecting article:', articleId)
+      
+      const response = await fetch(`/api/articles/${articleId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      console.log('Deselect response:', response.status)
+      
+      if (response.ok) {
+        console.log('Article deselected and removed from Airtable')
+        fetchArticles() // Refresh to show updated state
+      } else {
+        const errorText = await response.text()
+        console.error('Failed to deselect article:', response.status, errorText)
+        showNotification({
+          type: 'error',
+          title: 'Deselect failed',
+          message: `Server error: ${response.status}`
+        })
+      }
+    } catch (error) {
+      console.error('Error deselecting article:', error)
+      showNotification({
+        type: 'error',
+        title: 'Network error',
+        message: 'Error deselecting article'
+      })
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -470,15 +503,26 @@ export default function DashboardPage() {
                       )}
                       
                       {article.status === 'selected' && (
-                        <a
-                          href={`/dashboard/rewrite/${article.id}`}
-                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors duration-200"
-                        >
-                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Rewrite
-                        </a>
+                        <div className="flex space-x-1">
+                          <a
+                            href={`/dashboard/rewrite/${article.id}`}
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors duration-200"
+                          >
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Rewrite
+                          </a>
+                          <button
+                            onClick={() => deselectArticle(article.id!)}
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors duration-200"
+                          >
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Deselect
+                          </button>
+                        </div>
                       )}
                       
                       {article.status === 'rewritten' && (

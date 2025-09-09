@@ -74,11 +74,20 @@ export default async function handler(req, res) {
       console.error('Category management error:', error.message)
     }
 
-    // Minimal post object for custom 'news' post type
+    // News post object with required custom fields
     const wordpressPost = {
       title: title,
       content: wordpressHtml,
-      status: 'draft'
+      status: 'draft',
+      // Custom fields for your News post type
+      acf: {
+        'sidebar_type': 'Nieuws' // Set to 'Nieuws' option from your screenshot
+      },
+      // Alternative meta approach if ACF doesn't work
+      meta: {
+        'sidebar_type': 'Nieuws',
+        '_sidebar_type': 'Nieuws'
+      }
     }
 
     console.log('Publishing to News custom post type...')

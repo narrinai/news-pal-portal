@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNotifications } from '../../../components/NotificationSystem'
+import Logo from '../../../components/Logo'
 
 interface Settings {
   categories: string[]
@@ -299,25 +300,30 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow">
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div>
+            <div className="flex items-center">
+              <Logo size="lg" className="mr-4" clickable={true} href="/dashboard" />
+            </div>
+            <div className="flex items-center space-x-3">
               <button
                 onClick={() => router.push('/dashboard')}
-                className="text-primary-600 hover:text-primary-700 mb-2"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
               >
-                ← Terug naar dashboard
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to dashboard
               </button>
-              <h1 className="text-3xl font-bold text-gray-900">Instellingen</h1>
+              <button
+                onClick={saveSettings}
+                disabled={saving}
+                className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-6 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors duration-200"
+              >
+                {saving ? 'Saving...' : 'Save Settings'}
+              </button>
             </div>
-            <button
-              onClick={saveSettings}
-              disabled={saving}
-              className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50"
-            >
-              {saving ? 'Opslaan...' : 'Instellingen Opslaan'}
-            </button>
           </div>
         </div>
       </div>

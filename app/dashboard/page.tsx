@@ -2,38 +2,72 @@
 
 import { useState, useEffect } from 'react'
 import { NewsArticle } from '../../lib/airtable'
+import { LiveArticle } from '../../lib/article-manager'
 import Logo from '../../components/Logo'
 import { useNotifications } from '../../components/NotificationSystem'
 
 export default function DashboardPage() {
   const { showNotification } = useNotifications()
-  const [articles, setArticles] = useState<NewsArticle[]>([])
+  const [liveData, setLiveData] = useState<{
+    pending: LiveArticle[]
+    selected: NewsArticle[]
+    rewritten: NewsArticle[]
+    published: NewsArticle[]
+  }>({ pending: [], selected: [], rewritten: [], published: [] })
+  
   const [loading, setLoading] = useState(true)
-  const [fetching, setFetching] = useState(false)
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity-nl', 'cybersecurity-international', 'other'])
+  const [refreshing, setRefreshing] = useState(false)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'])
   const [selectedStatus, setSelectedStatus] = useState<string>('pending')
+  const [cacheStatus, setCacheStatus] = useState<any>(null)
+
+  // Get all articles for display
+  const allArticles = [
+    ...liveData.pending.map(a => ({ ...a, status: 'pending' as const, id: a.url })),
+    ...liveData.selected,
+    ...liveData.rewritten, 
+    ...liveData.published
+  ]
+
+  // Filter articles based on selected criteria
+  const filteredArticles = allArticles.filter(article => {
+    // Status filter
+    if (selectedStatus !== 'all' && article.status !== selectedStatus) {
+      return false
+    }
+    
+    // Category filter  
+    if (!selectedCategories.includes(article.category)) {
+      return false
+    }
+    
+    return true
+  })
 
   useEffect(() => {
     fetchArticles()
   }, [selectedCategories, selectedStatus])
 
-  const fetchArticles = async () => {
+  const fetchArticles = async (forceRefresh = false) => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      if (selectedStatus !== 'all') params.append('status', selectedStatus)
-      // Add each selected category as a separate parameter
-      selectedCategories.forEach(category => {
-        params.append('category', category)
-      })
+      if (forceRefresh) params.append('refresh', 'true')
       
-      const response = await fetch(`/api/articles?${params}`)
+      const response = await fetch(`/api/articles/live?${params}`)
       if (response.ok) {
         const data = await response.json()
-        setArticles(data)
+        setLiveData(data.articles)
+        setCacheStatus(data.cache)
+        console.log('Live articles loaded:', data.totalCounts)
       }
     } catch (error) {
       console.error('Error fetching articles:', error)
+      showNotification({
+        type: 'error',
+        title: 'Loading failed',
+        message: 'Could not load articles'
+      })
     } finally {
       setLoading(false)
     }
@@ -49,52 +83,60 @@ export default function DashboardPage() {
     })
   }
 
-  const fetchNewArticles = async () => {
-    setFetching(true)
+  const refreshArticles = async () => {
+    setRefreshing(true)
     try {
-      const response = await fetch('/api/articles/fetch', { method: 'POST' })
-      if (response.ok) {
-        const result = await response.json()
-        showNotification({
-          type: 'success',
-          title: 'New articles fetched',
-          message: `${result.newArticles} new articles added`,
-          duration: 4000
-        })
-        fetchArticles() // Refresh the list
-      } else {
-        showNotification({
-          type: 'error',
-          title: 'Fetch failed',
-          message: 'Could not fetch new articles'
-        })
-      }
+      await fetchArticles(true) // Force refresh RSS cache
+      showNotification({
+        type: 'success',
+        title: 'Articles refreshed',
+        message: 'Latest articles loaded from RSS feeds',
+        duration: 4000
+      })
     } catch (error) {
-      console.error('Error fetching new articles:', error)
+      console.error('Error refreshing articles:', error)
       showNotification({
         type: 'error',
-        title: 'Network error',
-        message: 'Error fetching new articles'
+        title: 'Refresh failed',
+        message: 'Could not refresh articles'
       })
     } finally {
-      setFetching(false)
+      setRefreshing(false)
     }
   }
 
-  const selectArticle = async (articleId: string) => {
+  const selectArticle = async (articleUrl: string) => {
     try {
-      console.log('Selecting article:', articleId)
-      const response = await fetch(`/api/articles/${articleId}`, {
-        method: 'PATCH',
+      console.log('Selecting article:', articleUrl)
+      
+      // Find the article in pending list
+      const article = liveData.pending.find(a => a.url === articleUrl)
+      if (!article) {
+        showNotification({
+          type: 'error',
+          title: 'Article not found',
+          message: 'Could not find article in RSS data'
+        })
+        return
+      }
+
+      const response = await fetch('/api/articles/live', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'selected' })
+        body: JSON.stringify({ article })
       })
       
       console.log('Select response:', response.status)
       
       if (response.ok) {
-        console.log('Article selected successfully')
-        fetchArticles() // Refresh the list
+        console.log('Article selected and saved to Airtable')
+        fetchArticles() // Refresh to show updated state
+        showNotification({
+          type: 'success',
+          title: 'Article selected',
+          message: 'Article saved to your collection',
+          duration: 3000
+        })
       } else {
         const errorText = await response.text()
         console.error('Failed to select article:', response.status, errorText)
@@ -135,24 +177,27 @@ export default function DashboardPage() {
                 Settings
               </a>
               <button
-                onClick={fetchNewArticles}
-                disabled={fetching}
+                onClick={refreshArticles}
+                disabled={refreshing}
                 className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
-                {fetching ? (
+                {refreshing ? (
                   <>
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700" fill="none" viewBox="0 0 24 24">
                       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
                       <path fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
                     </svg>
-                    Fetching...
+                    Refreshing...
                   </>
                 ) : (
                   <>
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Fetch New Articles
+                    Refresh Articles
+                    {cacheStatus && cacheStatus.isStale && (
+                      <span className="ml-1 w-2 h-2 bg-orange-400 rounded-full"></span>
+                    )}
                   </>
                 )}
               </button>
@@ -170,10 +215,10 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-2 mb-3">
               {[
                 { value: 'all', label: 'All statuses', icon: '📋' },
-                { value: 'pending', label: 'Pending', icon: '⏳', count: articles.filter(a => a.status === 'pending').length },
-                { value: 'selected', label: 'Selected', icon: '✓', count: articles.filter(a => a.status === 'selected').length },
-                { value: 'rewritten', label: 'Rewritten', icon: '✨', count: articles.filter(a => a.status === 'rewritten').length },
-                { value: 'published', label: 'Published', icon: '📢', count: articles.filter(a => a.status === 'published').length }
+                { value: 'pending', label: 'Pending', icon: '⏳', count: filteredArticles.filter(a => a.status === 'pending').length },
+                { value: 'selected', label: 'Selected', icon: '✓', count: filteredArticles.filter(a => a.status === 'selected').length },
+                { value: 'rewritten', label: 'Rewritten', icon: '✨', count: filteredArticles.filter(a => a.status === 'rewritten').length },
+                { value: 'published', label: 'Published', icon: '📢', count: filteredArticles.filter(a => a.status === 'published').length }
               ].map((status) => (
                 <button
                   key={status.value}
@@ -238,7 +283,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {articles.map((article) => (
+            {filteredArticles.map((article) => (
               <div key={article.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 group">
                 {/* Modern image placeholder */}
                 <div className="w-full h-40 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center group-hover:from-gray-200 group-hover:to-gray-300 transition-all duration-300">
@@ -296,13 +341,13 @@ export default function DashboardPage() {
                       
                       {article.status === 'pending' && (
                         <button
-                          onClick={() => selectArticle(article.id!)}
-                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-200"
+                          onClick={() => selectArticle(article.url || article.id!)}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800 transition-colors duration-200"
                         >
                           <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
-                          Select
+                          Select & Save
                         </button>
                       )}
                       
@@ -338,7 +383,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {!loading && articles.length === 0 && (
+        {!loading && filteredArticles.length === 0 && (
           <div className="text-center py-16">
             <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
               <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

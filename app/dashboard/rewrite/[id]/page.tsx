@@ -245,69 +245,69 @@ export default function RewritePage({ params }: RewritePageProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Lengte
+                    Length
                   </label>
                   <select
                     value={options.length}
                     onChange={(e) => setOptions({...options, length: e.target.value as any})}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   >
-                    <option value="short">Kort (200-300 woorden)</option>
-                    <option value="medium">Gemiddeld (400-600 woorden)</option>
-                    <option value="long">Lang (700-1000 woorden)</option>
+                    <option value="short">Short (200-300 words)</option>
+                    <option value="medium">Medium (400-600 words)</option>
+                    <option value="long">Long (700-1000 words)</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Toon
+                    Tone
                   </label>
                   <select
                     value={options.tone}
                     onChange={(e) => setOptions({...options, tone: e.target.value as any})}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   >
-                    <option value="neutral">Neutraal</option>
-                    <option value="warning">Waarschuwend</option>
-                    <option value="informative">Informatief</option>
+                    <option value="neutral">Neutral</option>
+                    <option value="warning">Warning</option>
+                    <option value="informative">Informative</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Taal
+                    Language
                   </label>
                   <select
                     value={options.language}
                     onChange={(e) => setOptions({...options, language: e.target.value as any})}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   >
-                    <option value="nl">Nederlands</option>
-                    <option value="en">Engels</option>
+                    <option value="nl">Dutch</option>
+                    <option value="en">English</option>
                   </select>
                 </div>
               </div>
 
               <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  AI Instructies (optioneel aanpassen)
+                  AI Instructions (optional customization)
                 </label>
                 <textarea
                   value={customInstructions}
                   onChange={(e) => setCustomInstructions(e.target.value)}
                   rows={3}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="Aangepaste instructies voor de AI..."
+                  placeholder="Custom instructions for the AI..."
                 />
               </div>
 
               <button
                 onClick={handleRewrite}
                 disabled={rewriting}
-                className="mt-4 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50"
+                className="mt-4 w-full bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-md font-medium disabled:opacity-50 transition-colors duration-200"
               >
-                {rewriting ? 'Herschrijven...' : 
-                 article.status === 'rewritten' ? 'Opnieuw Herschrijven' : 'Herschrijf Artikel'}
+                {rewriting ? 'Rewriting...' : 
+                 article.status === 'rewritten' ? 'Rewrite Again' : 'Rewrite Article'}
               </button>
             </div>
 
@@ -316,10 +316,10 @@ export default function RewritePage({ params }: RewritePageProps) {
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-semibold">Herschreven Artikel</h2>
+                    <h2 className="text-xl font-semibold">Rewritten Article</h2>
                     {article.status === 'rewritten' && (
                       <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-700">
-                        Bestaande versie
+                        Existing version
                       </span>
                     )}
                   </div>
@@ -328,7 +328,7 @@ export default function RewritePage({ params }: RewritePageProps) {
                       onClick={() => setShowHtml(!showHtml)}
                       className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded transition-colors duration-200"
                     >
-                      {showHtml ? 'Tekst' : 'HTML'}
+                      {showHtml ? 'Text' : 'HTML'}
                     </button>
                   </div>
                 </div>
@@ -344,11 +344,11 @@ export default function RewritePage({ params }: RewritePageProps) {
                         <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
-                        Kopieer titel
+                        Copy title
                       </button>
                       {tooltips.title && (
                         <div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-900 text-white text-xs rounded shadow-lg whitespace-nowrap z-10">
-                          Titel gekopieerd!
+                          Title copied!
                         </div>
                       )}
                     </div>
@@ -372,11 +372,11 @@ export default function RewritePage({ params }: RewritePageProps) {
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
-                        Kopieer {showHtml ? 'HTML' : 'tekst'}
+                        Copy {showHtml ? 'HTML' : 'text'}
                       </button>
                       {tooltips.content && (
                         <div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-900 text-white text-xs rounded shadow-lg whitespace-nowrap z-10">
-                          {showHtml ? 'HTML' : 'Tekst'} gekopieerd!
+                          {showHtml ? 'HTML' : 'Text'} copied!
                         </div>
                       )}
                     </div>

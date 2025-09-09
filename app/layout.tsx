@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'News Pal Portal',
-  description: 'Nieuws management en content beheer portal',
+  description: 'News management and content portal powered by AI',
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="nl">
+    <html lang="en">
       <body className={inter.className}>
         <NotificationProvider>
           {children}

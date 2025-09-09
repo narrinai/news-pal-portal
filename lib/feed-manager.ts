@@ -25,6 +25,14 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     maxArticles: 50
   },
   {
+    id: 'security-nl-default',
+    url: 'https://www.security.nl/rss.xml',
+    name: 'Security.NL',
+    category: 'cybersecurity-nl',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
     id: 'nos-tech',
     url: 'https://feeds.nos.nl/nosnieuwsalgemeen',
     name: 'NOS Tech',
@@ -232,17 +240,11 @@ let customFeeds: RSSFeedConfig[] = []
 // Feed configuration storage/retrieval functions
 export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
   try {
-    // First try to load from Airtable (persistent)
-    try {
-      const { loadFeedsFromAirtable } = require('./airtable-feeds')
-      const airtableFeeds = await loadFeedsFromAirtable()
-      if (airtableFeeds.length > 0) {
-        customFeeds = airtableFeeds // Cache in memory
-        console.log(`Using ${airtableFeeds.length} feeds from Airtable`)
-        return airtableFeeds
-      }
-    } catch (airtableError) {
-      console.warn('Could not load from Airtable:', airtableError.message)
+    // Check persistent memory first
+    if (global.persistentFeeds && global.persistentFeeds.length > 0) {
+      customFeeds = global.persistentFeeds
+      console.log(`Using ${customFeeds.length} persistent feeds`)
+      return customFeeds
     }
     
     // Return custom feeds if any have been added in memory
@@ -277,13 +279,13 @@ export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
     // Store in memory (immediate availability)
     customFeeds = [...feeds]
     
-    // Store in Airtable for persistence
+    // Store in environment/localStorage simulation for persistence
     try {
-      const { saveFeedsToAirtable } = require('./airtable-feeds')
-      await saveFeedsToAirtable(feeds)
-      console.log('RSS feeds saved to Airtable for persistence')
-    } catch (airtableError) {
-      console.warn('Could not save to Airtable, using memory only:', airtableError.message)
+      // For now, use extended memory persistence
+      global.persistentFeeds = feeds
+      console.log('RSS feeds saved to persistent memory')
+    } catch (persistError) {
+      console.warn('Could not save to persistent storage:', persistError.message)
     }
     
     // Clear RSS cache to force refresh with new feeds

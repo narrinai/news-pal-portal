@@ -240,32 +240,32 @@ let customFeeds: RSSFeedConfig[] = []
 // Feed configuration storage/retrieval functions
 export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
   try {
-    // Check persistent memory first
-    if (global.persistentFeeds && global.persistentFeeds.length > 0) {
-      customFeeds = global.persistentFeeds
-      console.log(`Using ${customFeeds.length} persistent feeds`)
-      return customFeeds
+    // Try to load from persistent API storage
+    try {
+      const response = await fetch('http://localhost:3000/api/feeds/store')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.feeds && data.feeds.length > 0) {
+          customFeeds = data.feeds
+          console.log(`Using ${data.feeds.length} persistent feeds from API storage`)
+          return data.feeds
+        }
+      }
+    } catch (apiError) {
+      console.warn('Could not load from API storage:', apiError.message)
     }
     
-    // Return custom feeds if any have been added in memory
+    // Check memory storage
     if (customFeeds.length > 0) {
       console.log(`Using ${customFeeds.length} custom feeds from memory`)
       return customFeeds
     }
     
-    // Try to get from environment variables
-    const storedFeeds = process.env.RSS_FEED_CONFIGS
-    if (storedFeeds) {
-      const parsedFeeds = JSON.parse(storedFeeds)
-      customFeeds = parsedFeeds // Cache in memory
-      return parsedFeeds
-    }
-    
-    // Start with empty feeds - user must add their own
-    console.log('No custom feeds configured - starting with empty list')
+    // Start with empty feeds
+    console.log('No feeds configured - starting with empty list')
     return []
   } catch (error) {
-    console.warn('Error loading feed configs, returning empty:', error)
+    console.warn('Error loading feed configs:', error)
     return []
   }
 }
@@ -277,13 +277,18 @@ export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
     // Store in memory (immediate availability)
     customFeeds = [...feeds]
     
-    // Store in environment/localStorage simulation for persistence
+    // Store via API for persistence
     try {
-      // For now, use extended memory persistence
-      global.persistentFeeds = feeds
-      console.log('RSS feeds saved to persistent memory')
-    } catch (persistError) {
-      console.warn('Could not save to persistent storage:', persistError.message)
+      const response = await fetch('http://localhost:3000/api/feeds/store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feeds })
+      })
+      if (response.ok) {
+        console.log('RSS feeds saved to persistent API storage')
+      }
+    } catch (apiError) {
+      console.warn('Could not save to API storage:', apiError.message)
     }
     
     // Clear RSS cache to force refresh with new feeds

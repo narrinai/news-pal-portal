@@ -3,7 +3,34 @@ import { getFeedConfigs, saveFeedConfigs, validateFeedConfig, generateFeedId, DE
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
-      const feeds = await getFeedConfigs()
+      let feeds = await getFeedConfigs()
+      
+      // If no feeds exist, initialize with working defaults
+      if (feeds.length === 0) {
+        console.log('No feeds found, initializing with defaults...')
+        const defaultFeeds = [
+          {
+            id: 'hackernews-init',
+            url: 'https://feeds.feedburner.com/TheHackersNews',
+            name: 'The Hacker News',
+            category: 'cybersecurity-international',
+            enabled: true,
+            maxArticles: 50
+          },
+          {
+            id: 'tweakers-init',
+            url: 'https://feeds.feedburner.com/tweakers/mixed',
+            name: 'Tweakers',
+            category: 'cybersecurity-nl',
+            enabled: true,
+            maxArticles: 50
+          }
+        ]
+        
+        await saveFeedConfigs(defaultFeeds)
+        feeds = defaultFeeds
+      }
+      
       return res.status(200).json(feeds)
     } catch (error) {
       console.error('Error fetching feeds:', error)

@@ -12,10 +12,13 @@ export default async function handler(req, res) {
       const airtableArticles = await getArticles()
       console.log(`Airtable articles loaded: ${airtableArticles.length}`)
       
-      // Separate by status
+      // Only show curated articles from Airtable (selected/rewritten/published)
+      // Do NOT show old 'pending' articles from Airtable
       const selected = airtableArticles.filter(a => a.status === 'selected')
       const rewritten = airtableArticles.filter(a => a.status === 'rewritten')  
       const published = airtableArticles.filter(a => a.status === 'published')
+      
+      console.log(`Airtable curated articles: ${selected.length} selected, ${rewritten.length} rewritten, ${published.length} published`)
       
       // Try to get RSS data (but don't fail if it times out)
       let pending = []

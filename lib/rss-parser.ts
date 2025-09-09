@@ -39,14 +39,39 @@ export async function parseArticlesFromFeed(
 ): Promise<RSSArticle[]> {
   const articles: RSSArticle[] = []
   
-  // Default category keywords if not provided
+  // Comprehensive default category keywords
   const defaultCategoryKeywords = {
-    'cybersecurity-nl': ['beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 'hack', 'malware'],
-    'cybersecurity-international': ['security', 'cybersecurity', 'hack', 'breach', 'malware', 'ransomware', 'phishing', 'vulnerability', 'exploit'],
-    'bouwcertificaten-nl': ['bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'energielabel', 'bouwvergunning', 'woningbouw'],
-    'ai-companion-international': ['AI companion', 'AI assistant', 'virtual assistant', 'chatbot', 'conversational AI'],
-    'ai-learning-international': ['AI learning', 'machine learning', 'deep learning', 'AI education', 'AI training'],
-    'other': ['news', 'nieuws', 'update', 'announcement']
+    'cybersecurity-nl': [
+      'beveiliging', 'cyberbeveiliging', 'cybersecurity', 'datalek', 'privacy', 'hack', 'hacker', 'malware', 
+      'ransomware', 'phishing', 'virus', 'trojan', 'spyware', 'adware', 'botnet', 'ddos', 'firewall',
+      'antivirus', 'encryptie', 'encryption', 'vpn', 'ssl', 'tls', 'certificaat', 'kwetsbaarheid',
+      'vulnerability', 'exploit', 'patch', 'update', 'beveiligingslek', 'cyberaanval', 'attack',
+      'threat', 'dreging', 'risico', 'risk', 'incident', 'breach', 'inbreuk', 'lekken', 'leak',
+      'cybercrime', 'cybercriminaliteit', 'fraude', 'identiteitsdiefstal', 'social engineering'
+    ],
+    'cybersecurity-international': [
+      'security', 'cybersecurity', 'cyber security', 'hack', 'hacker', 'breach', 'data breach', 'malware', 
+      'ransomware', 'phishing', 'spear phishing', 'vulnerability', 'exploit', 'zero-day', 'zero day',
+      'apt', 'advanced persistent threat', 'ddos', 'denial of service', 'firewall', 'antivirus',
+      'encryption', 'vpn', 'ssl', 'tls', 'certificate', 'threat', 'cyber attack', 'cyberattack',
+      'attack', 'incident', 'response', 'forensics', 'penetration testing', 'pentest', 'soc',
+      'siem', 'endpoint protection', 'network security', 'cloud security', 'iot security'
+    ],
+    'bouwcertificaten-nl': [
+      'bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'energielabel', 'bouwvergunning', 
+      'woningbouw', 'certificering', 'bouwtoezicht', 'keuring', 'inspectie', 'architect', 'constructeur'
+    ],
+    'ai-companion-international': [
+      'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual assistant', 'chatbot', 
+      'conversational AI', 'character AI', 'companion robot', 'social robot', 'digital human'
+    ],
+    'ai-learning-international': [
+      'AI learning', 'machine learning', 'deep learning', 'neural networks', 'AI education', 'AI training', 
+      'AI tutorial', 'AI course', 'data science', 'algorithms', 'programming', 'tensorflow', 'pytorch'
+    ],
+    'other': [
+      'news', 'nieuws', 'update', 'announcement', 'technology', 'innovation', 'business', 'startup'
+    ]
   }
   
   const keywordMap = categoryKeywords || defaultCategoryKeywords

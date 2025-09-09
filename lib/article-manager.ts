@@ -43,12 +43,53 @@ export async function getLiveArticles(disableFiltering = false): Promise<{
       try {
         // Import settings directly to avoid API call in server context
         const settings = {
-          'cybersecurity-nl': ['beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 'hack', 'malware'],
-          'cybersecurity-international': ['security', 'cybersecurity', 'hack', 'breach', 'malware', 'ransomware', 'phishing', 'vulnerability', 'exploit'],
-          'bouwcertificaten-nl': ['bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'energielabel', 'bouwvergunning', 'woningbouw'],
-          'ai-companion-international': ['AI companion', 'AI assistant', 'virtual assistant', 'chatbot', 'conversational AI'],
-          'ai-learning-international': ['AI learning', 'machine learning', 'deep learning', 'AI education', 'AI training'],
-          'other': ['news', 'nieuws', 'update', 'announcement']
+          'cybersecurity-nl': [
+            'beveiliging', 'cyberbeveiliging', 'cybersecurity', 'datalek', 'privacy', 'hack', 'hacker', 'malware', 
+            'ransomware', 'phishing', 'virus', 'trojan', 'spyware', 'adware', 'botnet', 'ddos', 'firewall',
+            'antivirus', 'encryptie', 'encryption', 'vpn', 'ssl', 'tls', 'certificaat', 'kwetsbaarheid',
+            'vulnerability', 'exploit', 'patch', 'update', 'beveiligingslek', 'cyberaanval', 'attack',
+            'threat', 'dreging', 'risico', 'risk', 'incident', 'breach', 'inbreuk', 'lekken', 'leak',
+            'cybercrime', 'cybercriminaliteit', 'fraude', 'identiteitsdiefstal', 'social engineering',
+            'twee-factor', 'authenticatie', 'wachtwoord', 'password', 'biometric', 'toegangscontrole',
+            'gdpr', 'avg', 'compliance', 'audit', 'pentesting', 'ethisch hacken', 'white hat', 'black hat'
+          ],
+          'cybersecurity-international': [
+            'security', 'cybersecurity', 'cyber security', 'hack', 'hacker', 'breach', 'data breach', 'malware', 
+            'ransomware', 'phishing', 'spear phishing', 'vulnerability', 'exploit', 'zero-day', 'zero day',
+            'apt', 'advanced persistent threat', 'ddos', 'denial of service', 'firewall', 'antivirus',
+            'encryption', 'vpn', 'virtual private network', 'ssl', 'tls', 'certificate', 'threat',
+            'cyber attack', 'cyberattack', 'attack', 'incident', 'response', 'forensics', 'digital forensics',
+            'penetration testing', 'pentest', 'red team', 'blue team', 'soc', 'security operations center',
+            'siem', 'endpoint protection', 'network security', 'application security', 'web security',
+            'mobile security', 'cloud security', 'iot security', 'scada', 'industrial control',
+            'identity theft', 'fraud', 'social engineering', 'phishing email', 'trojan', 'virus',
+            'worm', 'rootkit', 'backdoor', 'keylogger', 'spyware', 'adware', 'botnet', 'c2', 'command control',
+            'patch', 'update', 'cve', 'cvss', 'nist', 'iso 27001', 'gdpr', 'compliance', 'audit',
+            'risk assessment', 'threat intelligence', 'threat hunting', 'incident response', 'disaster recovery',
+            'business continuity', 'backup', 'authentication', 'authorization', 'access control', 'iam',
+            'multifactor', 'biometric', 'password', 'credential', 'privilege escalation', 'lateral movement'
+          ],
+          'bouwcertificaten-nl': [
+            'bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'woning certificaat', 'energielabel',
+            'energie label', 'bouwvergunning', 'bouw vergunning', 'woningbouw', 'woning bouw', 'certificering',
+            'bouwtoezicht', 'bouw toezicht', 'bouwregelgeving', 'bouw regelgeving', 'bouwvoorschriften',
+            'bouw voorschriften', 'woningwet', 'woning wet', 'bouwbesluit', 'bouw besluit', 'nta', 'nen'
+          ],
+          'ai-companion-international': [
+            'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual assistant', 'virtual companion',
+            'chatbot', 'chat bot', 'conversational AI', 'character AI', 'personality AI', 'emotional AI',
+            'companion robot', 'social robot', 'humanoid', 'android', 'synthetic human', 'digital human'
+          ],
+          'ai-learning-international': [
+            'AI learning', 'artificial intelligence learning', 'machine learning', 'deep learning', 'neural networks',
+            'AI education', 'AI training', 'AI tutorial', 'AI course', 'AI certification', 'AI bootcamp',
+            'learn AI', 'study AI', 'AI curriculum', 'AI pedagogy', 'educational AI', 'AI literacy',
+            'data science', 'data analytics', 'big data', 'statistics', 'algorithms', 'programming'
+          ],
+          'other': [
+            'news', 'nieuws', 'breaking news', 'update', 'announcement', 'press release', 'statement',
+            'report', 'study', 'research', 'analysis', 'opinion', 'editorial', 'commentary', 'review'
+          ]
         }
         categoryKeywords = settings
       } catch (error) {

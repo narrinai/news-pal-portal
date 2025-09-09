@@ -39,7 +39,15 @@ export async function parseArticlesFromFeed(
     const description = item.contentSnippet || item.description || ''
     const content = (title + ' ' + description).toLowerCase()
     
-    const keywords = customKeywords || DEFAULT_KEYWORDS
+    // Use broader keyword set for better matching
+    const broadKeywords = [
+      'security', 'cybersecurity', 'hack', 'hacker', 'breach', 'malware', 
+      'ransomware', 'phishing', 'vulnerability', 'exploit', 'cyber',
+      'attack', 'threat', 'privacy', 'encryption', 'data breach',
+      'zero-day', 'apt', 'ddos', 'firewall', 'antivirus',
+      'beveiliging', 'cyberbeveiliging', 'datalek', 'hack', 'malware'
+    ]
+    const keywords = customKeywords || broadKeywords
     const isRelevant = containsKeywords(content, keywords)
     
     if (isRelevant) {

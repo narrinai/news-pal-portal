@@ -381,9 +381,30 @@ export default function DashboardPage() {
                     {article.title}
                   </h3>
                   
-                  <p className="text-gray-600 text-sm mb-5 line-clamp-3 leading-relaxed">
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-3 leading-relaxed">
                     {article.description}
                   </p>
+                  
+                  {/* Matched Keywords Tags */}
+                  {(article as any).matchedKeywords && (article as any).matchedKeywords.length > 0 && (
+                    <div className="mb-4">
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {(article as any).matchedKeywords.slice(0, 3).map((keyword: string) => (
+                          <span 
+                            key={keyword}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                          >
+                            🔍 {keyword}
+                          </span>
+                        ))}
+                        {(article as any).matchedKeywords.length > 3 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                            +{(article as any).matchedKeywords.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded-md">

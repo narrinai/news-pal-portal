@@ -29,6 +29,7 @@ export default function RewritePage({ params }: RewritePageProps) {
   const [customInstructions, setCustomInstructions] = useState('')
   const [settings, setSettings] = useState<any>(null)
   const [showHtml, setShowHtml] = useState(false)
+  const [tooltips, setTooltips] = useState<{[key: string]: boolean}>({})
   const router = useRouter()
 
   useEffect(() => {
@@ -73,6 +74,10 @@ export default function RewritePage({ params }: RewritePageProps) {
             content: foundArticle.rewrittenContent,
             wordpressHtml: foundArticle.wordpressHtml || ''
           })
+          // For rewritten articles, show the content by default
+          if (foundArticle.status === 'rewritten') {
+            setShowHtml(false) // Show text version by default for easier reading
+          }
         }
       }
     } catch (error) {
@@ -123,21 +128,15 @@ export default function RewritePage({ params }: RewritePageProps) {
     }
   }
 
-  const copyToClipboard = async (text: string) => {
+  const copyToClipboard = async (text: string, tooltipId: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      showNotification({
-        type: 'success',
-        title: 'Gekopieerd!',
-        message: 'De tekst is gekopieerd naar het klembord',
-        duration: 2000
-      })
+      setTooltips(prev => ({ ...prev, [tooltipId]: true }))
+      setTimeout(() => {
+        setTooltips(prev => ({ ...prev, [tooltipId]: false }))
+      }, 2000)
     } catch (error) {
-      showNotification({
-        type: 'error',
-        title: 'Kopiëren mislukt',
-        message: 'Kon de tekst niet kopiëren naar het klembord'
-      })
+      console.error('Failed to copy to clipboard:', error)
     }
   }
 
@@ -317,12 +316,22 @@ export default function RewritePage({ params }: RewritePageProps) {
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-medium text-gray-900 mb-2">{rewritten.title}</h3>
-                    <button
-                      onClick={() => copyToClipboard(rewritten.title)}
-                      className="text-xs text-primary-600 hover:text-primary-700"
-                    >
-                      Kopieer titel
-                    </button>
+                    <div className="relative inline-block">
+                      <button
+                        onClick={() => copyToClipboard(rewritten.title, 'title')}
+                        className="inline-flex items-center text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 px-2 py-1 rounded transition-colors duration-200"
+                      >
+                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Kopieer titel
+                      </button>
+                      {tooltips.title && (
+                        <div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-900 text-white text-xs rounded shadow-lg whitespace-nowrap z-10">
+                          Titel gekopieerd!
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -335,12 +344,22 @@ export default function RewritePage({ params }: RewritePageProps) {
                         {rewritten.content}
                       </div>
                     )}
-                    <button
-                      onClick={() => copyToClipboard(showHtml ? rewritten.wordpressHtml : rewritten.content)}
-                      className="mt-2 text-sm bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded"
-                    >
-                      Kopieer {showHtml ? 'HTML' : 'tekst'}
-                    </button>
+                    <div className="relative inline-block mt-2">
+                      <button
+                        onClick={() => copyToClipboard(showHtml ? rewritten.wordpressHtml : rewritten.content, 'content')}
+                        className="inline-flex items-center text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-2 rounded-md transition-colors duration-200"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Kopieer {showHtml ? 'HTML' : 'tekst'}
+                      </button>
+                      {tooltips.content && (
+                        <div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-900 text-white text-xs rounded shadow-lg whitespace-nowrap z-10">
+                          {showHtml ? 'HTML' : 'Tekst'} gekopieerd!
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

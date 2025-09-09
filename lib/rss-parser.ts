@@ -24,6 +24,10 @@ export async function fetchRSSFeed(feedUrl: string): Promise<any> {
   }
 }
 
+export interface RSSArticle extends Omit<NewsArticle, 'id' | 'createdAt'> {
+  matchedKeywords?: string[]
+}
+
 export async function parseArticlesFromFeed(
   feed: any, 
   source: string, 
@@ -32,8 +36,8 @@ export async function parseArticlesFromFeed(
   customKeywords?: string[],
   disableFiltering = false,
   categoryKeywords?: {[key: string]: string[]}
-): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {
-  const articles: Omit<NewsArticle, 'id' | 'createdAt'>[] = []
+): Promise<RSSArticle[]> {
+  const articles: RSSArticle[] = []
   
   // Default category keywords if not provided
   const defaultCategoryKeywords = {
@@ -54,14 +58,15 @@ export async function parseArticlesFromFeed(
     
     let bestCategory = 'other' // Default fallback
     let isRelevant = false
+    let matchedKeywords: string[] = [] // Declare outside if/else
     
     if (disableFiltering) {
       isRelevant = true
       bestCategory = category // Use feed's default category
+      matchedKeywords = [] // Empty for disabled filtering
     } else {
       // Smart categorization: find the best matching category
       let maxMatches = 0
-      let matchedKeywords: string[] = []
       
       for (const [cat, keywords] of Object.entries(keywordMap)) {
         const foundKeywords = keywords.filter(keyword => 
@@ -98,7 +103,7 @@ export async function parseArticlesFromFeed(
         category: bestCategory as NewsArticle['category'],
         originalContent: item.content || item.description || '',
         imageUrl,
-        matchedKeywords: disableFiltering ? [] : matchedKeywords
+        matchedKeywords: matchedKeywords
       })
     }
   }
@@ -148,8 +153,8 @@ function extractImageFromRSSItem(item: any): string | undefined {
   }
 }
 
-export async function fetchAllFeeds(disableFiltering = false, categoryKeywords?: {[key: string]: string[]}): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {
-  const allArticles: Omit<NewsArticle, 'id' | 'createdAt'>[] = []
+export async function fetchAllFeeds(disableFiltering = false, categoryKeywords?: {[key: string]: string[]}): Promise<RSSArticle[]> {
+  const allArticles: RSSArticle[] = []
   
   // Get configurable feeds or fallback to defaults
   const feedConfigs = await getFeedConfigs()

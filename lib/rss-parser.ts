@@ -10,7 +10,7 @@ export async function fetchRSSFeed(feedUrl: string): Promise<any> {
     
     // Set a timeout for RSS parsing
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('RSS fetch timeout')), 5000)
+      setTimeout(() => reject(new Error('RSS fetch timeout')), 7000)
     )
     
     const fetchPromise = parser.parseURL(feedUrl)
@@ -114,11 +114,11 @@ export async function fetchAllFeeds(): Promise<Omit<NewsArticle, 'id' | 'created
   
   console.log(`Processing ${enabledFeeds.length} enabled RSS feeds`)
   
-  // Process feeds in smaller batches to avoid timeouts - limit to 5 feeds max
-  const feedsToProcess = enabledFeeds.slice(0, 5)
-  console.log(`Limited to ${feedsToProcess.length} feeds to prevent timeouts`)
+  // Process feeds in smaller batches to avoid timeouts - limit to 8 feeds max
+  const feedsToProcess = enabledFeeds.slice(0, 8)
+  console.log(`Processing ${feedsToProcess.length} feeds (limited from ${enabledFeeds.length} to prevent timeouts)`)
   
-  const batchSize = 2
+  const batchSize = 3
   for (let i = 0; i < feedsToProcess.length; i += batchSize) {
     const batch = feedsToProcess.slice(i, i + batchSize)
     console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(feedsToProcess.length/batchSize)}`)

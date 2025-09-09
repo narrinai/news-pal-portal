@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international', 'other'])
-  const [selectedStatus, setSelectedStatus] = useState<string>('pending')
+  const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [cacheStatus, setCacheStatus] = useState<any>(null)
 
   // Get all articles for display

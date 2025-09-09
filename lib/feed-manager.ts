@@ -232,9 +232,22 @@ let customFeeds: RSSFeedConfig[] = []
 // Feed configuration storage/retrieval functions
 export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
   try {
-    // Return custom feeds if any have been added, otherwise defaults
+    // First try to load from Airtable (persistent)
+    try {
+      const { loadFeedsFromAirtable } = require('./airtable-feeds')
+      const airtableFeeds = await loadFeedsFromAirtable()
+      if (airtableFeeds.length > 0) {
+        customFeeds = airtableFeeds // Cache in memory
+        console.log(`Using ${airtableFeeds.length} feeds from Airtable`)
+        return airtableFeeds
+      }
+    } catch (airtableError) {
+      console.warn('Could not load from Airtable:', airtableError.message)
+    }
+    
+    // Return custom feeds if any have been added in memory
     if (customFeeds.length > 0) {
-      console.log(`Using ${customFeeds.length} custom feeds`)
+      console.log(`Using ${customFeeds.length} custom feeds from memory`)
       return customFeeds
     }
     
@@ -263,6 +276,15 @@ export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
     
     // Store in memory (immediate availability)
     customFeeds = [...feeds]
+    
+    // Store in Airtable for persistence
+    try {
+      const { saveFeedsToAirtable } = require('./airtable-feeds')
+      await saveFeedsToAirtable(feeds)
+      console.log('RSS feeds saved to Airtable for persistence')
+    } catch (airtableError) {
+      console.warn('Could not save to Airtable, using memory only:', airtableError.message)
+    }
     
     // Clear RSS cache to force refresh with new feeds
     const { refreshRSSCache } = require('./article-manager')

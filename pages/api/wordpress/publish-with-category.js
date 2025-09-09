@@ -29,7 +29,8 @@ export default async function handler(req, res) {
     // First, get or create "News" category
     let newsCategory = null
     try {
-      const categoriesResponse = await fetch(`${wpSiteUrl}/wp-json/wp/v2/categories?search=news`, {
+      // Get all categories
+      const categoriesResponse = await fetch(`${wpSiteUrl}/wp-json/wp/v2/categories?per_page=100`, {
         headers: {
           'Authorization': `Basic ${credentials}`,
           'Content-Type': 'application/json'
@@ -38,10 +39,39 @@ export default async function handler(req, res) {
       
       if (categoriesResponse.ok) {
         const categories = await categoriesResponse.json()
-        newsCategory = categories.find(cat => cat.name.toLowerCase() === 'news')
+        newsCategory = categories.find(cat => 
+          cat.name.toLowerCase() === 'news' || 
+          cat.name.toLowerCase() === 'nieuws' ||
+          cat.slug === 'news'
+        )
+        console.log(`Found ${categories.length} categories, News category:`, newsCategory?.name || 'not found')
+      }
+      
+      // Create News category if it doesn't exist
+      if (!newsCategory) {
+        console.log('Creating News category...')
+        const createCategoryResponse = await fetch(`${wpSiteUrl}/wp-json/wp/v2/categories`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${credentials}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: 'News',
+            slug: 'news',
+            description: 'Nieuws en updates van News Pal Portal'
+          })
+        })
+        
+        if (createCategoryResponse.ok) {
+          newsCategory = await createCategoryResponse.json()
+          console.log('News category created:', newsCategory.id)
+        } else {
+          console.error('Failed to create News category:', await createCategoryResponse.text())
+        }
       }
     } catch (error) {
-      console.log('Could not fetch categories:', error.message)
+      console.error('Category management error:', error.message)
     }
 
     // Prepare WordPress post with News category

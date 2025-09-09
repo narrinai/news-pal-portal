@@ -39,7 +39,8 @@ export default async function handler(req, res) {
     // Publish to WordPress custom post type "news"
     const credentials = Buffer.from(`${wpUsername}:${wpPassword}`).toString('base64')
     
-    const response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
+    // First try standard posts, then news custom post type
+    const response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,
@@ -69,7 +70,7 @@ export default async function handler(req, res) {
         error: 'WordPress publish failed',
         status: response.status,
         details: errorData,
-        endpoint: `${wpSiteUrl}/wp-json/wp/v2/news`
+        endpoint: `${wpSiteUrl}/wp-json/wp/v2/posts`
       })
     }
 

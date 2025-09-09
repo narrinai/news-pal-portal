@@ -273,23 +273,23 @@ export default function SettingsPage() {
         const toggledFeed = updatedFeeds.find(f => f.id === feedId)
         showNotification({
           type: 'success',
-          title: toggledFeed?.enabled ? 'RSS feed ingeschakeld' : 'RSS feed uitgeschakeld',
-          message: `${toggledFeed?.name} is ${toggledFeed?.enabled ? 'ingeschakeld' : 'uitgeschakeld'}`,
+          title: toggledFeed?.enabled ? 'Website source enabled' : 'Website source disabled',
+          message: `${toggledFeed?.name} is now ${toggledFeed?.enabled ? 'enabled' : 'disabled'}`,
           duration: 3000
         })
       } else {
         showNotification({
           type: 'error',
-          title: 'Fout bij opslaan',
-          message: 'Kon feed status niet opslaan'
+          title: 'Save failed',
+          message: 'Could not save source status'
         })
       }
     } catch (error) {
       console.error('Error toggling feed:', error)
       showNotification({
         type: 'error',
-        title: 'Netwerkfout',
-        message: 'Kon verbinding met server niet maken'
+        title: 'Network error',
+        message: 'Could not connect to server'
       })
     }
   }
@@ -297,10 +297,10 @@ export default function SettingsPage() {
   const removeFeed = async (feedId: string) => {
     const feedToRemove = settings.rssFeeds.find(f => f.id === feedId)
     const confirmed = await showConfirm({
-      title: 'RSS feed verwijderen',
-      message: `Weet je zeker dat je "${feedToRemove?.name}" wilt verwijderen? Deze actie kan niet ongedaan gemaakt worden.`,
-      confirmText: 'Verwijderen',
-      cancelText: 'Annuleren'
+      title: 'Remove website source',
+      message: `Are you sure you want to remove "${feedToRemove?.name}"? This action cannot be undone.`,
+      confirmText: 'Remove',
+      cancelText: 'Cancel'
     })
     
     if (!confirmed) return
@@ -375,8 +375,9 @@ export default function SettingsPage() {
         <div className="border-b border-gray-200 mb-8">
           <nav className="-mb-px flex space-x-8">
             {[
-              { id: 'categories', label: 'Categorieën' },
-              { id: 'instructions', label: 'AI Instructies' },
+              { id: 'categories', label: 'Categories' },
+              { id: 'keywords', label: 'Keywords' },
+              { id: 'instructions', label: 'AI Instructions' },
               { id: 'feeds', label: 'RSS Feeds' }
             ].map((tab) => (
               <button
@@ -398,12 +399,12 @@ export default function SettingsPage() {
         {activeTab === 'categories' && (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Artikel Categorieën</h2>
+              <h2 className="text-xl font-semibold">Article Categories</h2>
               <button
                 onClick={addCategory}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
               >
-                + Categorie Toevoegen
+                + Add Category
               </button>
             </div>
             
@@ -415,7 +416,7 @@ export default function SettingsPage() {
                     onClick={() => removeCategory(category)}
                     className="text-red-600 hover:text-red-700 text-sm font-medium"
                   >
-                    Verwijderen
+                    Remove
                   </button>
                 </div>
               ))}
@@ -423,15 +424,57 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* Keywords Tab */}
+        {activeTab === 'keywords' && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold">Filter Keywords</h2>
+                <p className="text-sm text-gray-600 mt-1">Keywords used to filter relevant articles from RSS feeds</p>
+              </div>
+              <button
+                onClick={addKeyword}
+                className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+              >
+                + Add Keyword
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {settings.keywords.map((keyword) => (
+                <div key={keyword} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <span className="font-medium text-sm">{keyword}</span>
+                  <button
+                    onClick={() => removeKeyword(keyword)}
+                    className="text-red-600 hover:text-red-700 text-xs ml-2"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-medium text-blue-900 mb-2">ℹ️ How keyword filtering works</h3>
+              <div className="text-sm text-blue-800 space-y-1">
+                <p>• Articles are automatically filtered based on these keywords</p>
+                <p>• Case-insensitive matching in title and description</p>
+                <p>• Articles must contain at least one keyword to be selected</p>
+                <p>• Both English and Dutch keywords are supported</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* AI Instructions Tab */}
         {activeTab === 'instructions' && (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-6">AI Herschrijf Instructies</h2>
+            <h2 className="text-xl font-semibold mb-6">AI Rewrite Instructions</h2>
             
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Algemene Instructie
+                  General Instructions
                 </label>
                 <textarea
                   value={settings.rewriteInstructions.general}
@@ -443,7 +486,7 @@ export default function SettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Professionele Stijl
+                  Professional Style
                 </label>
                 <textarea
                   value={settings.rewriteInstructions.professional}
@@ -455,7 +498,7 @@ export default function SettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Boeiende Stijl
+                  Engaging Style
                 </label>
                 <textarea
                   value={settings.rewriteInstructions.engaging}
@@ -467,7 +510,7 @@ export default function SettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Technische Stijl
+                  Technical Style
                 </label>
                 <textarea
                   value={settings.rewriteInstructions.technical}
@@ -486,12 +529,15 @@ export default function SettingsPage() {
             {/* Active Feeds */}
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">RSS Feed Bronnen</h2>
+                <div>
+                  <h2 className="text-xl font-semibold">Website Sources</h2>
+                  <p className="text-sm text-gray-600 mt-1">Add websites and we'll automatically find their RSS feeds</p>
+                </div>
                 <button
                   onClick={() => setShowAddFeed(true)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
                 >
-                  + Feed Toevoegen
+                  + Add Website
                 </button>
               </div>
 
@@ -505,7 +551,7 @@ export default function SettingsPage() {
                           <div className="font-medium text-gray-900">{feed.name}</div>
                           <div className="text-sm text-gray-500">{feed.url}</div>
                           <div className="text-xs text-gray-400 mt-1">
-                            {feed.category} • Max {feed.maxArticles || 10} artikelen
+                            {feed.category} • Max {feed.maxArticles || 10} articles
                           </div>
                         </div>
                       </div>
@@ -520,7 +566,7 @@ export default function SettingsPage() {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
-                        {feed.enabled ? 'Actief' : 'Inactief'}
+                        {feed.enabled ? 'Active' : 'Inactive'}
                       </button>
                       
                       <button
@@ -535,17 +581,20 @@ export default function SettingsPage() {
 
                 {settings.rssFeeds.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
-                    Geen RSS feeds geconfigureerd. Voeg er een toe om te beginnen!
+                    No website sources configured. Add one to get started!
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Add Feed Form */}
+            {/* Add Website Form */}
             {showAddFeed && (
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Nieuwe RSS Feed Toevoegen</h3>
+                  <div>
+                    <h3 className="text-lg font-semibold">Add New Website Source</h3>
+                    <p className="text-sm text-gray-600 mt-1">We'll automatically detect and use the RSS feed</p>
+                  </div>
                   <button
                     onClick={() => setShowAddFeed(false)}
                     className="text-gray-500 hover:text-gray-700"
@@ -557,34 +606,34 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Feed Naam
+                      Website Name
                     </label>
                     <input
                       type="text"
                       value={newFeed.name}
                       onChange={(e) => setNewFeed(prev => ({ ...prev, name: e.target.value }))}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      placeholder="Bijv. TechCrunch Security"
+                      placeholder="e.g. TechCrunch Security"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      RSS Feed URL
+                      Website URL
                     </label>
                     <input
                       type="url"
                       value={newFeed.url}
                       onChange={(e) => setNewFeed(prev => ({ ...prev, url: e.target.value }))}
                       className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      placeholder="https://example.com/rss.xml"
+                      placeholder="https://example.com (we'll find the RSS feed)"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Categorie
+                        Category
                       </label>
                       <select
                         value={newFeed.category}
@@ -599,7 +648,7 @@ export default function SettingsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Max Artikelen
+                        Max Articles
                       </label>
                       <input
                         type="number"
@@ -615,37 +664,36 @@ export default function SettingsPage() {
                   <div className="flex justify-end space-x-3">
                     <button
                       onClick={() => setShowAddFeed(false)}
-                      className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md"
+                      className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200"
                     >
-                      Annuleren
+                      Cancel
                     </button>
                     <button
                       onClick={addFeed}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
+                      className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-200"
                     >
-                      Feed Toevoegen
+                      Add Website
                     </button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Search Process Explanation */}
+            {/* How It Works */}
             <div className="bg-blue-50 rounded-lg p-6">
-              <h3 className="font-semibold text-blue-900 mb-3">🔍 Hoe de zoekfunctie werkt:</h3>
+              <h3 className="font-semibold text-blue-900 mb-3">🔍 How the article discovery works:</h3>
               <div className="text-sm text-blue-800 space-y-2">
-                <div><strong>1. RSS Feeds:</strong> Alleen actieve feeds worden doorlopen</div>
-                <div><strong>2. Artikel limiet:</strong> Per feed max aantal artikelen (instelbaar)</div>
-                <div><strong>3. Keyword filtering:</strong> Automatische selectie op 20+ cybersecurity termen</div>
-                <div><strong>4. Duplicaat check:</strong> URL-based filtering</div>
-                <div><strong>5. Airtable opslag:</strong> Status "pending" voor handmatige selectie</div>
+                <div><strong>1. Website Sources:</strong> Only active sources are processed</div>
+                <div><strong>2. RSS Detection:</strong> We automatically find RSS feeds from website URLs</div>
+                <div><strong>3. Keyword Filtering:</strong> Articles are filtered using your custom keywords</div>
+                <div><strong>4. Duplicate Prevention:</strong> URL-based filtering to avoid duplicates</div>
+                <div><strong>5. Manual Review:</strong> Articles start as "pending" for your selection</div>
               </div>
               
               <div className="mt-4 p-3 bg-blue-100 rounded-md">
-                <div className="font-medium text-blue-900 mb-1">🎯 Keywords die gebruikt worden:</div>
-                <div className="text-xs text-blue-700">
-                  security, cybersecurity, hack, breach, malware, ransomware, phishing, vulnerability, exploit, 
-                  beveiliging, cyberbeveiliging, datalek, privacy, encryptie... (20+ termen)
+                <div className="font-medium text-blue-900 mb-1">💡 Tip:</div>
+                <div className="text-sm text-blue-700">
+                  Add website homepages (like https://techcrunch.com) - we'll automatically find their RSS feeds!
                 </div>
               </div>
             </div>

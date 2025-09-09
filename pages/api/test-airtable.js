@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const base = new Airtable({ apiKey: airtableKey }).base(airtableBase);
     
     // Try to list records (just get 1 to test connection)
-    const records = await base('Articles').select({
+    const records = await base('Table 1').select({
       maxRecords: 1
     }).all();
     

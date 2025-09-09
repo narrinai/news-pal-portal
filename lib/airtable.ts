@@ -21,7 +21,7 @@ export interface NewsArticle {
 
 export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt'>) {
   try {
-    const records = await base('Articles').create([
+    const records = await base('Table 1').create([
       {
         fields: {
           title: article.title,
@@ -60,7 +60,7 @@ export async function getArticles(status?: string, category?: string): Promise<N
       filterFormula = filters.length > 1 ? `AND(${filters.join(', ')})` : filters[0]
     }
 
-    const records = await base('Articles').select({
+    const records = await base('Table 1').select({
       ...(filterFormula && { filterByFormula: filterFormula }),
       sort: [{ field: 'publishedAt', direction: 'desc' }],
       maxRecords: 100
@@ -88,7 +88,7 @@ export async function getArticles(status?: string, category?: string): Promise<N
 
 export async function updateArticle(id: string, updates: Partial<NewsArticle>) {
   try {
-    const record = await base('Articles').update(id, updates)
+    const record = await base('Table 1').update(id, updates)
     return record
   } catch (error) {
     console.error('Error updating article:', error)
@@ -98,7 +98,7 @@ export async function updateArticle(id: string, updates: Partial<NewsArticle>) {
 
 export async function deleteArticle(id: string) {
   try {
-    await base('Articles').destroy(id)
+    await base('Table 1').destroy(id)
     return true
   } catch (error) {
     console.error('Error deleting article:', error)

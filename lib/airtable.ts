@@ -44,7 +44,7 @@ export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt
   }
 }
 
-export async function getArticles(status?: string, category?: string): Promise<NewsArticle[]> {
+export async function getArticles(status?: string, categories?: string | string[]): Promise<NewsArticle[]> {
   try {
     let filterFormula = ''
     const filters: string[] = []
@@ -52,8 +52,17 @@ export async function getArticles(status?: string, category?: string): Promise<N
     if (status) {
       filters.push(`{status} = '${status}'`)
     }
-    if (category) {
-      filters.push(`{category} = '${category}'`)
+    
+    if (categories) {
+      const categoryArray = Array.isArray(categories) ? categories : [categories]
+      if (categoryArray.length > 0) {
+        const categoryFilters = categoryArray.map(cat => `{category} = '${cat}'`)
+        if (categoryFilters.length > 1) {
+          filters.push(`OR(${categoryFilters.join(', ')})`)
+        } else {
+          filters.push(categoryFilters[0])
+        }
+      }
     }
     
     if (filters.length > 0) {

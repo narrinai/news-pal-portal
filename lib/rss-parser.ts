@@ -1,53 +1,8 @@
 import Parser from 'rss-parser'
 import { NewsArticle } from './airtable'
+import { getFeedConfigs, DEFAULT_KEYWORDS } from './feed-manager'
 
 const parser = new Parser()
-
-export interface RSSFeed {
-  url: string
-  name: string
-  category: 'cybersecurity-nl' | 'cybersecurity-international' | 'other'
-}
-
-export const RSS_FEEDS: RSSFeed[] = [
-  // International Cybersecurity
-  {
-    url: 'https://feeds.feedburner.com/TheHackersNews',
-    name: 'The Hacker News',
-    category: 'cybersecurity-international'
-  },
-  {
-    url: 'https://krebsonsecurity.com/feed/',
-    name: 'Krebs on Security',
-    category: 'cybersecurity-international'
-  },
-  {
-    url: 'https://www.securityweek.com/feed/',
-    name: 'Security Week',
-    category: 'cybersecurity-international'
-  },
-  {
-    url: 'https://threatpost.com/feed/',
-    name: 'Threatpost',
-    category: 'cybersecurity-international'
-  },
-  {
-    url: 'https://www.darkreading.com/rss.xml',
-    name: 'Dark Reading',
-    category: 'cybersecurity-international'
-  },
-  // Dutch Cybersecurity
-  {
-    url: 'https://www.security.nl/rss.xml',
-    name: 'Security.NL',
-    category: 'cybersecurity-nl'
-  },
-  {
-    url: 'https://www.computable.nl/rss.xml',
-    name: 'Computable',
-    category: 'cybersecurity-nl'
-  }
-]
 
 export async function fetchRSSFeed(feedUrl: string): Promise<any> {
   try {
@@ -62,17 +17,20 @@ export async function fetchRSSFeed(feedUrl: string): Promise<any> {
 export async function parseArticlesFromFeed(
   feed: any, 
   source: string, 
-  category: NewsArticle['category']
+  category: NewsArticle['category'],
+  maxArticles: number = 10,
+  customKeywords?: string[]
 ): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {
   const articles: Omit<NewsArticle, 'id' | 'createdAt'>[] = []
   
-  for (const item of feed.items.slice(0, 10)) { // Take only latest 10 articles
+  for (const item of feed.items.slice(0, maxArticles)) { // Configurable limit
     // Filter for cybersecurity-related content
     const title = item.title || ''
     const description = item.contentSnippet || item.description || ''
     const content = (title + ' ' + description).toLowerCase()
     
-    const isRelevant = containsSecurityKeywords(content)
+    const keywords = customKeywords || DEFAULT_KEYWORDS
+    const isRelevant = containsKeywords(content, keywords)
     
     if (isRelevant) {
       articles.push({
@@ -91,31 +49,31 @@ export async function parseArticlesFromFeed(
   return articles
 }
 
-function containsSecurityKeywords(content: string): boolean {
-  const keywords = [
-    // English security keywords
-    'security', 'cybersecurity', 'hack', 'breach', 'malware', 
-    'ransomware', 'phishing', 'vulnerability', 'exploit', 'cyber',
-    'attack', 'threat', 'data breach', 'privacy', 'encryption',
-    'firewall', 'antivirus', 'zero-day', 'apt', 'ddos',
-    
-    // Dutch security keywords
-    'beveiliging', 'cyberbeveiliging', 'hack', 'inbreuk', 'malware',
-    'ransomware', 'phishing', 'kwetsbaarheid', 'exploit', 'cyber',
-    'aanval', 'bedreiging', 'datalek', 'privacy', 'encryptie',
-    'firewall', 'antivirus', 'zero-day'
-  ]
-  
-  return keywords.some(keyword => content.includes(keyword))
+function containsKeywords(content: string, keywords: string[]): boolean {
+  return keywords.some(keyword => content.includes(keyword.toLowerCase()))
 }
 
 export async function fetchAllFeeds(): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {
   const allArticles: Omit<NewsArticle, 'id' | 'createdAt'>[] = []
   
-  for (const rssFeed of RSS_FEEDS) {
+  // Get configurable feeds or fallback to defaults
+  const feedConfigs = await getFeedConfigs()
+  const enabledFeeds = feedConfigs.filter(feed => feed.enabled)
+  
+  console.log(`Processing ${enabledFeeds.length} enabled RSS feeds`)
+  
+  for (const rssFeed of enabledFeeds) {
     try {
+      console.log(`Fetching feed: ${rssFeed.name} (${rssFeed.url})`)
       const feed = await fetchRSSFeed(rssFeed.url)
-      const articles = await parseArticlesFromFeed(feed, rssFeed.name, rssFeed.category)
+      const articles = await parseArticlesFromFeed(
+        feed, 
+        rssFeed.name, 
+        rssFeed.category as NewsArticle['category'],
+        rssFeed.maxArticles || 10,
+        rssFeed.keywords
+      )
+      console.log(`Found ${articles.length} relevant articles from ${rssFeed.name}`)
       allArticles.push(...articles)
     } catch (error) {
       console.error(`Error processing feed ${rssFeed.name}:`, error)

@@ -1,0 +1,46 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#d946ef" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="45" fill="url(#brandGradient)" />
+  
+  <!-- Struisvogel silhouet -->
+  <g transform="translate(15, 15) scale(0.7)">
+    <!-- Lichaam -->
+    <ellipse cx="50" cy="65" rx="18" ry="25" fill="white" opacity="0.95" />
+    
+    <!-- Nek -->
+    <ellipse cx="45" cy="40" rx="6" ry="20" fill="white" opacity="0.95" />
+    
+    <!-- Hoofd -->
+    <ellipse cx="42" cy="22" rx="8" ry="10" fill="white" opacity="0.95" />
+    
+    <!-- Snavel -->
+    <ellipse cx="38" cy="20" rx="4" ry="2" fill="#fbbf24" />
+    
+    <!-- Oog -->
+    <circle cx="45" cy="20" r="2" fill="#0369a1" />
+    <circle cx="45" cy="20" r="1" fill="white" />
+    
+    <!-- Poten -->
+    <rect x="42" y="85" width="3" height="15" fill="#fbbf24" />
+    <rect x="52" y="85" width="3" height="15" fill="#fbbf24" />
+    
+    <!-- Veren detail op lichaam -->
+    <path d="M35 55 Q40 50 45 55 Q50 50 55 55 Q60 50 65 55" 
+          stroke="#0369a1" 
+          stroke-width="1.5" 
+          fill="none" 
+          opacity="0.6" />
+    <path d="M35 65 Q40 60 45 65 Q50 60 55 65 Q60 60 65 65" 
+          stroke="#0369a1" 
+          stroke-width="1.5" 
+          fill="none" 
+          opacity="0.4" />
+  </g>
+</svg>

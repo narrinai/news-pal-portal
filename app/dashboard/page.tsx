@@ -2,24 +2,28 @@
 
 import { useState, useEffect } from 'react'
 import { NewsArticle } from '../../lib/airtable'
+import Logo from '../../components/Logo'
 
 export default function DashboardPage() {
   const [articles, setArticles] = useState<NewsArticle[]>([])
   const [loading, setLoading] = useState(true)
   const [fetching, setFetching] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity-nl', 'cybersecurity-international', 'other'])
   const [selectedStatus, setSelectedStatus] = useState<string>('pending')
 
   useEffect(() => {
     fetchArticles()
-  }, [selectedCategory, selectedStatus])
+  }, [selectedCategories, selectedStatus])
 
   const fetchArticles = async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (selectedStatus !== 'all') params.append('status', selectedStatus)
-      if (selectedCategory !== 'all') params.append('category', selectedCategory)
+      // Add each selected category as a separate parameter
+      selectedCategories.forEach(category => {
+        params.append('category', category)
+      })
       
       const response = await fetch(`/api/articles?${params}`)
       if (response.ok) {
@@ -31,6 +35,16 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => {
+      if (prev.includes(category)) {
+        return prev.filter(c => c !== category)
+      } else {
+        return [...prev, category]
+      }
+    })
   }
 
   const fetchNewArticles = async () => {
@@ -81,7 +95,9 @@ export default function DashboardPage() {
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <h1 className="text-3xl font-bold text-gray-900">News Pal Portal</h1>
+            <div className="flex items-center">
+              <Logo size="lg" className="mr-4" />
+            </div>
             <div className="flex space-x-3">
               <a
                 href="/dashboard/settings"
@@ -103,29 +119,59 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
-        <div className="mb-6 flex space-x-4">
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 bg-white"
-          >
-            <option value="all">Alle statussen</option>
-            <option value="pending">Pending</option>
-            <option value="selected">Selected</option>
-            <option value="rewritten">Rewritten</option>
-            <option value="published">Published</option>
-          </select>
+        <div className="mb-6 space-y-4">
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 bg-white"
+            >
+              <option value="all">Alle statussen</option>
+              <option value="pending">Pending</option>
+              <option value="selected">Selected</option>
+              <option value="rewritten">Rewritten</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
 
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 bg-white"
-          >
-            <option value="all">Alle categorieën</option>
-            <option value="cybersecurity-nl">Cybersecurity NL</option>
-            <option value="cybersecurity-international">Cybersecurity International</option>
-            <option value="other">Other</option>
-          </select>
+          {/* Categories Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Categorieën</label>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => toggleCategory('cybersecurity-nl')}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  selectedCategories.includes('cybersecurity-nl')
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                🇳🇱 Cybersecurity NL
+              </button>
+              <button
+                onClick={() => toggleCategory('cybersecurity-international')}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  selectedCategories.includes('cybersecurity-international')
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                🌍 Cybersecurity International
+              </button>
+              <button
+                onClick={() => toggleCategory('other')}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  selectedCategories.includes('other')
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                📰 Other
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Articles Grid */}
@@ -137,68 +183,79 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {articles.map((article) => (
-              <div key={article.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    article.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    article.status === 'selected' ? 'bg-blue-100 text-blue-800' :
-                    article.status === 'rewritten' ? 'bg-green-100 text-green-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {article.status}
-                  </span>
-                  <span className="text-xs text-gray-500">{article.source}</span>
+              <div key={article.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                {/* Narrow rectangle image */}
+                <div className="w-full h-32 bg-gradient-to-r from-blue-100 to-purple-100 flex items-center justify-center">
+                  <div className="text-gray-400">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                    </svg>
+                  </div>
                 </div>
                 
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                  {article.title}
-                </h3>
-                
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {article.description}
-                </p>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">
-                    {new Date(article.publishedAt).toLocaleDateString('nl-NL')}
-                  </span>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      article.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      article.status === 'selected' ? 'bg-blue-100 text-blue-800' :
+                      article.status === 'rewritten' ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {article.status}
+                    </span>
+                    <span className="text-xs text-gray-500">{article.source}</span>
+                  </div>
                   
-                  <div className="flex space-x-2">
-                    <a
-                      href={article.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-                    >
-                      Bekijk
-                    </a>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                    {article.title}
+                  </h3>
+                  
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                    {article.description}
+                  </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">
+                      {new Date(article.publishedAt).toLocaleDateString('nl-NL')}
+                    </span>
                     
-                    {article.status === 'pending' && (
-                      <button
-                        onClick={() => selectArticle(article.id!)}
-                        className="text-green-600 hover:text-green-700 text-sm font-medium"
-                      >
-                        Selecteer
-                      </button>
-                    )}
-                    
-                    {article.status === 'selected' && (
+                    <div className="flex space-x-2">
                       <a
-                        href={`/dashboard/rewrite/${article.id}`}
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                      >
-                        Herschrijf
-                      </a>
-                    )}
-                    
-                    {article.status === 'rewritten' && (
-                      <a
-                        href={`/dashboard/rewrite/${article.id}`}
-                        className="text-green-600 hover:text-green-700 text-sm font-medium"
+                        href={article.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary-600 hover:text-primary-700 text-sm font-medium"
                       >
                         Bekijk
                       </a>
-                    )}
+                      
+                      {article.status === 'pending' && (
+                        <button
+                          onClick={() => selectArticle(article.id!)}
+                          className="text-green-600 hover:text-green-700 text-sm font-medium"
+                        >
+                          Selecteer
+                        </button>
+                      )}
+                      
+                      {article.status === 'selected' && (
+                        <a
+                          href={`/dashboard/rewrite/${article.id}`}
+                          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                        >
+                          Herschrijf
+                        </a>
+                      )}
+                      
+                      {article.status === 'rewritten' && (
+                        <a
+                          href={`/dashboard/rewrite/${article.id}`}
+                          className="text-green-600 hover:text-green-700 text-sm font-medium"
+                        >
+                          Bekijk
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

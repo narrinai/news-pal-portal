@@ -9,7 +9,10 @@ export default async function handler(req, res) {
     const { status, category } = req.query;
     console.log(`Fetching articles with status: ${status}, category: ${category}`)
     
-    const articles = await getArticles(status, category);
+    // Handle multiple categories if provided
+    const categories = Array.isArray(category) ? category : (category ? [category] : undefined);
+    
+    const articles = await getArticles(status, categories);
     console.log(`Retrieved ${articles.length} articles from Airtable`)
     
     return res.status(200).json(articles);

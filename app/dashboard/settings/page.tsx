@@ -12,10 +12,12 @@ interface Settings {
     technical: string
   }
   rssFeeds: {
+    id: string
     url: string
     name: string
     category: string
     enabled: boolean
+    maxArticles?: number
   }[]
 }
 
@@ -31,12 +33,21 @@ export default function SettingsPage() {
     rssFeeds: []
   })
   
+  const [showAddFeed, setShowAddFeed] = useState(false)
+  const [newFeed, setNewFeed] = useState({
+    url: '',
+    name: '',
+    category: 'cybersecurity-international',
+    maxArticles: 10
+  })
+  
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'categories' | 'instructions' | 'feeds'>('categories')
   const router = useRouter()
 
   useEffect(() => {
     loadSettings()
+    loadFeeds()
   }, [])
 
   const loadSettings = async () => {
@@ -48,6 +59,18 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error loading settings:', error)
+    }
+  }
+
+  const loadFeeds = async () => {
+    try {
+      const response = await fetch('/api/feeds')
+      if (response.ok) {
+        const feeds = await response.json()
+        setSettings(prev => ({ ...prev, rssFeeds: feeds }))
+      }
+    } catch (error) {
+      console.error('Error loading feeds:', error)
     }
   }
 
@@ -98,6 +121,84 @@ export default function SettingsPage() {
         [type]: value
       }
     }))
+  }
+
+  const addFeed = async () => {
+    if (!newFeed.url || !newFeed.name) {
+      alert('URL en naam zijn verplicht')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/feeds', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newFeed,
+          enabled: true
+        })
+      })
+
+      if (response.ok) {
+        await loadFeeds()
+        setNewFeed({ url: '', name: '', category: 'cybersecurity-international', maxArticles: 10 })
+        setShowAddFeed(false)
+        alert('RSS feed toegevoegd!')
+      } else {
+        const error = await response.json()
+        alert(`Fout: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error adding feed:', error)
+      alert('Netwerkfout bij toevoegen feed')
+    }
+  }
+
+  const toggleFeed = async (feedId: string) => {
+    const updatedFeeds = settings.rssFeeds.map(feed => 
+      feed.id === feedId ? { ...feed, enabled: !feed.enabled } : feed
+    )
+
+    try {
+      const response = await fetch('/api/feeds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feeds: updatedFeeds })
+      })
+
+      if (response.ok) {
+        setSettings(prev => ({ ...prev, rssFeeds: updatedFeeds }))
+      } else {
+        alert('Fout bij opslaan feed status')
+      }
+    } catch (error) {
+      console.error('Error toggling feed:', error)
+      alert('Netwerkfout')
+    }
+  }
+
+  const removeFeed = async (feedId: string) => {
+    if (!confirm('Weet je zeker dat je deze RSS feed wilt verwijderen?')) return
+
+    const updatedFeeds = settings.rssFeeds.filter(feed => feed.id !== feedId)
+    
+    try {
+      const response = await fetch('/api/feeds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feeds: updatedFeeds })
+      })
+
+      if (response.ok) {
+        setSettings(prev => ({ ...prev, rssFeeds: updatedFeeds }))
+        alert('RSS feed verwijderd!')
+      } else {
+        alert('Fout bij verwijderen feed')
+      }
+    } catch (error) {
+      console.error('Error removing feed:', error)
+      alert('Netwerkfout')
+    }
   }
 
   return (
@@ -238,61 +339,170 @@ export default function SettingsPage() {
 
         {/* RSS Feeds Tab */}
         {activeTab === 'feeds' && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">RSS Feed Configuratie</h2>
-              <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                + Feed Toevoegen
-              </button>
+          <div className="space-y-6">
+            {/* Active Feeds */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">RSS Feed Bronnen</h2>
+                <button
+                  onClick={() => setShowAddFeed(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  + Feed Toevoegen
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {settings.rssFeeds.map((feed) => (
+                  <div key={feed.id} className="border rounded-lg p-4 flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-3 h-3 rounded-full ${feed.enabled ? 'bg-green-500' : 'bg-gray-400'}`} />
+                        <div>
+                          <div className="font-medium text-gray-900">{feed.name}</div>
+                          <div className="text-sm text-gray-500">{feed.url}</div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            {feed.category} • Max {feed.maxArticles || 10} artikelen
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => toggleFeed(feed.id)}
+                        className={`px-3 py-1 rounded text-sm font-medium ${
+                          feed.enabled 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {feed.enabled ? 'Actief' : 'Inactief'}
+                      </button>
+                      
+                      <button
+                        onClick={() => removeFeed(feed.id)}
+                        className="text-red-600 hover:text-red-700 text-sm font-medium px-2"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {settings.rssFeeds.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    Geen RSS feeds geconfigureerd. Voeg er een toe om te beginnen!
+                  </div>
+                )}
+              </div>
             </div>
-            
-            <div className="space-y-4">
-              <div className="text-sm text-gray-600 mb-4">
-                Huidige actieve RSS feeds (hardcoded in code):
-              </div>
-              
-              {/* Current hardcoded feeds display */}
-              <div className="grid gap-4">
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <div className="font-medium text-gray-900 mb-2">Internationaal Cybersecurity</div>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <div>• The Hacker News - feeds.feedburner.com/TheHackersNews</div>
-                    <div>• Krebs on Security - krebsonsecurity.com/feed/</div>
-                    <div>• Security Week - securityweek.com/feed/</div>
-                    <div>• Threatpost - threatpost.com/feed/</div>
-                    <div>• Dark Reading - darkreading.com/rss.xml</div>
+
+            {/* Add Feed Form */}
+            {showAddFeed && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Nieuwe RSS Feed Toevoegen</h3>
+                  <button
+                    onClick={() => setShowAddFeed(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Feed Naam
+                    </label>
+                    <input
+                      type="text"
+                      value={newFeed.name}
+                      onChange={(e) => setNewFeed(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      placeholder="Bijv. TechCrunch Security"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      RSS Feed URL
+                    </label>
+                    <input
+                      type="url"
+                      value={newFeed.url}
+                      onChange={(e) => setNewFeed(prev => ({ ...prev, url: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      placeholder="https://example.com/rss.xml"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Categorie
+                      </label>
+                      <select
+                        value={newFeed.category}
+                        onChange={(e) => setNewFeed(prev => ({ ...prev, category: e.target.value }))}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      >
+                        {settings.categories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Max Artikelen
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={newFeed.maxArticles}
+                        onChange={(e) => setNewFeed(prev => ({ ...prev, maxArticles: parseInt(e.target.value) }))}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => setShowAddFeed(false)}
+                      className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md"
+                    >
+                      Annuleren
+                    </button>
+                    <button
+                      onClick={addFeed}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
+                    >
+                      Feed Toevoegen
+                    </button>
                   </div>
                 </div>
-                
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <div className="font-medium text-gray-900 mb-2">Nederlands Cybersecurity</div>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <div>• Security.NL - security.nl/rss.xml</div>
-                    <div>• Computable - computable.nl/rss.xml</div>
-                  </div>
-                </div>
+              </div>
+            )}
+
+            {/* Search Process Explanation */}
+            <div className="bg-blue-50 rounded-lg p-6">
+              <h3 className="font-semibold text-blue-900 mb-3">🔍 Hoe de zoekfunctie werkt:</h3>
+              <div className="text-sm text-blue-800 space-y-2">
+                <div><strong>1. RSS Feeds:</strong> Alleen actieve feeds worden doorlopen</div>
+                <div><strong>2. Artikel limiet:</strong> Per feed max aantal artikelen (instelbaar)</div>
+                <div><strong>3. Keyword filtering:</strong> Automatische selectie op 20+ cybersecurity termen</div>
+                <div><strong>4. Duplicaat check:</strong> URL-based filtering</div>
+                <div><strong>5. Airtable opslag:</strong> Status "pending" voor handmatige selectie</div>
               </div>
               
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <div className="text-sm text-blue-800">
-                  <div className="font-medium mb-2">📋 Hoe artikelen worden opgehaald:</div>
-                  <ol className="list-decimal list-inside space-y-1 text-blue-700">
-                    <li>Klik "Nieuwe Artikelen Ophalen" in dashboard</li>
-                    <li>RSS Parser haalt alle feeds op</li>
-                    <li>Smart filtering op cybersecurity keywords</li>
-                    <li>Opslag in Airtable met status "pending"</li>
-                    <li>Duplicaten worden gefilterd op URL</li>
-                  </ol>
-                </div>
-              </div>
-              
-              <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
-                <div className="text-sm text-yellow-800">
-                  <div className="font-medium mb-1">🚧 Uitbreiding mogelijk:</div>
-                  <div className="text-yellow-700">
-                    Feeds zijn momenteel hardcoded. Configureerbare feeds kunnen later toegevoegd worden 
-                    met enable/disable functionaliteit en custom categorieën.
-                  </div>
+              <div className="mt-4 p-3 bg-blue-100 rounded-md">
+                <div className="font-medium text-blue-900 mb-1">🎯 Keywords die gebruikt worden:</div>
+                <div className="text-xs text-blue-700">
+                  security, cybersecurity, hack, breach, malware, ransomware, phishing, vulnerability, exploit, 
+                  beveiliging, cyberbeveiliging, datalek, privacy, encryptie... (20+ termen)
                 </div>
               </div>
             </div>

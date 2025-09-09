@@ -3,7 +3,6 @@
   publish = ".next"
 
 [build.environment]
-  NEXT_PRIVATE_TARGET = "server"
   SECRETS_SCAN_ENABLED = "false"
 
 [[plugins]]
@@ -17,8 +16,3 @@
 # AIRTABLE_BASE_ID - Your Airtable base ID  
 # OPENAI_API_KEY - Your OpenAI API key
 # PORTAL_PASSWORD - Password for portal access
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200

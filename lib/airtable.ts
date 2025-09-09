@@ -1,8 +1,8 @@
 import Airtable from 'airtable'
 
 const base = new Airtable({
-  apiKey: process.env.AIRTABLE_API_KEY
-}).base(process.env.AIRTABLE_BASE_ID || '')
+  apiKey: process.env.AIRTABLE_TOKEN_NEWSPAL
+}).base(process.env.AIRTABLE_BASE_NEWSPAL || '')
 
 export interface NewsArticle {
   id?: string

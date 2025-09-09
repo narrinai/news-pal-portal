@@ -3,10 +3,10 @@ export default function handler(req, res) {
     message: 'Pages Router API works!',
     method: req.method,
     env: {
-      hasPortalPassword: !!process.env.PORTAL_PASSWORD,
-      hasAirtable: !!process.env.AIRTABLE_API_KEY,
-      hasOpenAI: !!process.env.OPENAI_API_KEY,
-      portalPasswordLength: process.env.PORTAL_PASSWORD?.length || 0
+      hasPortalPassword: !!process.env.PORTAL_PASSWORD_NEWSPAL,
+      hasAirtable: !!process.env.AIRTABLE_TOKEN_NEWSPAL,
+      hasOpenAI: !!process.env.OPENAI_TOKEN_NEWSPAL,
+      portalPasswordLength: process.env.PORTAL_PASSWORD_NEWSPAL?.length || 0
     }
   });
 }

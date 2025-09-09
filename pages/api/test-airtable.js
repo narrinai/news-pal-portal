@@ -1,8 +1,8 @@
 export default async function handler(req, res) {
   try {
     // Test basic environment variables
-    const airtableKey = process.env.AIRTABLE_API_KEY;
-    const airtableBase = process.env.AIRTABLE_BASE_ID;
+    const airtableKey = process.env.AIRTABLE_TOKEN_NEWSPAL;
+    const airtableBase = process.env.AIRTABLE_BASE_NEWSPAL;
     
     console.log('Testing Airtable connection...');
     console.log('API Key exists:', !!airtableKey);

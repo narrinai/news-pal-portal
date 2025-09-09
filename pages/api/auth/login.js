@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
   try {
     const { password } = req.body;
-    const storedPassword = process.env.PORTAL_PASSWORD || 'newspal2024';
+    const storedPassword = process.env.PORTAL_PASSWORD_NEWSPAL || 'newspal2024';
     
     console.log('Environment password exists:', !!storedPassword);
     console.log('Environment password length:', storedPassword?.length || 0);

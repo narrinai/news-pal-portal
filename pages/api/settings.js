@@ -20,6 +20,7 @@ export default async function handler(req, res) {
               'gdpr', 'avg', 'compliance', 'audit', 'pentesting', 'ethisch hacken', 'white hat', 'black hat'
             ],
             'cybersecurity-international': [
+              // Core Security Terms
               'security', 'cybersecurity', 'cyber security', 'hack', 'hacker', 'breach', 'data breach', 'malware', 
               'ransomware', 'phishing', 'spear phishing', 'vulnerability', 'exploit', 'zero-day', 'zero day',
               'apt', 'advanced persistent threat', 'ddos', 'denial of service', 'firewall', 'antivirus',
@@ -33,7 +34,17 @@ export default async function handler(req, res) {
               'patch', 'update', 'cve', 'cvss', 'nist', 'iso 27001', 'gdpr', 'compliance', 'audit',
               'risk assessment', 'threat intelligence', 'threat hunting', 'incident response', 'disaster recovery',
               'business continuity', 'backup', 'authentication', 'authorization', 'access control', 'iam',
-              'multifactor', 'biometric', 'password', 'credential', 'privilege escalation', 'lateral movement'
+              'multifactor', 'biometric', 'password', 'credential', 'privilege escalation', 'lateral movement',
+              
+              // Cybersecurity Certifications
+              'cissp', 'ccsp', 'sscp', 'csslp', 'hcispp', 'cgrc', 'cisa', 'cism', 'crisc', 'cgeit', 'cdpse',
+              'cobit', 'ceh', 'chfi', 'cpent', 'cnd', 'cciso', 'ecih', 'security+', 'cysa+', 'pentest+', 'casp+',
+              'gsec', 'gcih', 'gcia', 'gpen', 'gwapt', 'gcfe', 'gcfa', 'oscp', 'oswe', 'osep', 'osed', 'oswp',
+              'sc-200', 'sc-300', 'sc-400', 'sc-100', 'az-500', 'aws-security', 'gcp-security',
+              'cyberops associate', 'cyberops professional', 'ccnp security', 'ccie security',
+              'cipp/e', 'cipm', 'cipt', 'isfs', 'iso27001-la', 'iso27001-li', 'iso27701', 'itil4',
+              'certified ethical hacker', 'certified information systems auditor', 'certified information security manager',
+              'offensive security certified professional', 'comptia security', 'giac security', 'sans institute'
             ],
             'bouwcertificaten-nl': [
               'bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'woning certificaat', 'energielabel',

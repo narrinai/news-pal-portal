@@ -74,13 +74,20 @@ export default async function handler(req, res) {
       console.error('Category management error:', error.message)
     }
 
-    // Prepare WordPress post with News category
+    // Prepare WordPress post with News category and Dutch language
     const wordpressPost = {
       title: title,
       content: wordpressHtml,
       status: 'draft',
-      categories: newsCategory ? [newsCategory.id] : [], // Add to News category
+      categories: newsCategory ? [newsCategory.id] : [],
       excerpt: `Gegenereerd door News Pal Portal - ${new Date().toLocaleDateString('nl-NL')}`,
+      // WPML language settings
+      lang: 'nl',
+      // Try to set post format (if your theme supports it)
+      format: 'standard',
+      meta: {
+        '_wpml_language': 'nl'
+      }
     }
 
     console.log('Publishing to standard posts with News category...')

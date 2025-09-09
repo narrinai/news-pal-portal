@@ -261,14 +261,12 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
       return parsedFeeds
     }
     
-    // Fallback to defaults and cache them
-    customFeeds = [...DEFAULT_RSS_FEEDS]
-    console.log(`Using ${customFeeds.length} default feeds`)
-    return customFeeds
+    // Start with empty feeds - user must add their own
+    console.log('No custom feeds configured - starting with empty list')
+    return []
   } catch (error) {
-    console.warn('Error loading feed configs, using defaults:', error)
-    customFeeds = [...DEFAULT_RSS_FEEDS]
-    return customFeeds
+    console.warn('Error loading feed configs, returning empty:', error)
+    return []
   }
 }
 

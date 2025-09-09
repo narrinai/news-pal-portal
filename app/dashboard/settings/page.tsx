@@ -42,6 +42,7 @@ export default function SettingsPage() {
         'gdpr', 'avg', 'compliance', 'audit', 'pentesting', 'ethisch hacken', 'white hat', 'black hat'
       ],
       'cybersecurity-international': [
+        // Core Security Terms
         'security', 'cybersecurity', 'cyber security', 'hack', 'hacker', 'breach', 'data breach', 'malware', 
         'ransomware', 'phishing', 'spear phishing', 'vulnerability', 'exploit', 'zero-day', 'zero day',
         'apt', 'advanced persistent threat', 'ddos', 'denial of service', 'firewall', 'antivirus',
@@ -55,7 +56,53 @@ export default function SettingsPage() {
         'patch', 'update', 'cve', 'cvss', 'nist', 'iso 27001', 'gdpr', 'compliance', 'audit',
         'risk assessment', 'threat intelligence', 'threat hunting', 'incident response', 'disaster recovery',
         'business continuity', 'backup', 'authentication', 'authorization', 'access control', 'iam',
-        'multifactor', 'biometric', 'password', 'credential', 'privilege escalation', 'lateral movement'
+        'multifactor', 'biometric', 'password', 'credential', 'privilege escalation', 'lateral movement',
+        
+        // ISC² Certifications
+        'cissp', 'ccsp', 'sscp', 'csslp', 'hcispp', 'cgrc', 'certified information systems security professional',
+        'certified cloud security professional', 'systems security certified practitioner',
+        'certified secure software lifecycle professional', 'healthcare information security',
+        
+        // ISACA Certifications
+        'cisa', 'cism', 'crisc', 'cgeit', 'cdpse', 'cobit', 'cobit-di',
+        'certified information systems auditor', 'certified information security manager',
+        'certified in risk and information systems control', 'certified in governance of enterprise it',
+        
+        // EC-Council Certifications
+        'ceh', 'chfi', 'cpent', 'cnd', 'cciso', 'ecih', 'certified ethical hacker',
+        'computer hacking forensic investigator', 'certified penetration testing professional',
+        'certified network defender', 'certified chief information security officer',
+        
+        // CompTIA Certifications
+        'security+', 'cysa+', 'pentest+', 'casp+', 'comptia security', 'comptia cysa', 
+        'comptia pentest', 'comptia casp', 'cybersecurity analyst',
+        
+        // GIAC/SANS Certifications
+        'gsec', 'gcih', 'gcia', 'gpen', 'gwapt', 'gcfe', 'gcfa', 'giac security essentials',
+        'giac certified incident handler', 'giac certified intrusion analyst', 'giac penetration tester',
+        'giac web application penetration tester', 'giac certified forensic examiner',
+        
+        // Offensive Security
+        'oscp', 'oswe', 'osep', 'osed', 'oswp', 'offensive security certified professional',
+        'offensive security web expert', 'offensive security experienced penetration tester',
+        
+        // Cloud Security Certifications
+        'sc-200', 'sc-300', 'sc-400', 'sc-100', 'az-500', 'aws-security', 'gcp-security',
+        'microsoft security operations analyst', 'microsoft identity and access administrator',
+        'microsoft information protection administrator', 'microsoft cybersecurity architect',
+        'azure security engineer', 'aws certified security specialty', 'google cloud security engineer',
+        
+        // Cisco Certifications
+        'cyberops associate', 'cyberops professional', 'ccnp security', 'ccie security',
+        'cisco cyberops', 'cisco security',
+        
+        // Privacy Certifications
+        'cipp/e', 'cipm', 'cipt', 'certified information privacy professional',
+        'certified information privacy manager', 'certified information privacy technologist',
+        
+        // Other Standards
+        'isfs', 'iso27001-la', 'iso27001-li', 'iso27701', 'itil4', 'itil4-mp/sl',
+        'information security foundation', 'iso 27001 lead auditor', 'iso 27001 lead implementer'
       ],
       'bouwcertificaten-nl': [
         'bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'woning certificaat', 'energielabel',

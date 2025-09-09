@@ -1,21 +1,19 @@
-// Clean WordPress publish API
+// WordPress publish with News category instead of custom post type
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
   try {
-    console.log('WordPress publish API called')
+    console.log('WordPress publish with category API called')
     const { articleId, wordpressHtml, title } = req.body
 
     if (!articleId || !wordpressHtml || !title) {
       return res.status(400).json({ 
-        error: 'Missing required fields',
-        required: ['articleId', 'wordpressHtml', 'title']
+        error: 'Missing required fields'
       })
     }
 
-    // Check WordPress credentials
     const wpSiteUrl = process.env.WORDPRESS_SITE_URL || 'https://www.marketingtoolz.com'
     const wpUsername = process.env.WORDPRESS_USERNAME
     const wpPassword = process.env.WORDPRESS_APP_PASSWORD
@@ -26,21 +24,38 @@ export default async function handler(req, res) {
       })
     }
 
-    // Prepare WordPress post
+    const credentials = Buffer.from(`${wpUsername}:${wpPassword}`).toString('base64')
+    
+    // First, get or create "News" category
+    let newsCategory = null
+    try {
+      const categoriesResponse = await fetch(`${wpSiteUrl}/wp-json/wp/v2/categories?search=news`, {
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (categoriesResponse.ok) {
+        const categories = await categoriesResponse.json()
+        newsCategory = categories.find(cat => cat.name.toLowerCase() === 'news')
+      }
+    } catch (error) {
+      console.log('Could not fetch categories:', error.message)
+    }
+
+    // Prepare WordPress post with News category
     const wordpressPost = {
       title: title,
       content: wordpressHtml,
       status: 'draft',
+      categories: newsCategory ? [newsCategory.id] : [], // Add to News category
       excerpt: `Gegenereerd door News Pal Portal - ${new Date().toLocaleDateString('nl-NL')}`,
     }
 
-    console.log('Publishing to WordPress News section...')
+    console.log('Publishing to standard posts with News category...')
     
-    // Publish to WordPress custom post type "news"
-    const credentials = Buffer.from(`${wpUsername}:${wpPassword}`).toString('base64')
-    
-    // Publish to WordPress custom post type "news"
-    const response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
+    const response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,
@@ -49,28 +64,25 @@ export default async function handler(req, res) {
       body: JSON.stringify(wordpressPost)
     })
 
-    console.log('WordPress response:', response.status)
-
     if (response.ok) {
       const createdPost = await response.json()
       
       return res.status(200).json({
         success: true,
-        message: 'Article published as draft in WordPress News section',
+        message: `Article published as draft in ${newsCategory ? 'News category' : 'default category'}`,
         wordpress: {
           postId: createdPost.id,
           postUrl: createdPost.link,
+          category: newsCategory?.name || 'Uncategorized',
           editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit`
         }
       })
     } else {
       const errorData = await response.text()
-      console.error('WordPress publish failed:', response.status, errorData)
       return res.status(500).json({
         error: 'WordPress publish failed',
         status: response.status,
-        details: errorData,
-        endpoint: `${wpSiteUrl}/wp-json/wp/v2/news`
+        details: errorData
       })
     }
 

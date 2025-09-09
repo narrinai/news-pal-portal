@@ -7,12 +7,40 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('WordPress publish API called')
+    console.log('Request body keys:', Object.keys(req.body))
+    
     const { articleId, wordpressHtml, title } = req.body
 
     if (!articleId || !wordpressHtml || !title) {
+      console.log('Missing required fields:', { articleId: !!articleId, wordpressHtml: !!wordpressHtml, title: !!title })
       return res.status(400).json({ 
         error: 'Missing required fields',
-        required: ['articleId', 'wordpressHtml', 'title']
+        required: ['articleId', 'wordpressHtml', 'title'],
+        received: { articleId: !!articleId, wordpressHtml: !!wordpressHtml, title: !!title }
+      })
+    }
+
+    // Check WordPress credentials
+    const wpSiteUrl = process.env.WORDPRESS_SITE_URL || 'https://www.marketingtoolz.com'
+    const wpUsername = process.env.WORDPRESS_USERNAME
+    const wpPassword = process.env.WORDPRESS_APP_PASSWORD
+    
+    console.log('WordPress config:', {
+      siteUrl: wpSiteUrl,
+      hasUsername: !!wpUsername,
+      hasPassword: !!wpPassword,
+      passwordLength: wpPassword?.length || 0
+    })
+
+    if (!wpUsername || !wpPassword) {
+      return res.status(500).json({ 
+        error: 'WordPress not configured',
+        message: 'WordPress credentials not found in environment variables',
+        missing: {
+          username: !wpUsername,
+          password: !wpPassword
+        }
       })
     }
 

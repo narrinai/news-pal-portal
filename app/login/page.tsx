@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
+import Logo from '../../components/Logo'
 
 export default function LoginPage() {
   const [password, setPassword] = useState('')
@@ -44,13 +45,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-brand-subtle py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            News Pal Portal
-          </h2>
+        <div className="text-center animate-fade-in">
+          <div className="flex justify-center mb-6">
+            <Logo size="xl" />
+          </div>
           <p className="mt-2 text-center text-sm text-gray-600">
+            Je slimme assistent voor nieuws management
+          </p>
+          <p className="mt-1 text-center text-xs text-gray-500">
             Voer je wachtwoord in om toegang te krijgen
           </p>
         </div>
@@ -64,7 +68,7 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
-              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+              className="appearance-none rounded-xl relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:z-10 sm:text-sm transition-all duration-200 bg-white/80 backdrop-blur-sm"
               placeholder="Wachtwoord"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -79,7 +83,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-brand hover:shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 transition-all duration-200 transform"
             >
               {loading ? 'Inloggen...' : 'Inloggen'}
             </button>

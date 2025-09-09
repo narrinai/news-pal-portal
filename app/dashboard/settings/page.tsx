@@ -239,10 +239,62 @@ export default function SettingsPage() {
         {/* RSS Feeds Tab */}
         {activeTab === 'feeds' && (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-6">RSS Feed Configuratie</h2>
-            <div className="text-gray-600">
-              <p className="mb-4">Hier kun je later RSS feeds toevoegen, bewerken en in-/uitschakelen.</p>
-              <p className="text-sm">Feature komt binnenkort beschikbaar...</p>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">RSS Feed Configuratie</h2>
+              <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                + Feed Toevoegen
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600 mb-4">
+                Huidige actieve RSS feeds (hardcoded in code):
+              </div>
+              
+              {/* Current hardcoded feeds display */}
+              <div className="grid gap-4">
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <div className="font-medium text-gray-900 mb-2">Internationaal Cybersecurity</div>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div>• The Hacker News - feeds.feedburner.com/TheHackersNews</div>
+                    <div>• Krebs on Security - krebsonsecurity.com/feed/</div>
+                    <div>• Security Week - securityweek.com/feed/</div>
+                    <div>• Threatpost - threatpost.com/feed/</div>
+                    <div>• Dark Reading - darkreading.com/rss.xml</div>
+                  </div>
+                </div>
+                
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <div className="font-medium text-gray-900 mb-2">Nederlands Cybersecurity</div>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div>• Security.NL - security.nl/rss.xml</div>
+                    <div>• Computable - computable.nl/rss.xml</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <div className="text-sm text-blue-800">
+                  <div className="font-medium mb-2">📋 Hoe artikelen worden opgehaald:</div>
+                  <ol className="list-decimal list-inside space-y-1 text-blue-700">
+                    <li>Klik "Nieuwe Artikelen Ophalen" in dashboard</li>
+                    <li>RSS Parser haalt alle feeds op</li>
+                    <li>Smart filtering op cybersecurity keywords</li>
+                    <li>Opslag in Airtable met status "pending"</li>
+                    <li>Duplicaten worden gefilterd op URL</li>
+                  </ol>
+                </div>
+              </div>
+              
+              <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
+                <div className="text-sm text-yellow-800">
+                  <div className="font-medium mb-1">🚧 Uitbreiding mogelijk:</div>
+                  <div className="text-yellow-700">
+                    Feeds zijn momenteel hardcoded. Configureerbare feeds kunnen later toegevoegd worden 
+                    met enable/disable functionaliteit en custom categorieën.
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

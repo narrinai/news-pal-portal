@@ -7,6 +7,15 @@ export default async function handler(req, res) {
           JSON.parse(process.env.NEWS_CATEGORIES) : 
           ['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'],
         
+        categoryKeywords: process.env.CATEGORY_KEYWORDS ?
+          JSON.parse(process.env.CATEGORY_KEYWORDS) : {
+            'cybersecurity-nl': ['beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 'hack', 'malware'],
+            'cybersecurity-international': ['security', 'cybersecurity', 'hack', 'breach', 'malware', 'ransomware', 'phishing', 'vulnerability', 'exploit'],
+            'tech-nl': ['technologie', 'software', 'AI', 'machine learning', 'blockchain', 'cloud'],
+            'tech-international': ['technology', 'software', 'artificial intelligence', 'machine learning', 'blockchain', 'cloud', 'innovation'],
+            'other': ['news', 'nieuws', 'update', 'announcement']
+          },
+        
         rewriteInstructions: {
           general: process.env.AI_INSTRUCTION_GENERAL || `Herschrijf dit artikel naar helder Nederlands voor een technische doelgroep. Behoud alle belangrijke feiten en cijfers. 
 
@@ -89,10 +98,11 @@ WORDPRESS HTML FORMAT - Technische stijl:
   if (req.method === 'POST') {
     // For now, we'll just return success - later we can store in Airtable
     try {
-      const { categories, rewriteInstructions } = req.body
+      const { categories, categoryKeywords, rewriteInstructions } = req.body
       
       console.log('Settings update requested:')
       console.log('Categories:', categories)
+      console.log('Category Keywords:', categoryKeywords)
       console.log('Instructions:', Object.keys(rewriteInstructions))
       
       // TODO: Store settings in Airtable or another persistent storage

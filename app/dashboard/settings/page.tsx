@@ -7,7 +7,9 @@ import Logo from '../../../components/Logo'
 
 interface Settings {
   categories: string[]
-  keywords: string[]
+  categoryKeywords: {
+    [category: string]: string[]
+  }
   rewriteInstructions: {
     general: string
     professional: string
@@ -28,11 +30,13 @@ export default function SettingsPage() {
   const { showNotification, showConfirm, showPrompt } = useNotifications()
   const [settings, setSettings] = useState<Settings>({
     categories: ['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'],
-    keywords: [
-      'security', 'cybersecurity', 'hack', 'breach', 'malware', 'ransomware', 'phishing', 
-      'vulnerability', 'exploit', 'beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 
-      'encryption', 'firewall', 'zero-day', 'penetration', 'threat', 'incident', 'forensics'
-    ],
+    categoryKeywords: {
+      'cybersecurity-nl': ['beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 'hack', 'malware'],
+      'cybersecurity-international': ['security', 'cybersecurity', 'hack', 'breach', 'malware', 'ransomware', 'phishing', 'vulnerability', 'exploit'],
+      'tech-nl': ['technologie', 'software', 'AI', 'machine learning', 'blockchain', 'cloud'],
+      'tech-international': ['technology', 'software', 'artificial intelligence', 'machine learning', 'blockchain', 'cloud', 'innovation'],
+      'other': ['news', 'nieuws', 'update', 'announcement']
+    },
     rewriteInstructions: {
       general: 'Rewrite this article in clear English for a technical audience. Preserve all important facts and figures.',
       professional: 'Use a business-oriented, professional tone. Focus on business impact and relevance.',
@@ -52,6 +56,7 @@ export default function SettingsPage() {
   
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'categories' | 'keywords' | 'instructions' | 'feeds'>('categories')
+  const [selectedCategory, setSelectedCategory] = useState('cybersecurity-nl')
   const router = useRouter()
 
   useEffect(() => {
@@ -154,39 +159,46 @@ export default function SettingsPage() {
     }))
   }
 
-  const addKeyword = async () => {
+  const addKeyword = async (category: string) => {
     const newKeyword = await showPrompt({
       title: 'New keyword',
-      message: 'Enter the new keyword for article filtering:',
+      message: `Enter a new keyword for the "${category}" category:`,
       promptPlaceholder: 'Keyword...',
       confirmText: 'Add',
       cancelText: 'Cancel'
     })
     
-    if (newKeyword && !settings.keywords.includes(newKeyword.toLowerCase())) {
+    const categoryKeywords = settings.categoryKeywords[category] || []
+    if (newKeyword && !categoryKeywords.includes(newKeyword.toLowerCase())) {
       setSettings(prev => ({
         ...prev,
-        keywords: [...prev.keywords, newKeyword.toLowerCase()]
+        categoryKeywords: {
+          ...prev.categoryKeywords,
+          [category]: [...categoryKeywords, newKeyword.toLowerCase()]
+        }
       }))
       showNotification({
         type: 'success',
         title: 'Keyword added',
-        message: `"${newKeyword}" has been added to keywords`,
+        message: `"${newKeyword}" has been added to ${category}`,
         duration: 3000
       })
-    } else if (newKeyword && settings.keywords.includes(newKeyword.toLowerCase())) {
+    } else if (newKeyword && categoryKeywords.includes(newKeyword.toLowerCase())) {
       showNotification({
         type: 'warning',
         title: 'Keyword exists',
-        message: `"${newKeyword}" already exists in the list`
+        message: `"${newKeyword}" already exists in this category`
       })
     }
   }
 
-  const removeKeyword = (keyword: string) => {
+  const removeKeyword = (category: string, keyword: string) => {
     setSettings(prev => ({
       ...prev,
-      keywords: prev.keywords.filter(k => k !== keyword)
+      categoryKeywords: {
+        ...prev.categoryKeywords,
+        [category]: (prev.categoryKeywords[category] || []).filter(k => k !== keyword)
+      }
     }))
   }
 
@@ -427,40 +439,66 @@ export default function SettingsPage() {
         {/* Keywords Tab */}
         {activeTab === 'keywords' && (
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-xl font-semibold">Filter Keywords</h2>
-                <p className="text-sm text-gray-600 mt-1">Keywords used to filter relevant articles from RSS feeds</p>
-              </div>
-              <button
-                onClick={addKeyword}
-                className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold">Category Keywords</h2>
+              <p className="text-sm text-gray-600 mt-1">Manage keywords for each category to filter relevant articles</p>
+            </div>
+            
+            {/* Category Selector */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Category</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               >
-                + Add Keyword
-              </button>
+                {settings.categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
             </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {settings.keywords.map((keyword) => (
-                <div key={keyword} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="font-medium text-sm">{keyword}</span>
-                  <button
-                    onClick={() => removeKeyword(keyword)}
-                    className="text-red-600 hover:text-red-700 text-xs ml-2"
-                  >
-                    ×
-                  </button>
+
+            {/* Keywords for Selected Category */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Keywords for "{selectedCategory}"</h3>
+                <button
+                  onClick={() => addKeyword(selectedCategory)}
+                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                >
+                  + Add Keyword
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {(settings.categoryKeywords[selectedCategory] || []).map((keyword) => (
+                  <div key={keyword} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg group">
+                    <span className="font-medium text-sm">{keyword}</span>
+                    <button
+                      onClick={() => removeKeyword(selectedCategory, keyword)}
+                      className="text-red-600 hover:text-red-700 text-xs ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {(!settings.categoryKeywords[selectedCategory] || settings.categoryKeywords[selectedCategory].length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  No keywords for this category yet. Add some to start filtering articles.
                 </div>
-              ))}
+              )}
             </div>
             
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-medium text-blue-900 mb-2">ℹ️ How keyword filtering works</h3>
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-medium text-blue-900 mb-2">ℹ️ How category-based filtering works</h3>
               <div className="text-sm text-blue-800 space-y-1">
-                <p>• Articles are automatically filtered based on these keywords</p>
+                <p>• Each category has its own set of keywords for precise filtering</p>
+                <p>• Articles are matched to categories based on their keywords</p>
                 <p>• Case-insensitive matching in title and description</p>
-                <p>• Articles must contain at least one keyword to be selected</p>
-                <p>• Both English and Dutch keywords are supported</p>
+                <p>• Articles must contain at least one keyword from the category to be assigned</p>
+                <p>• Support both English and Dutch keywords for multilingual sources</p>
               </div>
             </div>
           </div>

@@ -17,52 +17,36 @@ export interface RSSFeedConfig {
 // 🇳🇱 NEDERLANDSE CYBERSECURITY FEEDS
 const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
   {
-    id: 'security-nl',
-    url: 'https://www.security.nl/rss.xml',
-    name: 'Security.NL',
+    id: 'tweakers',
+    url: 'https://feeds.feedburner.com/tweakers/mixed',
+    name: 'Tweakers',
     category: 'cybersecurity-nl',
     enabled: true,
     maxArticles: 20
   },
   {
-    id: 'ncsc-nl',
-    url: 'https://www.ncsc.nl/actueel/rss.xml',
-    name: 'NCSC Nederland',
-    category: 'cybersecurity-nl',
+    id: 'nos-tech',
+    url: 'https://feeds.nos.nl/nosnieuwsalgemeen',
+    name: 'NOS Tech',
+    category: 'cybersecurity-nl', 
     enabled: true,
-    maxArticles: 20
+    maxArticles: 15
   },
   {
-    id: 'cert-nl',
-    url: 'https://www.cert.nl/cert/rss.xml',
-    name: 'CERT-NL',
+    id: 'nu-tech',
+    url: 'https://www.nu.nl/rss/Tech',
+    name: 'NU.nl Tech',
     category: 'cybersecurity-nl',
     enabled: true,
-    maxArticles: 20
+    maxArticles: 15
   },
   {
-    id: 'itsecuritynl',
-    url: 'https://www.itsecurity.nl/rss.xml',
-    name: 'IT Security NL',
+    id: 'techzine',
+    url: 'https://www.techzine.nl/feed/',
+    name: 'Techzine',
     category: 'cybersecurity-nl',
     enabled: true,
-    maxArticles: 20
-  },
-  {
-    id: 'securityfm',
-    url: 'https://security.fm/feed/',
-    name: 'Security.fm',
-    category: 'cybersecurity-nl',
-    enabled: true,
-    maxArticles: 20
-  },
-  {
-    id: 'beveiligingsnl',
-    url: 'https://www.beveiliging.nl/rss.xml',
-    name: 'Beveiliging.nl',
-    category: 'cybersecurity-nl',
-    enabled: true,
-    maxArticles: 20
+    maxArticles: 15
   }
 ]
 
@@ -126,13 +110,13 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
   }
 ]
 
-// 🇳🇱 NEDERLANDSE TECH FEEDS
-const TECH_NL_FEEDS: RSSFeedConfig[] = [
+// 🏗️ NEDERLANDSE BOUW & TECH FEEDS  
+const BOUWCERTIFICATEN_NL_FEEDS: RSSFeedConfig[] = [
   {
-    id: 'tweakers',
+    id: 'tweakers-bouw',
     url: 'https://feeds.feedburner.com/tweakers/mixed',
     name: 'Tweakers',
-    category: 'tech-nl',
+    category: 'bouwcertificaten-nl',
     enabled: true,
     maxArticles: 20
   },
@@ -222,7 +206,7 @@ const OTHER_FEEDS: RSSFeedConfig[] = [
 export const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
   ...CYBERSECURITY_NL_FEEDS,
   ...CYBERSECURITY_INTERNATIONAL_FEEDS, 
-  ...TECH_NL_FEEDS,
+  ...BOUWCERTIFICATEN_NL_FEEDS,
   ...TECH_INTERNATIONAL_FEEDS,
   ...OTHER_FEEDS
 ]

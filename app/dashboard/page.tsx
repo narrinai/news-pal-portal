@@ -17,7 +17,7 @@ export default function DashboardPage() {
   
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity-international'])
   const [languageFilter, setLanguageFilter] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [keywordFiltering, setKeywordFiltering] = useState<boolean>(true)

@@ -1,7 +1,10 @@
-export async function handler(event, context) {
+exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
@@ -18,6 +21,7 @@ export async function handler(event, context) {
       return {
         statusCode: 200,
         headers: {
+          'Content-Type': 'application/json',
           'Set-Cookie': 'authenticated=true; HttpOnly; Secure; SameSite=Strict; Max-Age=86400; Path=/',
         },
         body: JSON.stringify({ success: true })
@@ -25,6 +29,9 @@ export async function handler(event, context) {
     } else {
       return {
         statusCode: 401,
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ 
           error: 'Invalid password',
           debug: {
@@ -39,7 +46,10 @@ export async function handler(event, context) {
     console.error('Login error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Login failed' })
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ error: 'Login failed', details: error.message })
     };
   }
-}
+};

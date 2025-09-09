@@ -58,10 +58,10 @@ export default function RewritePage({ params }: RewritePageProps) {
   const handleRewrite = async () => {
     setRewriting(true)
     try {
-      const response = await fetch(`/api/articles/${params.id}/rewrite`, {
+      const response = await fetch(`/api/articles/rewrite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ options })
+        body: JSON.stringify({ id: params.id, options })
       })
 
       if (response.ok) {

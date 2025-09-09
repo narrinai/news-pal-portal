@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
-import { fetchAllFeeds } from '../../../../lib/rss-parser'
-import { createArticle, getArticles } from '../../../../lib/airtable'
+import { fetchAllFeeds } from '../../../lib/rss-parser'
+import { createArticle, getArticles } from '../../../lib/airtable'
 
-export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-export async function POST() {
   try {
     // Fetch articles from RSS feeds
     const articles = await fetchAllFeeds()
@@ -28,7 +28,7 @@ export async function POST() {
       }
     }
     
-    return NextResponse.json({
+    return res.status(200).json({
       success: true,
       message: `${createdArticles.length} new articles added`,
       totalFetched: articles.length,
@@ -36,9 +36,6 @@ export async function POST() {
     })
   } catch (error) {
     console.error('Error fetching articles:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch articles' },
-      { status: 500 }
-    )
+    return res.status(500).json({ error: 'Failed to fetch articles' })
   }
 }

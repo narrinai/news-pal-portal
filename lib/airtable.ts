@@ -12,11 +12,13 @@ export interface NewsArticle {
   source: string
   publishedAt: string
   status: 'pending' | 'selected' | 'rewritten' | 'published'
-  category: 'cybersecurity-nl' | 'cybersecurity-international' | 'other'
+  category: 'cybersecurity-nl' | 'cybersecurity-international' | 'bouwcertificaten-nl' | 'ai-companion-international' | 'ai-learning-international' | 'other'
   originalContent?: string
   rewrittenContent?: string
   wordpressHtml?: string
   imageUrl?: string
+  wordpressUrl?: string
+  wordpressPostId?: string
   createdAt?: string
 }
 

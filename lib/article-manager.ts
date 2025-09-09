@@ -14,6 +14,7 @@ export interface LiveArticle {
   category: string
   originalContent: string
   imageUrl?: string
+  matchedKeywords?: string[] // Keywords that caused this article to be included
   
   // Status tracking
   isSelected?: boolean // If true, it's in Airtable
@@ -48,6 +49,7 @@ export async function getLiveArticles(disableFiltering = false): Promise<{
         category: article.category,
         originalContent: article.originalContent || '',
         imageUrl: article.imageUrl,
+        matchedKeywords: (article as any).matchedKeywords || [],
         isSelected: false
       }))
       

@@ -30,30 +30,62 @@ export async function parseArticlesFromFeed(
   category: NewsArticle['category'],
   maxArticles: number = 20,
   customKeywords?: string[],
-  disableFiltering = false
+  disableFiltering = false,
+  categoryKeywords?: {[key: string]: string[]}
 ): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {
   const articles: Omit<NewsArticle, 'id' | 'createdAt'>[] = []
   
-  for (const item of feed.items.slice(0, maxArticles)) { // Configurable limit
-    // Filter for cybersecurity-related content
+  // Default category keywords if not provided
+  const defaultCategoryKeywords = {
+    'cybersecurity-nl': ['beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 'hack', 'malware'],
+    'cybersecurity-international': ['security', 'cybersecurity', 'hack', 'breach', 'malware', 'ransomware', 'phishing', 'vulnerability', 'exploit'],
+    'bouwcertificaten-nl': ['bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'energielabel', 'bouwvergunning', 'woningbouw'],
+    'ai-companion-international': ['AI companion', 'AI assistant', 'virtual assistant', 'chatbot', 'conversational AI'],
+    'ai-learning-international': ['AI learning', 'machine learning', 'deep learning', 'AI education', 'AI training'],
+    'other': ['news', 'nieuws', 'update', 'announcement']
+  }
+  
+  const keywordMap = categoryKeywords || defaultCategoryKeywords
+  
+  for (const item of feed.items.slice(0, maxArticles)) {
     const title = item.title || ''
     const description = item.contentSnippet || item.description || ''
     const content = (title + ' ' + description).toLowerCase()
     
-    // Use broader keyword set for better matching
-    const broadKeywords = [
-      'security', 'cybersecurity', 'hack', 'hacker', 'breach', 'malware', 
-      'ransomware', 'phishing', 'vulnerability', 'exploit', 'cyber',
-      'attack', 'threat', 'privacy', 'encryption', 'data breach',
-      'zero-day', 'apt', 'ddos', 'firewall', 'antivirus',
-      'beveiliging', 'cyberbeveiliging', 'datalek', 'hack', 'malware'
-    ]
-    // Skip filtering if disabled, otherwise use keywords
-    const keywords = customKeywords || broadKeywords
-    const isRelevant = disableFiltering ? true : containsKeywords(content, keywords)
+    let bestCategory = 'other' // Default fallback
+    let isRelevant = false
+    
+    if (disableFiltering) {
+      isRelevant = true
+      bestCategory = category // Use feed's default category
+    } else {
+      // Smart categorization: find the best matching category
+      let maxMatches = 0
+      let matchedKeywords: string[] = []
+      
+      for (const [cat, keywords] of Object.entries(keywordMap)) {
+        const foundKeywords = keywords.filter(keyword => 
+          content.includes(keyword.toLowerCase())
+        )
+        
+        if (foundKeywords.length > maxMatches) {
+          maxMatches = foundKeywords.length
+          bestCategory = cat
+          matchedKeywords = foundKeywords
+          isRelevant = foundKeywords.length > 0
+        }
+      }
+      
+      // Additional logging for debugging
+      if (isRelevant) {
+        console.log(`Article matched "${bestCategory}" with keywords [${matchedKeywords.join(', ')}]: "${title.substring(0, 50)}..."`)
+      } else {
+        console.log(`Article skipped - no keyword match: "${title.substring(0, 50)}..."`)
+        continue
+      }
+    }
     
     if (isRelevant) {
-      // Extract image from RSS item
       const imageUrl = extractImageFromRSSItem(item)
       
       articles.push({
@@ -63,9 +95,10 @@ export async function parseArticlesFromFeed(
         source,
         publishedAt: item.pubDate || new Date().toISOString(),
         status: 'pending',
-        category,
+        category: bestCategory as NewsArticle['category'],
         originalContent: item.content || item.description || '',
-        imageUrl
+        imageUrl,
+        matchedKeywords: disableFiltering ? [] : matchedKeywords
       })
     }
   }
@@ -115,7 +148,7 @@ function extractImageFromRSSItem(item: any): string | undefined {
   }
 }
 
-export async function fetchAllFeeds(disableFiltering = false): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {
+export async function fetchAllFeeds(disableFiltering = false, categoryKeywords?: {[key: string]: string[]}): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {
   const allArticles: Omit<NewsArticle, 'id' | 'createdAt'>[] = []
   
   // Get configurable feeds or fallback to defaults
@@ -143,7 +176,8 @@ export async function fetchAllFeeds(disableFiltering = false): Promise<Omit<News
           rssFeed.category as NewsArticle['category'],
           rssFeed.maxArticles || 20,
           rssFeed.keywords,
-          disableFiltering
+          disableFiltering,
+          categoryKeywords
         )
         console.log(`Found ${articles.length} relevant articles from ${rssFeed.name}`)
         return articles

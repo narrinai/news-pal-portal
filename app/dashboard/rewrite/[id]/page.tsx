@@ -31,6 +31,7 @@ export default function RewritePage({ params }: RewritePageProps) {
   const [settings, setSettings] = useState<any>(null)
   const [showHtml, setShowHtml] = useState(false)
   const [tooltips, setTooltips] = useState<{[key: string]: boolean}>({})
+  const [publishing, setPublishing] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -126,6 +127,65 @@ export default function RewritePage({ params }: RewritePageProps) {
       })
     } finally {
       setRewriting(false)
+    }
+  }
+
+  const publishToWordPress = async () => {
+    if (!rewritten) {
+      showNotification({
+        type: 'warning',
+        title: 'No content to publish',
+        message: 'Please rewrite the article first before publishing to WordPress'
+      })
+      return
+    }
+
+    setPublishing(true)
+    try {
+      const response = await fetch('/api/wordpress/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          articleId: params.id,
+          title: rewritten.title,
+          wordpressHtml: rewritten.wordpressHtml
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        showNotification({
+          type: 'success',
+          title: 'Published to WordPress!',
+          message: `Article saved as draft in News section`,
+          duration: 5000
+        })
+        
+        // Show edit URL for easy access
+        if (result.wordpress?.editUrl) {
+          setTimeout(() => {
+            if (confirm('Open WordPress editor to review the draft?')) {
+              window.open(result.wordpress.editUrl, '_blank')
+            }
+          }, 1000)
+        }
+      } else {
+        const error = await response.json()
+        showNotification({
+          type: 'error',
+          title: 'WordPress publish failed',
+          message: error.details || 'Could not publish to WordPress'
+        })
+      }
+    } catch (error) {
+      console.error('Error publishing to WordPress:', error)
+      showNotification({
+        type: 'error',
+        title: 'Network error',
+        message: 'Could not connect to WordPress'
+      })
+    } finally {
+      setPublishing(false)
     }
   }
 
@@ -364,21 +424,47 @@ export default function RewritePage({ params }: RewritePageProps) {
                         {rewritten.content}
                       </div>
                     )}
-                    <div className="relative inline-block mt-2">
+                    <div className="flex space-x-3 mt-2">
+                      <div className="relative inline-block">
+                        <button
+                          onClick={() => copyToClipboard(showHtml ? rewritten.wordpressHtml : rewritten.content, 'content')}
+                          className="inline-flex items-center text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-2 rounded-md transition-colors duration-200"
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Copy {showHtml ? 'HTML' : 'text'}
+                        </button>
+                        {tooltips.content && (
+                          <div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-900 text-white text-xs rounded shadow-lg whitespace-nowrap z-10">
+                            {showHtml ? 'HTML' : 'Text'} copied!
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* WordPress Publish Button */}
                       <button
-                        onClick={() => copyToClipboard(showHtml ? rewritten.wordpressHtml : rewritten.content, 'content')}
-                        className="inline-flex items-center text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-2 rounded-md transition-colors duration-200"
+                        onClick={publishToWordPress}
+                        disabled={publishing}
+                        className="inline-flex items-center text-sm bg-blue-600 text-white hover:bg-blue-700 px-3 py-2 rounded-md transition-colors duration-200 disabled:opacity-50"
                       >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy {showHtml ? 'HTML' : 'text'}
+                        {publishing ? (
+                          <>
+                            <svg className="animate-spin w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Publishing...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            Publish to WordPress
+                          </>
+                        )}
                       </button>
-                      {tooltips.content && (
-                        <div className="absolute left-0 top-full mt-1 px-2 py-1 bg-gray-900 text-white text-xs rounded shadow-lg whitespace-nowrap z-10">
-                          {showHtml ? 'HTML' : 'Text'} copied!
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>

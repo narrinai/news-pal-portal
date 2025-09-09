@@ -29,12 +29,13 @@ interface Settings {
 export default function SettingsPage() {
   const { showNotification, showConfirm, showPrompt } = useNotifications()
   const [settings, setSettings] = useState<Settings>({
-    categories: ['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'],
+    categories: ['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international', 'other'],
     categoryKeywords: {
       'cybersecurity-nl': ['beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 'hack', 'malware'],
       'cybersecurity-international': ['security', 'cybersecurity', 'hack', 'breach', 'malware', 'ransomware', 'phishing', 'vulnerability', 'exploit'],
-      'tech-nl': ['technologie', 'software', 'AI', 'machine learning', 'blockchain', 'cloud'],
-      'tech-international': ['technology', 'software', 'artificial intelligence', 'machine learning', 'blockchain', 'cloud', 'innovation'],
+      'bouwcertificaten-nl': ['bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'energielabel', 'bouwvergunning', 'woningbouw', 'certificering', 'bouwtoezicht'],
+      'ai-companion-international': ['AI companion', 'AI assistant', 'virtual assistant', 'chatbot', 'conversational AI', 'AI girlfriend', 'AI boyfriend', 'character AI'],
+      'ai-learning-international': ['AI learning', 'machine learning', 'deep learning', 'AI education', 'AI training', 'AI tutorial', 'AI course', 'neural networks'],
       'other': ['news', 'nieuws', 'update', 'announcement']
     },
     rewriteInstructions: {
@@ -564,67 +565,6 @@ export default function SettingsPage() {
         {/* RSS Feeds Tab */}
         {activeTab === 'feeds' && (
           <div className="space-y-6">
-            {/* Active Feeds */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold">Website Sources</h2>
-                  <p className="text-sm text-gray-600 mt-1">Add websites and we'll automatically find their RSS feeds</p>
-                </div>
-                <button
-                  onClick={() => setShowAddFeed(true)}
-                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
-                >
-                  + Add Website
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {settings.rssFeeds.map((feed) => (
-                  <div key={feed.id} className="border rounded-lg p-4 flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${feed.enabled ? 'bg-green-500' : 'bg-gray-400'}`} />
-                        <div>
-                          <div className="font-medium text-gray-900">{feed.name}</div>
-                          <div className="text-sm text-gray-500">{feed.url}</div>
-                          <div className="text-xs text-gray-400 mt-1">
-                            {feed.category} • Max {feed.maxArticles || 10} articles
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => toggleFeed(feed.id)}
-                        className={`px-3 py-1 rounded text-sm font-medium ${
-                          feed.enabled 
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        {feed.enabled ? 'Active' : 'Inactive'}
-                      </button>
-                      
-                      <button
-                        onClick={() => removeFeed(feed.id)}
-                        className="text-red-600 hover:text-red-700 text-sm font-medium px-2"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {settings.rssFeeds.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No website sources configured. Add one to get started!
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Add Website Form */}
             {showAddFeed && (
               <div className="bg-white rounded-lg shadow p-6">
@@ -716,6 +656,70 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
+
+            {/* Active Feeds */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold">Website Sources</h2>
+                  <p className="text-sm text-gray-600 mt-1">Add websites and we'll automatically find their RSS feeds</p>
+                </div>
+                <button
+                  onClick={() => {
+                    console.log('Add Website button clicked')
+                    setShowAddFeed(true)
+                  }}
+                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                >
+                  + Add Website
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {settings.rssFeeds.map((feed) => (
+                  <div key={feed.id} className="border rounded-lg p-4 flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-3 h-3 rounded-full ${feed.enabled ? 'bg-green-500' : 'bg-gray-400'}`} />
+                        <div>
+                          <div className="font-medium text-gray-900">{feed.name}</div>
+                          <div className="text-sm text-gray-500">{feed.url}</div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            {feed.category} • Max {feed.maxArticles || 10} articles
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => toggleFeed(feed.id)}
+                        className={`px-3 py-1 rounded text-sm font-medium ${
+                          feed.enabled 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {feed.enabled ? 'Active' : 'Inactive'}
+                      </button>
+                      
+                      <button
+                        onClick={() => removeFeed(feed.id)}
+                        className="text-red-600 hover:text-red-700 text-sm font-medium px-2"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {settings.rssFeeds.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No website sources configured. Add one to get started!
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* How It Works */}
             <div className="bg-blue-50 rounded-lg p-6">

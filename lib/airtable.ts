@@ -47,7 +47,7 @@ export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt
 export async function getArticles(status?: string, category?: string): Promise<NewsArticle[]> {
   try {
     let filterFormula = ''
-    const filters = []
+    const filters: string[] = []
     
     if (status) {
       filters.push(`{status} = '${status}'`)

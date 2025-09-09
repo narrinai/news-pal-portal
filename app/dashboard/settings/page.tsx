@@ -124,12 +124,15 @@ export default function SettingsPage() {
   }
 
   const addFeed = async () => {
+    console.log('Adding new feed:', newFeed)
+    
     if (!newFeed.url || !newFeed.name) {
       alert('URL en naam zijn verplicht')
       return
     }
 
     try {
+      console.log('Sending PUT request to /api/feeds')
       const response = await fetch('/api/feeds', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -139,14 +142,19 @@ export default function SettingsPage() {
         })
       })
 
+      console.log('Response status:', response.status)
+      
       if (response.ok) {
+        const result = await response.json()
+        console.log('Feed added successfully:', result)
         await loadFeeds()
         setNewFeed({ url: '', name: '', category: 'cybersecurity-international', maxArticles: 10 })
         setShowAddFeed(false)
         alert('RSS feed toegevoegd!')
       } else {
-        const error = await response.json()
-        alert(`Fout: ${error.error}`)
+        const errorText = await response.text()
+        console.error('API error response:', response.status, errorText)
+        alert(`Fout bij toevoegen: ${response.status}`)
       }
     } catch (error) {
       console.error('Error adding feed:', error)

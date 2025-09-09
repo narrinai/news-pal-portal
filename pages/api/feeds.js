@@ -50,8 +50,12 @@ export default async function handler(req, res) {
   if (req.method === 'PUT') {
     // Add new feed
     try {
+      console.log('PUT /api/feeds - Adding new feed')
       const newFeed = req.body
+      console.log('New feed data:', newFeed)
+      
       const errors = validateFeedConfig(newFeed)
+      console.log('Validation errors:', errors)
       
       if (errors.length > 0) {
         return res.status(400).json({ 
@@ -61,14 +65,17 @@ export default async function handler(req, res) {
       }
 
       const currentFeeds = await getFeedConfigs()
+      console.log('Current feeds count:', currentFeeds.length)
       
       // Generate ID if not provided
       if (!newFeed.id) {
         newFeed.id = generateFeedId(newFeed.name)
       }
+      console.log('Generated feed ID:', newFeed.id)
 
       // Check for duplicate IDs
       if (currentFeeds.some(f => f.id === newFeed.id)) {
+        console.log('Duplicate ID found:', newFeed.id)
         return res.status(400).json({ 
           error: 'Feed with this ID already exists' 
         })
@@ -80,9 +87,11 @@ export default async function handler(req, res) {
         enabled: newFeed.enabled ?? true,
         maxArticles: newFeed.maxArticles ?? 10
       }
+      console.log('Feed with defaults:', feedWithDefaults)
 
       const updatedFeeds = [...currentFeeds, feedWithDefaults]
       await saveFeedConfigs(updatedFeeds)
+      console.log('Feed saved successfully')
 
       return res.status(201).json({ 
         success: true,
@@ -91,7 +100,10 @@ export default async function handler(req, res) {
       })
     } catch (error) {
       console.error('Error adding feed:', error)
-      return res.status(500).json({ error: 'Failed to add feed' })
+      return res.status(500).json({ 
+        error: 'Failed to add feed',
+        details: error.message 
+      })
     }
   }
 

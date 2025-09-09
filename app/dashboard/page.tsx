@@ -15,7 +15,8 @@ export default function DashboardPage() {
     published: NewsArticle[]
   }>({ pending: [], selected: [], rewritten: [], published: [] })
   
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity-international'])
   const [languageFilter, setLanguageFilter] = useState<string>('all')
@@ -60,8 +61,11 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
-    fetchArticles()
-  }, [selectedCategories, selectedStatus, keywordFiltering, languageFilter])
+    // Only fetch articles after first manual refresh
+    if (hasLoadedOnce) {
+      fetchArticles()
+    }
+  }, [selectedCategories, selectedStatus, keywordFiltering, languageFilter, hasLoadedOnce])
 
   const fetchArticles = async (forceRefresh = false) => {
     setLoading(true)
@@ -113,6 +117,7 @@ export default function DashboardPage() {
 
   const refreshArticles = async () => {
     setRefreshing(true)
+    setHasLoadedOnce(true) // Mark as loaded for future filter changes
     try {
       await fetchArticles(true) // Force refresh RSS cache
       // Removed success notification - silent refresh
@@ -490,7 +495,29 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {!loading && filteredArticles.length === 0 && (
+        {!loading && !hasLoadedOnce && (
+          <div className="text-center py-16">
+            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+              <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Welcome to News Pal Portal</h3>
+            <p className="text-gray-600 mb-6">Click "Refresh Articles" to load the latest news from your RSS feeds.</p>
+            <button
+              onClick={refreshArticles}
+              disabled={refreshing}
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Get Started - Load Articles
+            </button>
+          </div>
+        )}
+
+        {!loading && hasLoadedOnce && filteredArticles.length === 0 && (
           <div className="text-center py-16">
             <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
               <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -498,7 +525,7 @@ export default function DashboardPage() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No articles found</h3>
-            <p className="text-gray-600 mb-6">Try adjusting the filters or fetch new articles.</p>
+            <p className="text-gray-600 mb-6">Try adjusting the filters, adding RSS feeds in Settings, or refreshing articles.</p>
           </div>
         )}
       </div>

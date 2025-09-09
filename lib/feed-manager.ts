@@ -10,8 +10,64 @@ export interface RSSFeedConfig {
   lastFetched?: string
 }
 
-// Default feeds (backwards compatibility)
-export const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
+// ======================================
+// RSS FEEDS GEORGANISEERD PER CATEGORIE
+// ======================================
+
+// 🇳🇱 NEDERLANDSE CYBERSECURITY FEEDS
+const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
+  {
+    id: 'security-nl',
+    url: 'https://www.security.nl/rss.xml',
+    name: 'Security.NL',
+    category: 'cybersecurity-nl',
+    enabled: true,
+    maxArticles: 10
+  },
+  {
+    id: 'ncsc-nl',
+    url: 'https://www.ncsc.nl/actueel/rss.xml',
+    name: 'NCSC Nederland',
+    category: 'cybersecurity-nl',
+    enabled: true,
+    maxArticles: 15
+  },
+  {
+    id: 'cert-nl',
+    url: 'https://www.cert.nl/cert/rss.xml',
+    name: 'CERT-NL',
+    category: 'cybersecurity-nl',
+    enabled: true,
+    maxArticles: 10
+  },
+  {
+    id: 'itsecuritynl',
+    url: 'https://www.itsecurity.nl/rss.xml',
+    name: 'IT Security NL',
+    category: 'cybersecurity-nl',
+    enabled: true,
+    maxArticles: 10
+  },
+  {
+    id: 'securityfm',
+    url: 'https://security.fm/feed/',
+    name: 'Security.fm',
+    category: 'cybersecurity-nl',
+    enabled: true,
+    maxArticles: 10
+  },
+  {
+    id: 'beveiligingsnl',
+    url: 'https://www.beveiliging.nl/rss.xml',
+    name: 'Beveiliging.nl',
+    category: 'cybersecurity-nl',
+    enabled: true,
+    maxArticles: 10
+  }
+]
+
+// 🌍 INTERNATIONALE CYBERSECURITY FEEDS  
+const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
   {
     id: 'hackernews',
     url: 'https://feeds.feedburner.com/TheHackersNews',
@@ -53,10 +109,30 @@ export const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
     maxArticles: 10
   },
   {
-    id: 'security-nl',
-    url: 'https://www.security.nl/rss.xml',
-    name: 'Security.NL',
-    category: 'cybersecurity-nl',
+    id: 'bleepingcomputer',
+    url: 'https://www.bleepingcomputer.com/feed/',
+    name: 'BleepingComputer',
+    category: 'cybersecurity-international',
+    enabled: true,
+    maxArticles: 10
+  },
+  {
+    id: 'csoonline',
+    url: 'https://www.csoonline.com/feed/',
+    name: 'CSO Online',
+    category: 'cybersecurity-international',
+    enabled: true,
+    maxArticles: 10
+  }
+]
+
+// 🇳🇱 NEDERLANDSE TECH FEEDS
+const TECH_NL_FEEDS: RSSFeedConfig[] = [
+  {
+    id: 'tweakers',
+    url: 'https://feeds.feedburner.com/tweakers/mixed',
+    name: 'Tweakers',
+    category: 'tech-nl',
     enabled: true,
     maxArticles: 10
   },
@@ -64,10 +140,91 @@ export const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
     id: 'computable',
     url: 'https://www.computable.nl/rss.xml',
     name: 'Computable',
-    category: 'cybersecurity-nl',
+    category: 'tech-nl',
     enabled: true,
     maxArticles: 10
+  },
+  {
+    id: 'techzine',
+    url: 'https://www.techzine.nl/feed/',
+    name: 'Techzine',
+    category: 'tech-nl',
+    enabled: true,
+    maxArticles: 10
+  },
+  {
+    id: 'iculture',
+    url: 'https://www.iculture.nl/feed/',
+    name: 'iCulture',
+    category: 'tech-nl',
+    enabled: true,
+    maxArticles: 8
   }
+]
+
+// 🌐 INTERNATIONALE TECH FEEDS
+const TECH_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
+  {
+    id: 'techcrunch',
+    url: 'https://techcrunch.com/feed/',
+    name: 'TechCrunch',
+    category: 'tech-international',
+    enabled: true,
+    maxArticles: 10
+  },
+  {
+    id: 'ars-technica',
+    url: 'https://feeds.arstechnica.com/arstechnica/index',
+    name: 'Ars Technica',
+    category: 'tech-international',
+    enabled: true,
+    maxArticles: 10
+  },
+  {
+    id: 'wired',
+    url: 'https://www.wired.com/feed/rss',
+    name: 'Wired',
+    category: 'tech-international',
+    enabled: true,
+    maxArticles: 8
+  },
+  {
+    id: 'theverge',
+    url: 'https://www.theverge.com/rss/index.xml',
+    name: 'The Verge',
+    category: 'tech-international',
+    enabled: true,
+    maxArticles: 8
+  }
+]
+
+// 📰 OVERIGE FEEDS
+const OTHER_FEEDS: RSSFeedConfig[] = [
+  {
+    id: 'reuters-tech',
+    url: 'https://feeds.reuters.com/reuters/technologyNews',
+    name: 'Reuters Technology',
+    category: 'other',
+    enabled: true,
+    maxArticles: 8
+  },
+  {
+    id: 'bbc-tech',
+    url: 'https://feeds.bbci.co.uk/news/technology/rss.xml',
+    name: 'BBC Technology',
+    category: 'other',
+    enabled: true,
+    maxArticles: 8
+  }
+]
+
+// GECOMBINEERDE FEED LIJST
+export const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
+  ...CYBERSECURITY_NL_FEEDS,
+  ...CYBERSECURITY_INTERNATIONAL_FEEDS, 
+  ...TECH_NL_FEEDS,
+  ...TECH_INTERNATIONAL_FEEDS,
+  ...OTHER_FEEDS
 ]
 
 // Global keywords for all feeds

@@ -8,10 +8,74 @@ export default async function handler(req, res) {
           ['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'],
         
         rewriteInstructions: {
-          general: process.env.AI_INSTRUCTION_GENERAL || 'Herschrijf dit artikel naar helder Nederlands voor een technische doelgroep. Behoud alle belangrijke feiten en cijfers.',
-          professional: process.env.AI_INSTRUCTION_PROFESSIONAL || 'Gebruik een zakelijke, professionele toon. Focus op de business impact en relevantie.',
-          engaging: process.env.AI_INSTRUCTION_ENGAGING || 'Schrijf op een boeiende manier die lezers betrekt. Gebruik voorbeelden en maak het toegankelijk.',
-          technical: process.env.AI_INSTRUCTION_TECHNICAL || 'Gebruik technische precisie en gedetailleerde uitleg. Voeg technische context toe waar relevant.'
+          general: process.env.AI_INSTRUCTION_GENERAL || `Herschrijf dit artikel naar helder Nederlands voor een technische doelgroep. Behoud alle belangrijke feiten en cijfers. 
+
+WORDPRESS HTML FORMAT VEREIST:
+- Gebruik <h2> voor hoofdsecties
+- Gebruik <p> voor paragrafen  
+- Gebruik <ul><li> voor opsommingen
+- Gebruik <strong> voor belangrijke punten
+- Gebruik <em> voor nadruk
+- Voeg geen <h1> toe (wordt door WordPress toegevoegd)
+
+Voorbeeld gewenste output structuur:
+<h2>Wat is er gebeurd?</h2>
+<p>Beschrijving van het incident...</p>
+
+<h2>Impact en gevolgen</h2>
+<ul>
+<li><strong>Getroffen systemen:</strong> Details</li>
+<li><strong>Potentiële schade:</strong> Uitleg</li>
+</ul>
+
+<h2>Wat kun je doen?</h2>
+<p>Praktische adviezen...</p>`,
+          
+          professional: process.env.AI_INSTRUCTION_PROFESSIONAL || `Gebruik een zakelijke, professionele toon. Focus op de business impact en relevantie.
+
+WORDPRESS HTML FORMAT - Zakelijke stijl:
+<h2>Executive Summary</h2>
+<p>Korte samenvatting voor management...</p>
+
+<h2>Business Impact</h2>
+<ul>
+<li><strong>Financiële gevolgen:</strong> Details</li>
+<li><strong>Operationele risico's:</strong> Uitleg</li>
+</ul>
+
+<h2>Aanbevelingen</h2>
+<p>Concrete actiepunten voor beslissers...</p>`,
+          
+          engaging: process.env.AI_INSTRUCTION_ENGAGING || `Schrijf op een boeiende manier die lezers betrekt. Gebruik voorbeelden en maak het toegankelijk.
+
+WORDPRESS HTML FORMAT - Toegankelijke stijl:
+<h2>Wat betekent dit voor jou?</h2>
+<p>Praktische uitleg met voorbeelden...</p>
+
+<h2>De belangrijkste punten</h2>
+<ul>
+<li><strong>In gewone taal:</strong> Eenvoudige uitleg</li>
+<li><strong>Waarom belangrijk:</strong> Relevantie voor lezer</li>
+</ul>
+
+<h2>Volgende stappen</h2>
+<p>Heldere actiepunten...</p>`,
+          
+          technical: process.env.AI_INSTRUCTION_TECHNICAL || `Gebruik technische precisie en gedetailleerde uitleg. Voeg technische context toe waar relevant.
+
+WORDPRESS HTML FORMAT - Technische stijl:
+<h2>Technische Details</h2>
+<p>Diepgaande technische analyse...</p>
+
+<h2>Kwetsbaarheden en Exploits</h2>
+<ul>
+<li><strong>CVE nummers:</strong> Specifieke referenties</li>
+<li><strong>Affected systems:</strong> Technische details</li>
+<li><strong>Attack vectors:</strong> Uitleg van aanvalsmethoden</li>
+</ul>
+
+<h2>Mitigatie en Patches</h2>
+<p>Technische oplossingen en configuraties...</p>`
         }
       }
       

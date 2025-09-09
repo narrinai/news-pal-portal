@@ -180,7 +180,17 @@ export default function RewritePage({ params }: RewritePageProps) {
               >
                 ← Terug naar dashboard
               </button>
-              <h1 className="text-3xl font-bold text-gray-900">Artikel Herschrijven</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {article.status === 'rewritten' ? 'Herschreven Artikel' : 'Artikel Herschrijven'}
+                </h1>
+                {article.status === 'rewritten' && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
+                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full mr-1.5"></span>
+                    Voltooid
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -294,7 +304,8 @@ export default function RewritePage({ params }: RewritePageProps) {
                 disabled={rewriting}
                 className="mt-4 w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50"
               >
-                {rewriting ? 'Herschrijven...' : 'Herschrijf Artikel'}
+                {rewriting ? 'Herschrijven...' : 
+                 article.status === 'rewritten' ? 'Opnieuw Herschrijven' : 'Herschrijf Artikel'}
               </button>
             </div>
 
@@ -302,11 +313,18 @@ export default function RewritePage({ params }: RewritePageProps) {
             {rewritten && (
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">Herschreven Artikel</h2>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-semibold">Herschreven Artikel</h2>
+                    {article.status === 'rewritten' && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-700">
+                        Bestaande versie
+                      </span>
+                    )}
+                  </div>
                   <div className="flex space-x-2">
                     <button
                       onClick={() => setShowHtml(!showHtml)}
-                      className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded"
+                      className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded transition-colors duration-200"
                     >
                       {showHtml ? 'Tekst' : 'HTML'}
                     </button>

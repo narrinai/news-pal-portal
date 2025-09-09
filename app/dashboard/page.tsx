@@ -57,24 +57,24 @@ export default function DashboardPage() {
         const result = await response.json()
         showNotification({
           type: 'success',
-          title: 'Nieuwe artikelen opgehaald',
-          message: `${result.newArticles} nieuwe artikelen toegevoegd`,
+          title: 'New articles fetched',
+          message: `${result.newArticles} new articles added`,
           duration: 4000
         })
         fetchArticles() // Refresh the list
       } else {
         showNotification({
           type: 'error',
-          title: 'Fout bij ophalen',
-          message: 'Kon geen nieuwe artikelen ophalen'
+          title: 'Fetch failed',
+          message: 'Could not fetch new articles'
         })
       }
     } catch (error) {
       console.error('Error fetching new articles:', error)
       showNotification({
         type: 'error',
-        title: 'Netwerkfout',
-        message: 'Fout bij ophalen van nieuwe artikelen'
+        title: 'Network error',
+        message: 'Error fetching new articles'
       })
     } finally {
       setFetching(false)

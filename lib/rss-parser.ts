@@ -15,8 +15,8 @@ export async function fetchRSSFeed(feedUrl: string): Promise<any> {
     
     const fetchPromise = parser.parseURL(feedUrl)
     
-    const feed = await Promise.race([fetchPromise, timeoutPromise])
-    console.log(`RSS fetch successful: ${feedUrl} (${feed.items?.length || 0} items)`)
+    const feed = await Promise.race([fetchPromise, timeoutPromise]) as any
+    console.log(`RSS fetch successful: ${feedUrl} (${feed?.items?.length || 0} items)`)
     return feed
   } catch (error) {
     console.error(`Error fetching RSS feed ${feedUrl}:`, error)

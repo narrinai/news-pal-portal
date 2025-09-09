@@ -263,7 +263,11 @@ export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
     
     // Store in memory (immediate availability)
     customFeeds = [...feeds]
-    console.log('RSS feeds updated in memory - will be used on next refresh')
+    
+    // Clear RSS cache to force refresh with new feeds
+    const { refreshRSSCache } = require('./article-manager')
+    refreshRSSCache()
+    console.log('RSS cache cleared - new feeds will be used immediately')
     
     // Log the current configuration
     feeds.forEach(feed => {

@@ -1,3 +1,1 @@
-/api/test /.netlify/functions/test 200
-/api/auth/login /.netlify/functions/auth-login 200
-/api/* /.netlify/functions/:splat 200
+# Next.js API routes worden automatisch gehandled door @netlify/plugin-nextjs

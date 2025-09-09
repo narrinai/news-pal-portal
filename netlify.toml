@@ -10,9 +10,16 @@
 
 [functions]
   node_bundler = "esbuild"
+  directory = ".netlify/functions"
 
 # Environment variables you need to set in Netlify dashboard:
 # AIRTABLE_API_KEY - Your Airtable API key
 # AIRTABLE_BASE_ID - Your Airtable base ID  
 # OPENAI_API_KEY - Your OpenAI API key
 # PORTAL_PASSWORD - Password for portal access
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true

@@ -1,1 +1,2 @@
+/api/auth/login /.netlify/functions/auth-login 200
 /api/* /.netlify/functions/:splat 200

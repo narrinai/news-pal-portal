@@ -25,10 +25,16 @@ export default function LoginPage() {
       })
 
       if (response.ok) {
-        Cookies.set('authenticated', 'true', { expires: 1 }) // 1 day
+        // Cookie wordt gezet door server response
         router.push('/dashboard')
       } else {
-        setError('Incorrect password')
+        const result = await response.json()
+        setError(result.error || 'Incorrect password')
+        
+        // Debug info tonen
+        if (result.debug) {
+          console.log('Debug info:', result.debug)
+        }
       }
     } catch (err) {
       setError('Login failed')

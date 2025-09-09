@@ -270,8 +270,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     <NotificationContext.Provider value={{ showNotification, showConfirm, showPrompt }}>
       {children}
       
-      {/* Notifications */}
-      <div className="fixed top-4 right-4 z-50 space-y-3 pointer-events-none">
+      {/* Notifications - Centered for landscape */}
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 space-y-3 pointer-events-none w-full max-w-md">
         {notifications.map(notification => (
           <NotificationItem
             key={notification.id}

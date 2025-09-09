@@ -288,7 +288,13 @@ export default function SettingsPage() {
       if (response.ok) {
         const result = await response.json()
         console.log('Feed added successfully:', result)
-        await loadFeeds()
+        
+        // Add new feed to top of the list immediately
+        setSettings(prev => ({
+          ...prev,
+          rssFeeds: [result.feed, ...prev.rssFeeds]
+        }))
+        
         setNewFeed({ url: '', name: '', category: 'cybersecurity-international', maxArticles: 10 })
         setShowAddFeed(false)
         showNotification({

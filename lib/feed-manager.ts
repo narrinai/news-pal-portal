@@ -226,28 +226,46 @@ export const DEFAULT_KEYWORDS = [
   'firewall', 'antivirus', 'zero-day'
 ]
 
+// In-memory feed storage (simple but effective)
+let customFeeds: RSSFeedConfig[] = []
+
 // Feed configuration storage/retrieval functions
 export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
   try {
-    // Try to get from environment variables or API
-    const storedFeeds = process.env.RSS_FEED_CONFIGS
-    if (storedFeeds) {
-      return JSON.parse(storedFeeds)
+    // Return custom feeds if any have been added, otherwise defaults
+    if (customFeeds.length > 0) {
+      console.log(`Using ${customFeeds.length} custom feeds`)
+      return customFeeds
     }
     
-    // Fallback to defaults
-    return DEFAULT_RSS_FEEDS
+    // Try to get from environment variables
+    const storedFeeds = process.env.RSS_FEED_CONFIGS
+    if (storedFeeds) {
+      const parsedFeeds = JSON.parse(storedFeeds)
+      customFeeds = parsedFeeds // Cache in memory
+      return parsedFeeds
+    }
+    
+    // Fallback to defaults and cache them
+    customFeeds = [...DEFAULT_RSS_FEEDS]
+    console.log(`Using ${customFeeds.length} default feeds`)
+    return customFeeds
   } catch (error) {
     console.warn('Error loading feed configs, using defaults:', error)
-    return DEFAULT_RSS_FEEDS
+    customFeeds = [...DEFAULT_RSS_FEEDS]
+    return customFeeds
   }
 }
 
 export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
   try {
     console.log('Saving RSS feed configs:', feeds.length, 'feeds')
-    // TODO: Store in Airtable or persistent storage
-    // For now, just log the configuration
+    
+    // Store in memory (immediate availability)
+    customFeeds = [...feeds]
+    console.log('RSS feeds updated in memory - will be used on next refresh')
+    
+    // Log the current configuration
     feeds.forEach(feed => {
       console.log(`- ${feed.name}: ${feed.enabled ? 'enabled' : 'disabled'} (${feed.url})`)
     })

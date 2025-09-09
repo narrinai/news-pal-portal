@@ -318,23 +318,23 @@ export default function SettingsPage() {
         setSettings(prev => ({ ...prev, rssFeeds: updatedFeeds }))
         showNotification({
           type: 'success',
-          title: 'RSS feed verwijderd',
-          message: `${feedToRemove?.name} is succesvol verwijderd`,
+          title: 'Website source removed',
+          message: `${feedToRemove?.name} has been successfully removed`,
           duration: 4000
         })
       } else {
         showNotification({
           type: 'error',
-          title: 'Fout bij verwijderen',
-          message: 'Kon RSS feed niet verwijderen'
+          title: 'Remove failed',
+          message: 'Could not remove website source'
         })
       }
     } catch (error) {
       console.error('Error removing feed:', error)
       showNotification({
         type: 'error',
-        title: 'Netwerkfout',
-        message: 'Kon verbinding met server niet maken'
+        title: 'Network error',
+        message: 'Could not connect to server'
       })
     }
   }

@@ -74,23 +74,14 @@ export default async function handler(req, res) {
       console.error('Category management error:', error.message)
     }
 
-    // Prepare WordPress post with News category and Dutch language
+    // Minimal post object for custom 'news' post type
     const wordpressPost = {
       title: title,
       content: wordpressHtml,
-      status: 'draft',
-      categories: newsCategory ? [newsCategory.id] : [],
-      excerpt: `Gegenereerd door News Pal Portal - ${new Date().toLocaleDateString('nl-NL')}`,
-      // WPML language settings
-      lang: 'nl',
-      // Try to set post format (if your theme supports it)
-      format: 'standard',
-      meta: {
-        '_wpml_language': 'nl'
-      }
+      status: 'draft'
     }
 
-    console.log('Publishing to standard posts with News category...')
+    console.log('Publishing to News custom post type...')
     
     // Try custom post type 'news' first, fallback to posts
     let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {

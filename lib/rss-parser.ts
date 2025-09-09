@@ -28,8 +28,9 @@ export async function parseArticlesFromFeed(
   feed: any, 
   source: string, 
   category: NewsArticle['category'],
-  maxArticles: number = 10,
-  customKeywords?: string[]
+  maxArticles: number = 15,
+  customKeywords?: string[],
+  disableFiltering = false
 ): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {
   const articles: Omit<NewsArticle, 'id' | 'createdAt'>[] = []
   
@@ -47,8 +48,9 @@ export async function parseArticlesFromFeed(
       'zero-day', 'apt', 'ddos', 'firewall', 'antivirus',
       'beveiliging', 'cyberbeveiliging', 'datalek', 'hack', 'malware'
     ]
+    // Skip filtering if disabled, otherwise use keywords
     const keywords = customKeywords || broadKeywords
-    const isRelevant = containsKeywords(content, keywords)
+    const isRelevant = disableFiltering ? true : containsKeywords(content, keywords)
     
     if (isRelevant) {
       // Extract image from RSS item
@@ -113,7 +115,7 @@ function extractImageFromRSSItem(item: any): string | undefined {
   }
 }
 
-export async function fetchAllFeeds(): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {
+export async function fetchAllFeeds(disableFiltering = false): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {
   const allArticles: Omit<NewsArticle, 'id' | 'createdAt'>[] = []
   
   // Get configurable feeds or fallback to defaults
@@ -139,8 +141,9 @@ export async function fetchAllFeeds(): Promise<Omit<NewsArticle, 'id' | 'created
           feed, 
           rssFeed.name, 
           rssFeed.category as NewsArticle['category'],
-          rssFeed.maxArticles || 10,
-          rssFeed.keywords
+          rssFeed.maxArticles || 15,
+          rssFeed.keywords,
+          disableFiltering
         )
         console.log(`Found ${articles.length} relevant articles from ${rssFeed.name}`)
         return articles

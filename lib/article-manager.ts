@@ -25,7 +25,7 @@ let rssCache: LiveArticle[] = []
 let lastFetchTime = 0
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
 
-export async function getLiveArticles(): Promise<{
+export async function getLiveArticles(disableFiltering = false): Promise<{
   pending: LiveArticle[]  // From RSS feeds (not in Airtable)
   selected: NewsArticle[] // From Airtable
   rewritten: NewsArticle[]
@@ -36,7 +36,7 @@ export async function getLiveArticles(): Promise<{
     const now = Date.now()
     if (rssCache.length === 0 || (now - lastFetchTime) > CACHE_DURATION) {
       console.log('Fetching fresh RSS data...')
-      const rssArticles = await fetchAllFeeds()
+      const rssArticles = await fetchAllFeeds(disableFiltering)
       
       // Convert to LiveArticle format
       rssCache = rssArticles.map(article => ({

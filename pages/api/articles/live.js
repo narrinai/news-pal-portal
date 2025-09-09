@@ -25,7 +25,8 @@ export default async function handler(req, res) {
           refreshRSSCache()
         }
         
-        const liveData = await getLiveArticles()
+        const noFilter = req.query.nofilter === 'true'
+        const liveData = await getLiveArticles(noFilter)
         pending = liveData.pending || []
         console.log(`RSS articles loaded: ${pending.length}`)
       } catch (rssError) {

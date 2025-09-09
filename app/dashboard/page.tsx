@@ -17,8 +17,10 @@ export default function DashboardPage() {
   
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international', 'other'])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'])
+  const [languageFilter, setLanguageFilter] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [keywordFiltering, setKeywordFiltering] = useState<boolean>(true)
   const [cacheStatus, setCacheStatus] = useState<any>(null)
 
   // Get all articles for display
@@ -41,20 +43,34 @@ export default function DashboardPage() {
       return false
     }
     
+    // Language filter
+    if (languageFilter !== 'all') {
+      const isNL = article.category.includes('-nl')
+      const isInternational = article.category.includes('-international')
+      
+      if (languageFilter === 'nl' && !isNL) {
+        return false
+      }
+      if (languageFilter === 'international' && !isInternational) {
+        return false
+      }
+    }
+    
     return true
   })
 
   useEffect(() => {
     fetchArticles()
-  }, [selectedCategories, selectedStatus])
+  }, [selectedCategories, selectedStatus, keywordFiltering, languageFilter])
 
   const fetchArticles = async (forceRefresh = false) => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (forceRefresh) params.append('refresh', 'true')
+      if (!keywordFiltering) params.append('nofilter', 'true')
       
-      console.log('Fetching live articles...', { forceRefresh })
+      console.log('Fetching live articles...', { forceRefresh, keywordFiltering })
       const response = await fetch(`/api/articles/live?${params}`)
       console.log('Live API response status:', response.status)
       
@@ -251,7 +267,7 @@ export default function DashboardPage() {
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">Categories</label>
             <div className="flex flex-wrap gap-3">
-              {['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international', 'other'].map((category) => (
+              {['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'].map((category) => (
                 <button
                   key={category}
                   onClick={() => toggleCategory(category)}
@@ -270,11 +286,65 @@ export default function DashboardPage() {
                     {category === 'bouwcertificaten-nl' && '🏗️ Bouwcertificaten NL'}
                     {category === 'ai-companion-international' && '🤖 AI Companion'}
                     {category === 'ai-learning-international' && '🎓 AI Learning'}
-                    {category === 'other' && '📰 Other'}
                   </span>
                 </button>
               ))}
             </div>
+          </div>
+          
+          {/* Language Filter */}
+          <div className="mt-6">
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Language Filter</label>
+            <div className="flex gap-2">
+              {[
+                { value: 'all', label: '🌍 All Languages', count: filteredArticles.length },
+                { value: 'nl', label: '🇳🇱 Nederlands', count: allArticles.filter(a => a.category.includes('-nl')).length },
+                { value: 'international', label: '🌐 International', count: allArticles.filter(a => a.category.includes('-international')).length }
+              ].map((lang) => (
+                <button
+                  key={lang.value}
+                  onClick={() => setLanguageFilter(lang.value)}
+                  className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    languageFilter === lang.value
+                      ? 'bg-blue-500 text-white shadow-md'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                  }`}
+                >
+                  <span>{lang.label}</span>
+                  {lang.count > 0 && (
+                    <span className={`ml-2 rounded-full min-w-[20px] h-5 flex items-center justify-center text-xs font-bold px-1 ${
+                      languageFilter === lang.value 
+                        ? 'bg-blue-400 text-white'
+                        : 'bg-gray-900 text-white'
+                    }`}>
+                      {lang.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Keyword Filtering Toggle */}
+          <div className="mt-6 flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+            <div>
+              <label className="text-sm font-medium text-gray-900">Keyword Filtering</label>
+              <p className="text-xs text-gray-600 mt-1">
+                {keywordFiltering ? 'Showing only articles matching your keywords' : 'Showing all articles from RSS feeds'}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={keywordFiltering}
+                onChange={(e) => setKeywordFiltering(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <span className="ml-3 text-sm font-medium text-gray-700">
+                {keywordFiltering ? 'ON' : 'OFF'}
+              </span>
+            </label>
           </div>
         </div>
 
@@ -288,15 +358,6 @@ export default function DashboardPage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredArticles.map((article) => (
               <div key={article.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 group">
-                {/* Modern image placeholder */}
-                <div className="w-full h-40 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center group-hover:from-gray-200 group-hover:to-gray-300 transition-all duration-300">
-                  <div className="text-gray-400">
-                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                    </svg>
-                  </div>
-                </div>
-                
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${

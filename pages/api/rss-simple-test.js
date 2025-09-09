@@ -18,15 +18,31 @@ export default async function handler(req, res) {
     
     console.log(`Feed loaded: ${feed.items?.length || 0} items`)
     
-    // Simple keyword check
+    // Debug keyword check
     const articles = []
-    for (const item of (feed.items || []).slice(0, 5)) {
-      const content = `${item.title} ${item.description}`.toLowerCase()
+    const debugInfo = []
+    
+    for (const item of (feed.items || []).slice(0, 10)) {
+      const title = item.title || ''
+      const description = item.description || ''
+      const content = `${title} ${description}`.toLowerCase()
       
-      if (content.includes('security') || content.includes('hack') || content.includes('cyber')) {
+      // Check for any security-related keywords
+      const hasSecurityKeywords = content.includes('security') || content.includes('hack') || 
+                                 content.includes('cyber') || content.includes('breach') || 
+                                 content.includes('malware') || content.includes('vulnerability') ||
+                                 content.includes('attack') || content.includes('threat')
+      
+      debugInfo.push({
+        title: title.substring(0, 50) + '...',
+        hasKeywords: hasSecurityKeywords,
+        contentSample: content.substring(0, 100) + '...'
+      })
+      
+      if (hasSecurityKeywords) {
         articles.push({
-          title: item.title,
-          description: item.description || '',
+          title: title,
+          description: description,
           url: item.link || '',
           source: 'The Hacker News',
           publishedAt: item.pubDate || new Date().toISOString(),
@@ -40,7 +56,8 @@ export default async function handler(req, res) {
       feedUrl: testFeed,
       totalItems: feed.items?.length || 0,
       filteredArticles: articles.length,
-      articles: articles.slice(0, 3) // Just first 3 for testing
+      articles: articles.slice(0, 5),
+      debugInfo: debugInfo
     })
     
   } catch (error) {

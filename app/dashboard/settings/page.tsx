@@ -7,6 +7,7 @@ import Logo from '../../../components/Logo'
 
 interface Settings {
   categories: string[]
+  keywords: string[]
   rewriteInstructions: {
     general: string
     professional: string
@@ -27,11 +28,16 @@ export default function SettingsPage() {
   const { showNotification, showConfirm, showPrompt } = useNotifications()
   const [settings, setSettings] = useState<Settings>({
     categories: ['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'],
+    keywords: [
+      'security', 'cybersecurity', 'hack', 'breach', 'malware', 'ransomware', 'phishing', 
+      'vulnerability', 'exploit', 'beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 
+      'encryption', 'firewall', 'zero-day', 'penetration', 'threat', 'incident', 'forensics'
+    ],
     rewriteInstructions: {
-      general: 'Herschrijf dit artikel naar helder Nederlands voor een technische doelgroep. Behoud alle belangrijke feiten en cijfers.',
-      professional: 'Gebruik een zakelijke, professionele toon. Focus op de business impact en relevantie.',
-      engaging: 'Schrijf op een boeiende manier die lezers betrekt. Gebruik voorbeelden en maak het toegankelijk.',
-      technical: 'Gebruik technische precisie en gedetailleerde uitleg. Voeg technische context toe waar relevant.'
+      general: 'Rewrite this article in clear English for a technical audience. Preserve all important facts and figures.',
+      professional: 'Use a business-oriented, professional tone. Focus on business impact and relevance.',
+      engaging: 'Write in an engaging way that captivates readers. Use examples and make it accessible.',
+      technical: 'Use technical precision and detailed explanation. Add technical context where relevant.'
     },
     rssFeeds: []
   })
@@ -45,7 +51,7 @@ export default function SettingsPage() {
   })
   
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'categories' | 'instructions' | 'feeds'>('categories')
+  const [activeTab, setActiveTab] = useState<'categories' | 'keywords' | 'instructions' | 'feeds'>('categories')
   const router = useRouter()
 
   useEffect(() => {
@@ -89,23 +95,23 @@ export default function SettingsPage() {
       if (response.ok) {
         showNotification({
           type: 'success',
-          title: 'Instellingen opgeslagen',
-          message: 'Alle wijzigingen zijn succesvol opgeslagen',
+          title: 'Settings saved',
+          message: 'All changes have been successfully saved',
           duration: 3000
         })
       } else {
         showNotification({
           type: 'error',
-          title: 'Opslaan mislukt',
-          message: 'Fout bij opslaan van instellingen'
+          title: 'Save failed',
+          message: 'Error saving settings'
         })
       }
     } catch (error) {
       console.error('Error saving settings:', error)
       showNotification({
         type: 'error',
-        title: 'Netwerkfout',
-        message: 'Kon verbinding met server niet maken'
+        title: 'Network error',
+        message: 'Could not connect to server'
       })
     } finally {
       setSaving(false)
@@ -114,11 +120,11 @@ export default function SettingsPage() {
 
   const addCategory = async () => {
     const newCategory = await showPrompt({
-      title: 'Nieuwe categorie',
-      message: 'Voer de naam van de nieuwe categorie in:',
-      promptPlaceholder: 'Categorie naam...',
-      confirmText: 'Toevoegen',
-      cancelText: 'Annuleren'
+      title: 'New category',
+      message: 'Enter the name of the new category:',
+      promptPlaceholder: 'Category name...',
+      confirmText: 'Add',
+      cancelText: 'Cancel'
     })
     
     if (newCategory && !settings.categories.includes(newCategory)) {
@@ -128,15 +134,15 @@ export default function SettingsPage() {
       }))
       showNotification({
         type: 'success',
-        title: 'Categorie toegevoegd',
-        message: `"${newCategory}" is toegevoegd aan de categorieën`,
+        title: 'Category added',
+        message: `"${newCategory}" has been added to categories`,
         duration: 3000
       })
     } else if (newCategory && settings.categories.includes(newCategory)) {
       showNotification({
         type: 'warning',
-        title: 'Categorie bestaat al',
-        message: `"${newCategory}" bestaat al in de lijst`
+        title: 'Category exists',
+        message: `"${newCategory}" already exists in the list`
       })
     }
   }
@@ -145,6 +151,42 @@ export default function SettingsPage() {
     setSettings(prev => ({
       ...prev,
       categories: prev.categories.filter(c => c !== category)
+    }))
+  }
+
+  const addKeyword = async () => {
+    const newKeyword = await showPrompt({
+      title: 'New keyword',
+      message: 'Enter the new keyword for article filtering:',
+      promptPlaceholder: 'Keyword...',
+      confirmText: 'Add',
+      cancelText: 'Cancel'
+    })
+    
+    if (newKeyword && !settings.keywords.includes(newKeyword.toLowerCase())) {
+      setSettings(prev => ({
+        ...prev,
+        keywords: [...prev.keywords, newKeyword.toLowerCase()]
+      }))
+      showNotification({
+        type: 'success',
+        title: 'Keyword added',
+        message: `"${newKeyword}" has been added to keywords`,
+        duration: 3000
+      })
+    } else if (newKeyword && settings.keywords.includes(newKeyword.toLowerCase())) {
+      showNotification({
+        type: 'warning',
+        title: 'Keyword exists',
+        message: `"${newKeyword}" already exists in the list`
+      })
+    }
+  }
+
+  const removeKeyword = (keyword: string) => {
+    setSettings(prev => ({
+      ...prev,
+      keywords: prev.keywords.filter(k => k !== keyword)
     }))
   }
 
@@ -164,8 +206,8 @@ export default function SettingsPage() {
     if (!newFeed.url || !newFeed.name) {
       showNotification({
         type: 'warning',
-        title: 'Velden vereist',
-        message: 'URL en naam zijn verplicht om een RSS feed toe te voegen'
+        title: 'Fields required',
+        message: 'URL and name are required to add an RSS feed'
       })
       return
     }
@@ -191,8 +233,8 @@ export default function SettingsPage() {
         setShowAddFeed(false)
         showNotification({
           type: 'success',
-          title: 'RSS feed toegevoegd',
-          message: `${newFeed.name} is succesvol toegevoegd`,
+          title: 'RSS feed added',
+          message: `${newFeed.name} has been successfully added`,
           duration: 4000
         })
       } else {
@@ -200,16 +242,16 @@ export default function SettingsPage() {
         console.error('API error response:', response.status, errorText)
         showNotification({
           type: 'error',
-          title: 'Fout bij toevoegen',
-          message: `Server fout: ${response.status}`
+          title: 'Add failed',
+          message: `Server error: ${response.status}`
         })
       }
     } catch (error) {
       console.error('Error adding feed:', error)
       showNotification({
         type: 'error',
-        title: 'Netwerkfout',
-        message: 'Kon RSS feed niet toevoegen vanwege netwerkproblemen'
+        title: 'Network error',
+        message: 'Could not add RSS feed due to network problems'
       })
     }
   }

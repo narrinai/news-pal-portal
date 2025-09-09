@@ -54,12 +54,24 @@ export default function DashboardPage() {
       const params = new URLSearchParams()
       if (forceRefresh) params.append('refresh', 'true')
       
+      console.log('Fetching live articles...', { forceRefresh })
       const response = await fetch(`/api/articles/live?${params}`)
+      console.log('Live API response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('Live articles response:', data)
         setLiveData(data.articles)
         setCacheStatus(data.cache)
         console.log('Live articles loaded:', data.totalCounts)
+      } else {
+        const errorText = await response.text()
+        console.error('Live API error:', response.status, errorText)
+        showNotification({
+          type: 'error',
+          title: 'Loading failed',
+          message: `API error: ${response.status}`
+        })
       }
     } catch (error) {
       console.error('Error fetching articles:', error)
@@ -87,12 +99,7 @@ export default function DashboardPage() {
     setRefreshing(true)
     try {
       await fetchArticles(true) // Force refresh RSS cache
-      showNotification({
-        type: 'success',
-        title: 'Articles refreshed',
-        message: 'Latest articles loaded from RSS feeds',
-        duration: 4000
-      })
+      // Removed success notification - silent refresh
     } catch (error) {
       console.error('Error refreshing articles:', error)
       showNotification({
@@ -131,12 +138,7 @@ export default function DashboardPage() {
       if (response.ok) {
         console.log('Article selected and saved to Airtable')
         fetchArticles() // Refresh to show updated state
-        showNotification({
-          type: 'success',
-          title: 'Article selected',
-          message: 'Article saved to your collection',
-          duration: 3000
-        })
+        // Removed notification - silent selection
       } else {
         const errorText = await response.text()
         console.error('Failed to select article:', response.status, errorText)

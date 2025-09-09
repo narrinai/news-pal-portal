@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import * as cron from 'node-cron'
 import { fetchAllFeeds } from './rss-parser'
 import { createArticle, getArticles } from './airtable'
 
@@ -13,7 +13,6 @@ class CronService {
     const job = cron.schedule('0 6 * * *', async () => {
       await this.executeNewsFetch()
     }, {
-      scheduled: false,
       timezone: "Europe/Amsterdam"
     })
 
@@ -55,7 +54,7 @@ class CronService {
       console.log(`[CRON] ${newArticles.length} new articles to add`)
       
       // Store new articles in Airtable
-      const createdArticles = []
+      const createdArticles: any[] = []
       for (const article of newArticles) {
         try {
           const created = await createArticle(article)
@@ -114,12 +113,12 @@ class CronService {
 
   getAllJobsStatus(): Record<string, {scheduled: boolean, running: boolean}> {
     const status: Record<string, {scheduled: boolean, running: boolean}> = {}
-    for (const [jobName, job] of this.jobs) {
+    this.jobs.forEach((job, jobName) => {
       status[jobName] = {
         scheduled: true,
         running: job.getStatus() === 'scheduled'
       }
-    }
+    })
     return status
   }
 }

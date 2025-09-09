@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react'
 import { NewsArticle } from '../../lib/airtable'
 import Logo from '../../components/Logo'
+import { useNotifications } from '../../components/NotificationSystem'
 
 export default function DashboardPage() {
+  const { showNotification } = useNotifications()
   const [articles, setArticles] = useState<NewsArticle[]>([])
   const [loading, setLoading] = useState(true)
   const [fetching, setFetching] = useState(false)

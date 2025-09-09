@@ -82,10 +82,36 @@ export default function SettingsPage() {
       const response = await fetch('/api/feeds')
       if (response.ok) {
         const feeds = await response.json()
+        console.log('Loaded feeds:', feeds.length)
         setSettings(prev => ({ ...prev, rssFeeds: feeds }))
+      } else {
+        console.error('Failed to load feeds:', response.status)
       }
     } catch (error) {
       console.error('Error loading feeds:', error)
+    }
+  }
+
+  const addWorkingDutchFeeds = async () => {
+    try {
+      const response = await fetch('/api/feeds/add-working-nl', { method: 'POST' })
+      if (response.ok) {
+        const result = await response.json()
+        showNotification({
+          type: 'success',
+          title: 'Dutch feeds added',
+          message: `${result.feedsAdded} Nederlandse feeds toegevoegd`,
+          duration: 4000
+        })
+        await loadFeeds() // Refresh the list
+      }
+    } catch (error) {
+      console.error('Error adding Dutch feeds:', error)
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Could not add Dutch feeds'
+      })
     }
   }
 

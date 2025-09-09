@@ -37,7 +37,25 @@ export async function getLiveArticles(disableFiltering = false): Promise<{
     const now = Date.now()
     if (rssCache.length === 0 || (now - lastFetchTime) > CACHE_DURATION) {
       console.log('Fetching fresh RSS data...')
-      const rssArticles = await fetchAllFeeds(disableFiltering)
+      
+      // Load category keywords from settings
+      let categoryKeywords = {}
+      try {
+        // Import settings directly to avoid API call in server context
+        const settings = {
+          'cybersecurity-nl': ['beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 'hack', 'malware'],
+          'cybersecurity-international': ['security', 'cybersecurity', 'hack', 'breach', 'malware', 'ransomware', 'phishing', 'vulnerability', 'exploit'],
+          'bouwcertificaten-nl': ['bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'energielabel', 'bouwvergunning', 'woningbouw'],
+          'ai-companion-international': ['AI companion', 'AI assistant', 'virtual assistant', 'chatbot', 'conversational AI'],
+          'ai-learning-international': ['AI learning', 'machine learning', 'deep learning', 'AI education', 'AI training'],
+          'other': ['news', 'nieuws', 'update', 'announcement']
+        }
+        categoryKeywords = settings
+      } catch (error) {
+        console.warn('Using default category keywords')
+      }
+      
+      const rssArticles = await fetchAllFeeds(disableFiltering, categoryKeywords)
       
       // Convert to LiveArticle format
       rssCache = rssArticles.map(article => ({
@@ -115,7 +133,7 @@ export function refreshRSSCache(): void {
   // Force refresh RSS cache
   rssCache = []
   lastFetchTime = 0
-  console.log('RSS cache cleared - will refresh on next fetch')
+  console.log('RSS cache cleared - will refresh on next fetch with new categorization logic')
 }
 
 export function getCacheStatus(): { 

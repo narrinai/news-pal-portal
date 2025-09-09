@@ -212,7 +212,7 @@ export default function DashboardPage() {
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Refresh Articles
+                    Refresh with New Categorization
                     {cacheStatus && cacheStatus.isStale && (
                       <span className="ml-1 w-2 h-2 bg-orange-400 rounded-full"></span>
                     )}
@@ -356,7 +356,16 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredArticles.map((article) => (
+            {filteredArticles.map((article) => {
+              // Debug logging
+              console.log('Article data:', {
+                title: article.title?.substring(0, 30),
+                category: article.category,
+                matchedKeywords: (article as any).matchedKeywords,
+                hasMatchedKeywords: !!(article as any).matchedKeywords
+              })
+              
+              return (
               <div key={article.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 group">
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-3">
@@ -386,25 +395,38 @@ export default function DashboardPage() {
                   </p>
                   
                   {/* Matched Keywords Tags */}
-                  {(article as any).matchedKeywords && (article as any).matchedKeywords.length > 0 && (
-                    <div className="mb-4">
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {(article as any).matchedKeywords.slice(0, 3).map((keyword: string) => (
-                          <span 
-                            key={keyword}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                          >
-                            🔍 {keyword}
+                  <div className="mb-4">
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {/* Debug: Always show some test keywords to verify UI works */}
+                      {(article as any).matchedKeywords && (article as any).matchedKeywords.length > 0 ? (
+                        <>
+                          {(article as any).matchedKeywords.slice(0, 3).map((keyword: string) => (
+                            <span 
+                              key={keyword}
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                            >
+                              🔍 {keyword}
+                            </span>
+                          ))}
+                          {(article as any).matchedKeywords.length > 3 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                              +{(article as any).matchedKeywords.length - 3} more
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        /* Fallback debug tags */
+                        <>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                            🐛 No keywords data
                           </span>
-                        ))}
-                        {(article as any).matchedKeywords.length > 3 && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                            +{(article as any).matchedKeywords.length - 3} more
+                            Category: {article.category}
                           </span>
-                        )}
-                      </div>
+                        </>
+                      )}
                     </div>
-                  )}
+                  </div>
                   
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded-md">
@@ -464,7 +486,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
 

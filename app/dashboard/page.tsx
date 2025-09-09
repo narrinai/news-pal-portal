@@ -52,16 +52,26 @@ export default function DashboardPage() {
 
   const selectArticle = async (articleId: string) => {
     try {
+      console.log('Selecting article:', articleId)
       const response = await fetch(`/api/articles/${articleId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'selected' })
       })
+      
+      console.log('Select response:', response.status)
+      
       if (response.ok) {
-        fetchArticles()
+        console.log('Article selected successfully')
+        fetchArticles() // Refresh the list
+      } else {
+        const errorText = await response.text()
+        console.error('Failed to select article:', response.status, errorText)
+        alert(`Fout bij selecteren: ${response.status}`)
       }
     } catch (error) {
       console.error('Error selecting article:', error)
+      alert('Netwerkfout bij selecteren van artikel')
     }
   }
 

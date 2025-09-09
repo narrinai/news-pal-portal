@@ -134,16 +134,35 @@ export default function SettingsPage() {
     })
     
     if (newCategory && !settings.categories.includes(newCategory)) {
-      setSettings(prev => ({
-        ...prev,
-        categories: [...prev.categories, newCategory]
-      }))
-      showNotification({
-        type: 'success',
-        title: 'Category added',
-        message: `"${newCategory}" has been added to categories`,
-        duration: 3000
-      })
+      const updatedSettings = {
+        ...settings,
+        categories: [...settings.categories, newCategory]
+      }
+      
+      setSettings(updatedSettings)
+      
+      // Auto-save categories
+      try {
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedSettings)
+        })
+        
+        showNotification({
+          type: 'success',
+          title: 'Category added & saved',
+          message: `"${newCategory}" has been added and saved automatically`,
+          duration: 3000
+        })
+      } catch (error) {
+        console.error('Error auto-saving categories:', error)
+        showNotification({
+          type: 'error', 
+          title: 'Save failed',
+          message: 'Category added but not saved'
+        })
+      }
     } else if (newCategory && settings.categories.includes(newCategory)) {
       showNotification({
         type: 'warning',
@@ -153,11 +172,25 @@ export default function SettingsPage() {
     }
   }
 
-  const removeCategory = (category: string) => {
-    setSettings(prev => ({
-      ...prev,
-      categories: prev.categories.filter(c => c !== category)
-    }))
+  const removeCategory = async (category: string) => {
+    const updatedSettings = {
+      ...settings,
+      categories: settings.categories.filter(c => c !== category)
+    }
+    
+    setSettings(updatedSettings)
+    
+    // Auto-save categories
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedSettings)
+      })
+      console.log('Categories auto-saved')
+    } catch (error) {
+      console.error('Error auto-saving categories:', error)
+    }
   }
 
   const addKeyword = async (category: string) => {
@@ -203,14 +236,28 @@ export default function SettingsPage() {
     }))
   }
 
-  const updateInstruction = (type: keyof typeof settings.rewriteInstructions, value: string) => {
-    setSettings(prev => ({
-      ...prev,
+  const updateInstruction = async (type: keyof typeof settings.rewriteInstructions, value: string) => {
+    const updatedSettings = {
+      ...settings,
       rewriteInstructions: {
-        ...prev.rewriteInstructions,
+        ...settings.rewriteInstructions,
         [type]: value
       }
-    }))
+    }
+    
+    setSettings(updatedSettings)
+    
+    // Auto-save AI instructions
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedSettings)
+      })
+      console.log('AI instructions auto-saved')
+    } catch (error) {
+      console.error('Error auto-saving AI instructions:', error)
+    }
   }
 
   const addFeed = async () => {
@@ -371,13 +418,12 @@ export default function SettingsPage() {
                 </svg>
                 Back to dashboard
               </button>
-              <button
-                onClick={saveSettings}
-                disabled={saving}
-                className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-6 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors duration-200"
-              >
-                {saving ? 'Saving...' : 'Save Settings'}
-              </button>
+              <div className="text-sm text-gray-600 flex items-center">
+                <svg className="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Auto-save enabled
+              </div>
             </div>
           </div>
         </div>

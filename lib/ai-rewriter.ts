@@ -1,7 +1,7 @@
 import OpenAI from 'openai'
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_TOKEN_NEWSPAL,
+  apiKey: process.env.OPENAI_API_KEY,
 })
 
 export interface RewriteOptions {

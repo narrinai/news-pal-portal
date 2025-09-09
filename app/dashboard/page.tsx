@@ -227,7 +227,7 @@ export default function DashboardPage() {
                   onClick={() => setSelectedStatus(status.value)}
                   className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     selectedStatus === status.value
-                      ? 'bg-gray-900 text-white shadow-md'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'
                       : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
                   }`}
                 >
@@ -257,7 +257,7 @@ export default function DashboardPage() {
                   onClick={() => toggleCategory(category)}
                   className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
                     selectedCategories.includes(category)
-                      ? 'bg-gray-900 text-white shadow-sm'
+                      ? 'bg-gradient-to-r from-emerald-500 to-blue-500 text-white shadow-md'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
                   }`}
                 >

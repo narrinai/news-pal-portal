@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { fetchAllFeeds } from '../../../../lib/rss-parser'
 import { createArticle, getArticles } from '../../../../lib/airtable'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 export async function POST() {
   try {
     // Fetch articles from RSS feeds

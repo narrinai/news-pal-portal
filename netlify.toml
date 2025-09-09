@@ -4,6 +4,7 @@
 
 [build.environment]
   NEXT_PRIVATE_TARGET = "server"
+  SECRETS_SCAN_ENABLED = "false"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

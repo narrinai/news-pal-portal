@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { updateArticle, getArticles } from '../../../../../lib/airtable'
 import { rewriteArticle, RewriteOptions } from '../../../../../lib/ai-rewriter'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }

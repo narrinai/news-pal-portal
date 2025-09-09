@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateArticle } from '../../../../lib/airtable'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }

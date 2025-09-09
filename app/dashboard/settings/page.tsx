@@ -772,29 +772,15 @@ export default function SettingsPage() {
                   <h2 className="text-xl font-semibold">RSS Feed Sources</h2>
                   <p className="text-sm text-gray-600 mt-1">Manage your RSS feed sources for article collection</p>
                 </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={addWorkingDutchFeeds}
-                    className="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
-                  >
-                    + Add NL Feeds
-                  </button>
-                  <button
-                    onClick={addInternationalCyberFeeds}
-                    className="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
-                  >
-                    + Add International
-                  </button>
-                  <button
-                    onClick={() => {
-                      console.log('Add Custom Website button clicked')
-                      setShowAddFeed(true)
-                    }}
-                    className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
-                  >
-                    + Add Custom
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    console.log('Add Website button clicked')
+                    setShowAddFeed(true)
+                  }}
+                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                >
+                  + Add RSS Feed
+                </button>
               </div>
 
               <div className="space-y-4">

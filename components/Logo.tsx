@@ -56,50 +56,68 @@ export default function Logo({
           className="drop-shadow-lg"
         />
         
-        {/* Realistic Ostrich silhouet */}
-        <g transform="translate(18, 10) scale(0.6)">
-          {/* Hoofdlichaam - groter en meer ovaal */}
-          <ellipse cx="50" cy="70" rx="22" ry="30" fill="white" className="opacity-95" />
+        {/* Photo-realistic Ostrich head */}
+        <g transform="translate(20, 15) scale(0.7)">
+          {/* Hoofd vorm - meer rond zoals op foto */}
+          <ellipse cx="45" cy="35" rx="20" ry="25" fill="white" className="opacity-95" />
           
-          {/* Lange nek - veel langer en slanker voor struisvogel */}
-          <ellipse cx="40" cy="35" rx="4" ry="25" fill="white" className="opacity-95" />
+          {/* Pluizige veren bovenop hoofd */}
+          <g className="opacity-90">
+            {/* Veren clusters */}
+            <path d="M30 15 Q35 10 40 15 Q45 8 50 15 Q55 10 60 15" 
+                  stroke="white" 
+                  strokeWidth="2" 
+                  fill="none" 
+                  strokeLinecap="round" />
+            <path d="M32 20 Q37 12 42 20 Q47 10 52 20 Q57 12 62 20" 
+                  stroke="#f3f4f6" 
+                  strokeWidth="1.5" 
+                  fill="none" 
+                  strokeLinecap="round" />
+          </g>
           
-          {/* Klein hoofd */}
-          <ellipse cx="38" cy="15" rx="6" ry="8" fill="white" className="opacity-95" />
+          {/* Grote expressieve ogen - kenmerkend van de foto */}
+          <g>
+            {/* Linker oog */}
+            <ellipse cx="35" cy="30" rx="5" ry="6" fill="#1f2937" />
+            <ellipse cx="37" cy="28" rx="2" ry="2.5" fill="white" />
+            <circle cx="37.5" cy="29" r="0.8" fill="#1f2937" />
+            
+            {/* Rechter oog */}
+            <ellipse cx="55" cy="30" rx="5" ry="6" fill="#1f2937" />
+            <ellipse cx="53" cy="28" rx="2" ry="2.5" fill="white" />
+            <circle cx="52.5" cy="29" r="0.8" fill="#1f2937" />
+          </g>
           
-          {/* Kleine snavel */}
-          <ellipse cx="34" cy="13" rx="3" ry="1.5" fill="#374151" />
+          {/* Snavel - breed en plat zoals struisvogels */}
+          <ellipse cx="45" cy="45" rx="8" ry="4" fill="#6b7280" />
+          <ellipse cx="45" cy="43" rx="6" ry="2" fill="#9ca3af" />
           
-          {/* Oog */}
-          <circle cx="40" cy="13" r="1.5" fill="#111827" />
-          <circle cx="40.5" cy="12.5" r="0.5" fill="white" />
+          {/* Neusgaten */}
+          <ellipse cx="42" cy="43" rx="1" ry="0.8" fill="#374151" />
+          <ellipse cx="48" cy="43" rx="1" ry="0.8" fill="#374151" />
           
-          {/* Lange poten - kenmerkend voor struisvogel */}
-          <rect x="44" y="95" width="2.5" height="20" fill="#6b7280" />
-          <rect x="52" y="95" width="2.5" height="20" fill="#6b7280" />
+          {/* Nek - dik en krachtig */}
+          <ellipse cx="45" cy="65" rx="12" ry="15" fill="white" className="opacity-90" />
           
-          {/* Voeten */}
-          <ellipse cx="45" cy="117" rx="4" ry="2" fill="#374151" />
-          <ellipse cx="53" cy="117" rx="4" ry="2" fill="#374151" />
+          {/* Subtiele veren textuur op nek */}
+          <g className="opacity-60">
+            <path d="M35 55 Q40 52 45 55 Q50 52 55 55" 
+                  stroke="#e5e7eb" 
+                  strokeWidth="0.8" 
+                  fill="none" />
+            <path d="M35 62 Q40 59 45 62 Q50 59 55 62" 
+                  stroke="#e5e7eb" 
+                  strokeWidth="0.8" 
+                  fill="none" />
+            <path d="M35 69 Q40 66 45 69 Q50 66 55 69" 
+                  stroke="#e5e7eb" 
+                  strokeWidth="0.8" 
+                  fill="none" />
+          </g>
           
-          {/* Vleugel detail */}
-          <path d="M32 60 Q45 55 58 65 Q60 70 55 75 Q45 80 35 75 Q30 68 32 60" 
-                fill="white" 
-                stroke="#6b7280" 
-                strokeWidth="1" 
-                className="opacity-80" />
-          
-          {/* Subtiele veren textuur */}
-          <path d="M35 65 Q42 62 50 65 Q58 62 65 65" 
-                stroke="#9ca3af" 
-                strokeWidth="0.8" 
-                fill="none" 
-                className="opacity-40" />
-          <path d="M35 75 Q42 72 50 75 Q58 72 65 75" 
-                stroke="#9ca3af" 
-                strokeWidth="0.8" 
-                fill="none" 
-                className="opacity-30" />
+          {/* Lichaam hint */}
+          <ellipse cx="45" cy="85" rx="15" ry="10" fill="white" className="opacity-70" />
         </g>
         
         {/* Minimalistic news elements */}

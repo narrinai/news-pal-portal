@@ -94,12 +94,6 @@ export default function DashboardPage() {
       
       if (response.ok) {
         console.log('Article selected successfully')
-        showNotification({
-          type: 'success',
-          title: 'Artikel geselecteerd',
-          message: 'Het artikel is succesvol geselecteerd',
-          duration: 3000
-        })
         fetchArticles() // Refresh the list
       } else {
         const errorText = await response.text()
@@ -130,6 +124,25 @@ export default function DashboardPage() {
               <Logo size="lg" className="mr-4" clickable={true} href="/dashboard" />
             </div>
             <div className="flex space-x-3">
+              {/* Quick Selected Articles Button */}
+              {articles.filter(a => a.status === 'selected').length > 0 && (
+                <button
+                  onClick={() => {
+                    setSelectedStatus('selected')
+                    setSelectedCategories(['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'])
+                  }}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200 relative"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Selected
+                  <span className="ml-2 bg-blue-800 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                    {articles.filter(a => a.status === 'selected').length}
+                  </span>
+                </button>
+              )}
+              
               <a
                 href="/dashboard/settings"
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
@@ -173,17 +186,37 @@ export default function DashboardPage() {
           {/* Status Filter */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-900 mb-3">Status Filter</label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full sm:w-auto border border-gray-300 rounded-lg px-4 py-2.5 bg-white text-gray-900 focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-200"
-            >
-              <option value="all">Alle statussen</option>
-              <option value="pending">Pending</option>
-              <option value="selected">Selected</option>
-              <option value="rewritten">Rewritten</option>
-              <option value="published">Published</option>
-            </select>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {[
+                { value: 'all', label: 'Alle statussen', icon: '📋' },
+                { value: 'pending', label: 'Pending', icon: '⏳', count: articles.filter(a => a.status === 'pending').length },
+                { value: 'selected', label: 'Selected', icon: '✓', count: articles.filter(a => a.status === 'selected').length },
+                { value: 'rewritten', label: 'Rewritten', icon: '✨', count: articles.filter(a => a.status === 'rewritten').length },
+                { value: 'published', label: 'Published', icon: '📢', count: articles.filter(a => a.status === 'published').length }
+              ].map((status) => (
+                <button
+                  key={status.value}
+                  onClick={() => setSelectedStatus(status.value)}
+                  className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    selectedStatus === status.value
+                      ? 'bg-gray-900 text-white shadow-md'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
+                  }`}
+                >
+                  <span className="mr-2">{status.icon}</span>
+                  <span>{status.label}</span>
+                  {status.count !== undefined && status.count > 0 && (
+                    <span className={`ml-2 rounded-full min-w-[20px] h-5 flex items-center justify-center text-xs font-bold px-1 ${
+                      selectedStatus === status.value 
+                        ? 'bg-gray-700 text-white'
+                        : 'bg-gray-900 text-white'
+                    }`}>
+                      {status.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Categories Filter */}

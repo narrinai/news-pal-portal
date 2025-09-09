@@ -82,13 +82,21 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <h1 className="text-3xl font-bold text-gray-900">News Pal Portal</h1>
-            <button
-              onClick={fetchNewArticles}
-              disabled={fetching}
-              className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50"
-            >
-              {fetching ? 'Ophalen...' : 'Nieuwe Artikelen Ophalen'}
-            </button>
+            <div className="flex space-x-3">
+              <a
+                href="/dashboard/settings"
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium"
+              >
+                ⚙️ Instellingen
+              </a>
+              <button
+                onClick={fetchNewArticles}
+                disabled={fetching}
+                className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50"
+              >
+                {fetching ? 'Ophalen...' : 'Nieuwe Artikelen Ophalen'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

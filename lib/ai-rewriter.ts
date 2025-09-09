@@ -19,17 +19,18 @@ export async function rewriteArticle(
     length: 'medium',
     language: 'nl',
     tone: 'informative'
-  }
+  },
+  customInstructions?: string
 ): Promise<{ title: string; content: string; wordpressHtml: string }> {
   try {
-    const prompt = createRewritePrompt(originalTitle, originalContent, options)
+    const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions)
     
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [
         {
           role: 'system',
-          content: `Je bent een professionele Nederlandse tech journalist gespecialiseerd in cybersecurity. Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, waarbij je de kernboodschap behoudt maar de tekst toegankelijker en boeiender maakt.`
+          content: customInstructions || `Je bent een professionele Nederlandse tech journalist gespecialiseerd in cybersecurity. Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, waarbij je de kernboodschap behoudt maar de tekst toegankelijker en boeiender maakt.`
         },
         {
           role: 'user',
@@ -64,7 +65,8 @@ export async function rewriteArticle(
 function createRewritePrompt(
   title: string,
   content: string,
-  options: RewriteOptions
+  options: RewriteOptions,
+  customInstructions?: string
 ): string {
   const lengthInstructions = {
     short: 'Houd de tekst kort en bondig (200-300 woorden)',

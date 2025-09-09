@@ -24,12 +24,37 @@ export default function RewritePage({ params }: RewritePageProps) {
     language: 'nl',
     tone: 'informative'
   })
+  const [customInstructions, setCustomInstructions] = useState('')
+  const [settings, setSettings] = useState<any>(null)
   const [showHtml, setShowHtml] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     fetchArticle()
+    loadSettings()
   }, [params.id])
+
+  const loadSettings = async () => {
+    try {
+      const response = await fetch('/api/settings')
+      if (response.ok) {
+        const data = await response.json()
+        setSettings(data)
+        // Set default custom instruction based on style
+        setCustomInstructions(data.rewriteInstructions?.general || '')
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error)
+    }
+  }
+
+  // Update custom instructions when style changes
+  useEffect(() => {
+    if (settings?.rewriteInstructions) {
+      const styleInstructions = settings.rewriteInstructions[options.style] || settings.rewriteInstructions.general
+      setCustomInstructions(styleInstructions)
+    }
+  }, [options.style, settings])
 
   const fetchArticle = async () => {
     try {
@@ -61,7 +86,11 @@ export default function RewritePage({ params }: RewritePageProps) {
       const response = await fetch(`/api/articles/rewrite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: params.id, options })
+        body: JSON.stringify({ 
+          id: params.id, 
+          options,
+          customInstructions: customInstructions || undefined
+        })
       })
 
       if (response.ok) {
@@ -217,6 +246,19 @@ export default function RewritePage({ params }: RewritePageProps) {
                     <option value="en">Engels</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  AI Instructies (optioneel aanpassen)
+                </label>
+                <textarea
+                  value={customInstructions}
+                  onChange={(e) => setCustomInstructions(e.target.value)}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Aangepaste instructies voor de AI..."
+                />
               </div>
 
               <button

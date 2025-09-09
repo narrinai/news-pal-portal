@@ -7,7 +7,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { id, options } = req.body;
+    const { id, options, customInstructions } = req.body;
+
+    console.log('Rewrite request:', { id, options, hasCustomInstructions: !!customInstructions })
 
     // Get the original article
     const articles = await getArticles()
@@ -21,7 +23,8 @@ export default async function handler(req, res) {
     const rewritten = await rewriteArticle(
       article.title,
       article.originalContent || article.description,
-      options
+      options,
+      customInstructions
     )
 
     // Update the article in Airtable

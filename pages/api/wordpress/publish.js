@@ -1,5 +1,4 @@
-import { createWordPressAPI } from '../../../lib/wordpress-api'
-import { updateArticle } from '../../../lib/airtable'
+// Simple WordPress publish without complex imports
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -66,28 +65,39 @@ export default async function handler(req, res) {
       }
     }
 
+    console.log('Publishing to WordPress...')
+    
     // Publish to WordPress custom post type "news"
-    const response = await fetch(`${process.env.WORDPRESS_SITE_URL || 'https://www.marketingtoolz.com'}/wp-json/wp/v2/news`, {
+    const wpSiteUrl = process.env.WORDPRESS_SITE_URL || 'https://www.marketingtoolz.com'
+    const credentials = Buffer.from(`${wpUsername}:${wpPassword}`).toString('base64')
+    
+    const response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${Buffer.from(`${process.env.WORDPRESS_USERNAME}:${process.env.WORDPRESS_APP_PASSWORD}`).toString('base64')}`,
+        'Authorization': `Basic ${credentials}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(wordpressPost)
     })
 
+    console.log('WordPress publish response status:', response.status)
+
     if (response.ok) {
       const createdPost = await response.json()
+      console.log('WordPress post created:', createdPost.id)
       
       // Update article status in Airtable
       try {
+        const { updateArticle } = require('../../../lib/airtable')
         await updateArticle(articleId, { 
           status: 'published',
           wordpressUrl: createdPost.link,
           wordpressPostId: createdPost.id?.toString()
         })
+        console.log('Airtable updated successfully')
       } catch (airtableError) {
         console.error('Failed to update Airtable after WordPress publish:', airtableError)
+        // Continue anyway - WordPress publish was successful
       }
 
       return res.status(200).json({
@@ -98,15 +108,17 @@ export default async function handler(req, res) {
           postUrl: createdPost.link,
           postType: 'news',
           status: 'draft',
-          editUrl: `https://www.marketingtoolz.com/wp-admin/post.php?post=${createdPost.id}&action=edit`
+          editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit`
         }
       })
     } else {
       const errorData = await response.text()
+      console.error('WordPress API error:', response.status, errorData)
       return res.status(500).json({
         success: false,
         error: 'WordPress publish failed',
-        details: `${response.status} - ${errorData}`
+        details: `${response.status} - ${errorData}`,
+        apiUrl: `${wpSiteUrl}/wp-json/wp/v2/news`
       })
     }
 

@@ -6,7 +6,17 @@ const parser = new Parser()
 
 export async function fetchRSSFeed(feedUrl: string): Promise<any> {
   try {
-    const feed = await parser.parseURL(feedUrl)
+    console.log(`Fetching RSS from: ${feedUrl}`)
+    
+    // Set a timeout for RSS parsing
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('RSS fetch timeout')), 8000)
+    )
+    
+    const fetchPromise = parser.parseURL(feedUrl)
+    
+    const feed = await Promise.race([fetchPromise, timeoutPromise])
+    console.log(`RSS fetch successful: ${feedUrl} (${feed.items?.length || 0} items)`)
     return feed
   } catch (error) {
     console.error(`Error fetching RSS feed ${feedUrl}:`, error)
@@ -104,23 +114,33 @@ export async function fetchAllFeeds(): Promise<Omit<NewsArticle, 'id' | 'created
   
   console.log(`Processing ${enabledFeeds.length} enabled RSS feeds`)
   
-  for (const rssFeed of enabledFeeds) {
-    try {
-      console.log(`Fetching feed: ${rssFeed.name} (${rssFeed.url})`)
-      const feed = await fetchRSSFeed(rssFeed.url)
-      const articles = await parseArticlesFromFeed(
-        feed, 
-        rssFeed.name, 
-        rssFeed.category as NewsArticle['category'],
-        rssFeed.maxArticles || 10,
-        rssFeed.keywords
-      )
-      console.log(`Found ${articles.length} relevant articles from ${rssFeed.name}`)
-      allArticles.push(...articles)
-    } catch (error) {
-      console.error(`Error processing feed ${rssFeed.name}:`, error)
-      // Continue with other feeds even if one fails
-    }
+  // Process feeds in smaller batches to avoid timeouts
+  const batchSize = 3
+  for (let i = 0; i < enabledFeeds.length; i += batchSize) {
+    const batch = enabledFeeds.slice(i, i + batchSize)
+    console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(enabledFeeds.length/batchSize)}`)
+    
+    const batchPromises = batch.map(async (rssFeed) => {
+      try {
+        console.log(`Fetching feed: ${rssFeed.name} (${rssFeed.url})`)
+        const feed = await fetchRSSFeed(rssFeed.url)
+        const articles = await parseArticlesFromFeed(
+          feed, 
+          rssFeed.name, 
+          rssFeed.category as NewsArticle['category'],
+          rssFeed.maxArticles || 10,
+          rssFeed.keywords
+        )
+        console.log(`Found ${articles.length} relevant articles from ${rssFeed.name}`)
+        return articles
+      } catch (error) {
+        console.error(`Error processing feed ${rssFeed.name}:`, error)
+        return []
+      }
+    })
+    
+    const batchResults = await Promise.all(batchPromises)
+    batchResults.forEach(articles => allArticles.push(...articles))
   }
   
   // Remove duplicates based on URL

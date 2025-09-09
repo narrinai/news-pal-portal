@@ -100,16 +100,16 @@ export default function DashboardPage() {
         console.error('Failed to select article:', response.status, errorText)
         showNotification({
           type: 'error',
-          title: 'Fout bij selecteren',
-          message: `Server fout: ${response.status}`
+          title: 'Selection failed',
+          message: `Server error: ${response.status}`
         })
       }
     } catch (error) {
       console.error('Error selecting article:', error)
       showNotification({
         type: 'error',
-        title: 'Netwerkfout',
-        message: 'Fout bij selecteren van artikel'
+        title: 'Network error',
+        message: 'Error selecting article'
       })
     }
   }
@@ -132,7 +132,7 @@ export default function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                Instellingen
+                Settings
               </a>
               <button
                 onClick={fetchNewArticles}
@@ -145,14 +145,14 @@ export default function DashboardPage() {
                       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
                       <path fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
                     </svg>
-                    Ophalen...
+                    Fetching...
                   </>
                 ) : (
                   <>
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Nieuwe Artikelen Ophalen
+                    Fetch New Articles
                   </>
                 )}
               </button>
@@ -169,7 +169,7 @@ export default function DashboardPage() {
             <label className="block text-sm font-semibold text-gray-900 mb-3">Status Filter</label>
             <div className="flex flex-wrap gap-2 mb-3">
               {[
-                { value: 'all', label: 'Alle statussen', icon: '📋' },
+                { value: 'all', label: 'All statuses', icon: '📋' },
                 { value: 'pending', label: 'Pending', icon: '⏳', count: articles.filter(a => a.status === 'pending').length },
                 { value: 'selected', label: 'Selected', icon: '✓', count: articles.filter(a => a.status === 'selected').length },
                 { value: 'rewritten', label: 'Rewritten', icon: '✨', count: articles.filter(a => a.status === 'rewritten').length },
@@ -202,7 +202,7 @@ export default function DashboardPage() {
 
           {/* Categories Filter */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Categorieën</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Categories</label>
             <div className="flex flex-wrap gap-3">
               {['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'].map((category) => (
                 <button
@@ -234,7 +234,7 @@ export default function DashboardPage() {
         {loading ? (
           <div className="text-center py-16">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            <p className="mt-4 text-gray-600 font-medium">Artikelen laden...</p>
+            <p className="mt-4 text-gray-600 font-medium">Loading articles...</p>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -302,7 +302,7 @@ export default function DashboardPage() {
                           <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
-                          Selecteer
+                          Select
                         </button>
                       )}
                       
@@ -314,7 +314,7 @@ export default function DashboardPage() {
                           <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
-                          Herschrijf
+                          Rewrite
                         </a>
                       )}
                       
@@ -327,7 +327,7 @@ export default function DashboardPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
-                          Bekijk
+                          View
                         </a>
                       )}
                     </div>
@@ -345,8 +345,8 @@ export default function DashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Geen artikelen gevonden</h3>
-            <p className="text-gray-600 mb-6">Probeer de filters aan te passen of haal nieuwe artikelen op.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No articles found</h3>
+            <p className="text-gray-600 mb-6">Try adjusting the filters or fetch new articles.</p>
           </div>
         )}
       </div>

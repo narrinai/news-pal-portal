@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { NewsArticle } from '../../../../lib/airtable'
 import { RewriteOptions } from '../../../../lib/ai-rewriter'
 import { useNotifications } from '../../../../components/NotificationSystem'
+import Logo from '../../../../components/Logo'
 
 interface RewritePageProps {
   params: { id: string }
@@ -105,23 +106,23 @@ export default function RewritePage({ params }: RewritePageProps) {
         setRewritten(result.rewritten)
         showNotification({
           type: 'success',
-          title: 'Artikel herschreven',
-          message: 'Het artikel is succesvol herschreven met AI',
+          title: 'Article rewritten',
+          message: 'The article has been successfully rewritten with AI',
           duration: 4000
         })
       } else {
         showNotification({
           type: 'error',
-          title: 'Herschrijven mislukt',
-          message: 'Er is een fout opgetreden bij het herschrijven van het artikel'
+          title: 'Rewrite failed',
+          message: 'An error occurred while rewriting the article'
         })
       }
     } catch (error) {
       console.error('Error rewriting article:', error)
       showNotification({
         type: 'error',
-        title: 'Netwerkfout',
-        message: 'Kon het artikel niet herschrijven vanwege netwerkproblemen'
+        title: 'Network error',
+        message: 'Could not rewrite article due to network problems'
       })
     } finally {
       setRewriting(false)
@@ -145,7 +146,7 @@ export default function RewritePage({ params }: RewritePageProps) {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600">Artikel laden...</p>
+          <p className="mt-4 text-gray-600">Loading article...</p>
         </div>
       </div>
     )
@@ -155,12 +156,12 @@ export default function RewritePage({ params }: RewritePageProps) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Artikel niet gevonden</p>
+          <p className="text-gray-600">Article not found</p>
           <button
             onClick={() => router.push('/dashboard')}
             className="mt-4 text-primary-600 hover:text-primary-700"
           >
-            Terug naar dashboard
+            Back to dashboard
           </button>
         </div>
       </div>
@@ -170,27 +171,28 @@ export default function RewritePage({ params }: RewritePageProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow">
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div>
+            <div className="flex items-center">
+              <Logo size="lg" className="mr-4" clickable={true} href="/dashboard" />
+            </div>
+            <div className="flex items-center space-x-3">
               <button
                 onClick={() => router.push('/dashboard')}
-                className="text-primary-600 hover:text-primary-700 mb-2"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
               >
-                ← Terug naar dashboard
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to dashboard
               </button>
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {article.status === 'rewritten' ? 'Herschreven Artikel' : 'Artikel Herschrijven'}
-                </h1>
-                {article.status === 'rewritten' && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
-                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full mr-1.5"></span>
-                    Voltooid
-                  </span>
-                )}
-              </div>
+              {article.status === 'rewritten' && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full mr-1.5"></span>
+                  Completed
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -200,11 +202,11 @@ export default function RewritePage({ params }: RewritePageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Original Article */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Origineel Artikel</h2>
+            <h2 className="text-xl font-semibold mb-4">Original Article</h2>
             <div className="space-y-4">
               <div>
                 <h3 className="font-medium text-gray-900 mb-2">{article.title}</h3>
-                <p className="text-sm text-gray-600 mb-2">Bron: {article.source}</p>
+                <p className="text-sm text-gray-600 mb-2">Source: {article.source}</p>
                 <p className="text-gray-700 whitespace-pre-wrap">
                   {article.originalContent || article.description}
                 </p>
@@ -215,7 +217,7 @@ export default function RewritePage({ params }: RewritePageProps) {
                 rel="noopener noreferrer"
                 className="text-primary-600 hover:text-primary-700 text-sm font-medium"
               >
-                Bekijk originele artikel →
+                View original article →
               </a>
             </div>
           </div>
@@ -224,20 +226,20 @@ export default function RewritePage({ params }: RewritePageProps) {
           <div className="space-y-6">
             {/* Options */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-4">Herschrijf Opties</h2>
+              <h2 className="text-xl font-semibold mb-4">Rewrite Options</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Stijl
+                    Style
                   </label>
                   <select
                     value={options.style}
                     onChange={(e) => setOptions({...options, style: e.target.value as any})}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   >
-                    <option value="professional">Professioneel</option>
-                    <option value="engaging">Boeiend</option>
-                    <option value="technical">Technisch</option>
+                    <option value="professional">Professional</option>
+                    <option value="engaging">Engaging</option>
+                    <option value="technical">Technical</option>
                   </select>
                 </div>
 

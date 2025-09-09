@@ -1,0 +1,24 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#d946ef" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="45" fill="url(#brandGradient)" />
+  
+  <!-- Ostrich head -->
+  <g transform="translate(20, 15) scale(0.7)">
+    <ellipse cx="45" cy="35" rx="20" ry="25" fill="white" opacity="0.95" />
+    <ellipse cx="35" cy="30" rx="5" ry="6" fill="#1f2937" />
+    <ellipse cx="55" cy="30" rx="5" ry="6" fill="#1f2937" />
+    <ellipse cx="45" cy="45" rx="8" ry="4" fill="#6b7280" />
+    <ellipse cx="45" cy="65" rx="12" ry="15" fill="white" opacity="0.90" />
+  </g>
+  
+  <!-- News elements -->
+  <rect x="75" y="25" width="12" height="15" rx="1" fill="white" opacity="0.80" />
+  <rect x="15" y="48" width="8" height="10" rx="1" fill="white" opacity="0.70" />
+</svg>

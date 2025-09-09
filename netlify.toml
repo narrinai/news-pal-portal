@@ -2,27 +2,22 @@
   command = "npm run build"
   publish = ".next"
 
-[functions]
-  node_bundler = "esbuild"
+[build.environment]
+  NEXT_PRIVATE_TARGET = "server"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[build.environment]
-  NEXT_PRIVATE_TARGET = "server"
-
-# Scheduled function to fetch news articles daily
-[[functions]]
-  path = "api/articles/fetch"
-  schedule = "0 8 * * *"  # Daily at 8 AM UTC
+[functions]
+  node_bundler = "esbuild"
 
 # Environment variables you need to set in Netlify dashboard:
 # AIRTABLE_API_KEY - Your Airtable API key
-# AIRTABLE_BASE_ID - Your Airtable base ID
+# AIRTABLE_BASE_ID - Your Airtable base ID  
 # OPENAI_API_KEY - Your OpenAI API key
-# PORTAL_PASSWORD - Password for portal access (default: newspal2024)
+# PORTAL_PASSWORD - Password for portal access
 
 [[redirects]]
   from = "/api/*"
-  to = "/api/:splat"
+  to = "/.netlify/functions/:splat"
   status = 200

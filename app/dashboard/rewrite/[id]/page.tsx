@@ -142,7 +142,7 @@ export default function RewritePage({ params }: RewritePageProps) {
 
     setPublishing(true)
     try {
-      const response = await fetch('/api/wordpress/publish-clean', {
+      const response = await fetch('/api/wordpress/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

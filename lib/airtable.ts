@@ -16,6 +16,7 @@ export interface NewsArticle {
   originalContent?: string
   rewrittenContent?: string
   wordpressHtml?: string
+  imageUrl?: string
   createdAt?: string
 }
 
@@ -34,6 +35,7 @@ export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt
           originalContent: article.originalContent || '',
           rewrittenContent: article.rewrittenContent || '',
           wordpressHtml: article.wordpressHtml || '',
+          imageUrl: article.imageUrl || '',
         }
       }
     ])
@@ -87,6 +89,7 @@ export async function getArticles(status?: string, categories?: string | string[
       originalContent: record.fields.originalContent as string,
       rewrittenContent: record.fields.rewrittenContent as string,
       wordpressHtml: record.fields.wordpressHtml as string,
+      imageUrl: record.fields.imageUrl as string,
       createdAt: record.fields.createdAt as string,
     }))
   } catch (error) {

@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { NewsArticle } from '../../../../lib/airtable'
 import { RewriteOptions } from '../../../../lib/ai-rewriter'
+import { useNotifications } from '../../../../components/NotificationSystem'
 
 interface RewritePageProps {
   params: { id: string }
 }
 
 export default function RewritePage({ params }: RewritePageProps) {
+  const { showNotification } = useNotifications()
   const [article, setArticle] = useState<NewsArticle | null>(null)
   const [loading, setLoading] = useState(true)
   const [rewriting, setRewriting] = useState(false)
@@ -96,20 +98,47 @@ export default function RewritePage({ params }: RewritePageProps) {
       if (response.ok) {
         const result = await response.json()
         setRewritten(result.rewritten)
+        showNotification({
+          type: 'success',
+          title: 'Artikel herschreven',
+          message: 'Het artikel is succesvol herschreven met AI',
+          duration: 4000
+        })
       } else {
-        alert('Fout bij herschrijven van artikel')
+        showNotification({
+          type: 'error',
+          title: 'Herschrijven mislukt',
+          message: 'Er is een fout opgetreden bij het herschrijven van het artikel'
+        })
       }
     } catch (error) {
       console.error('Error rewriting article:', error)
-      alert('Fout bij herschrijven van artikel')
+      showNotification({
+        type: 'error',
+        title: 'Netwerkfout',
+        message: 'Kon het artikel niet herschrijven vanwege netwerkproblemen'
+      })
     } finally {
       setRewriting(false)
     }
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    alert('Gekopieerd naar klembord!')
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      showNotification({
+        type: 'success',
+        title: 'Gekopieerd!',
+        message: 'De tekst is gekopieerd naar het klembord',
+        duration: 2000
+      })
+    } catch (error) {
+      showNotification({
+        type: 'error',
+        title: 'Kopiëren mislukt',
+        message: 'Kon de tekst niet kopiëren naar het klembord'
+      })
+    }
   }
 
   if (loading) {

@@ -33,6 +33,9 @@ export async function parseArticlesFromFeed(
     const isRelevant = containsKeywords(content, keywords)
     
     if (isRelevant) {
+      // Extract image from RSS item
+      const imageUrl = extractImageFromRSSItem(item)
+      
       articles.push({
         title: item.title || 'No Title',
         description: item.contentSnippet || item.description || '',
@@ -41,7 +44,8 @@ export async function parseArticlesFromFeed(
         publishedAt: item.pubDate || new Date().toISOString(),
         status: 'pending',
         category,
-        originalContent: item.content || item.description || ''
+        originalContent: item.content || item.description || '',
+        imageUrl
       })
     }
   }
@@ -51,6 +55,44 @@ export async function parseArticlesFromFeed(
 
 function containsKeywords(content: string, keywords: string[]): boolean {
   return keywords.some(keyword => content.includes(keyword.toLowerCase()))
+}
+
+function extractImageFromRSSItem(item: any): string | undefined {
+  try {
+    // Try different RSS image fields
+    if (item.enclosure?.url && item.enclosure.type?.startsWith('image/')) {
+      return item.enclosure.url
+    }
+    
+    if (item['media:thumbnail'] && item['media:thumbnail']['@_url']) {
+      return item['media:thumbnail']['@_url']
+    }
+    
+    if (item['media:content'] && item['media:content']['@_url']) {
+      return item['media:content']['@_url']
+    }
+    
+    // Try to extract from content
+    if (item.content) {
+      const imgMatch = item.content.match(/<img[^>]+src="([^"]+)"/i)
+      if (imgMatch && imgMatch[1]) {
+        return imgMatch[1]
+      }
+    }
+    
+    // Try description
+    if (item.description) {
+      const imgMatch = item.description.match(/<img[^>]+src="([^"]+)"/i)
+      if (imgMatch && imgMatch[1]) {
+        return imgMatch[1]
+      }
+    }
+    
+    return undefined
+  } catch (error) {
+    console.warn('Error extracting image from RSS item:', error)
+    return undefined
+  }
 }
 
 export async function fetchAllFeeds(): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {

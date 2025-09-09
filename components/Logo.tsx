@@ -2,12 +2,16 @@ interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
   variant?: 'full' | 'icon' | 'text'
   className?: string
+  clickable?: boolean
+  href?: string
 }
 
 export default function Logo({ 
   size = 'md', 
   variant = 'full', 
-  className = '' 
+  className = '',
+  clickable = false,
+  href = '/dashboard'
 }: LogoProps) {
   const sizeClasses = {
     sm: 'h-6',
@@ -31,15 +35,15 @@ export default function Logo({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Gradient definitions */}
+        {/* Modern gradient definitions */}
         <defs>
           <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#0ea5e9" />
-            <stop offset="100%" stopColor="#d946ef" />
+            <stop offset="0%" stopColor="#1f2937" />
+            <stop offset="100%" stopColor="#4b5563" />
           </linearGradient>
           <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#38bdf8" />
-            <stop offset="100%" stopColor="#e879f9" />
+            <stop offset="0%" stopColor="#374151" />
+            <stop offset="100%" stopColor="#6b7280" />
           </linearGradient>
         </defs>
         
@@ -52,81 +56,110 @@ export default function Logo({
           className="drop-shadow-lg"
         />
         
-        {/* Struisvogel silhouet */}
-        <g transform="translate(15, 15) scale(0.7)">
-          {/* Lichaam */}
-          <ellipse cx="50" cy="65" rx="18" ry="25" fill="white" className="opacity-95" />
+        {/* Realistic Ostrich silhouet */}
+        <g transform="translate(18, 10) scale(0.6)">
+          {/* Hoofdlichaam - groter en meer ovaal */}
+          <ellipse cx="50" cy="70" rx="22" ry="30" fill="white" className="opacity-95" />
           
-          {/* Nek */}
-          <ellipse cx="45" cy="40" rx="6" ry="20" fill="white" className="opacity-95" />
+          {/* Lange nek - veel langer en slanker voor struisvogel */}
+          <ellipse cx="40" cy="35" rx="4" ry="25" fill="white" className="opacity-95" />
           
-          {/* Hoofd */}
-          <ellipse cx="42" cy="22" rx="8" ry="10" fill="white" className="opacity-95" />
+          {/* Klein hoofd */}
+          <ellipse cx="38" cy="15" rx="6" ry="8" fill="white" className="opacity-95" />
           
-          {/* Snavel */}
-          <ellipse cx="38" cy="20" rx="4" ry="2" fill="#fbbf24" />
+          {/* Kleine snavel */}
+          <ellipse cx="34" cy="13" rx="3" ry="1.5" fill="#374151" />
           
           {/* Oog */}
-          <circle cx="45" cy="20" r="2" fill="#0369a1" />
-          <circle cx="45" cy="20" r="1" fill="white" />
+          <circle cx="40" cy="13" r="1.5" fill="#111827" />
+          <circle cx="40.5" cy="12.5" r="0.5" fill="white" />
           
-          {/* Poten */}
-          <rect x="42" y="85" width="3" height="15" fill="#fbbf24" />
-          <rect x="52" y="85" width="3" height="15" fill="#fbbf24" />
+          {/* Lange poten - kenmerkend voor struisvogel */}
+          <rect x="44" y="95" width="2.5" height="20" fill="#6b7280" />
+          <rect x="52" y="95" width="2.5" height="20" fill="#6b7280" />
           
-          {/* Veren detail op lichaam */}
-          <path d="M35 55 Q40 50 45 55 Q50 50 55 55 Q60 50 65 55" 
-                stroke="#0369a1" 
-                strokeWidth="1.5" 
-                fill="none" 
-                className="opacity-60" />
-          <path d="M35 65 Q40 60 45 65 Q50 60 55 65 Q60 60 65 65" 
-                stroke="#0369a1" 
-                strokeWidth="1.5" 
+          {/* Voeten */}
+          <ellipse cx="45" cy="117" rx="4" ry="2" fill="#374151" />
+          <ellipse cx="53" cy="117" rx="4" ry="2" fill="#374151" />
+          
+          {/* Vleugel detail */}
+          <path d="M32 60 Q45 55 58 65 Q60 70 55 75 Q45 80 35 75 Q30 68 32 60" 
+                fill="white" 
+                stroke="#6b7280" 
+                strokeWidth="1" 
+                className="opacity-80" />
+          
+          {/* Subtiele veren textuur */}
+          <path d="M35 65 Q42 62 50 65 Q58 62 65 65" 
+                stroke="#9ca3af" 
+                strokeWidth="0.8" 
                 fill="none" 
                 className="opacity-40" />
+          <path d="M35 75 Q42 72 50 75 Q58 72 65 75" 
+                stroke="#9ca3af" 
+                strokeWidth="0.8" 
+                fill="none" 
+                className="opacity-30" />
         </g>
         
-        {/* Nieuwsartikelen rondom de struisvogel */}
-        <g className="animate-pulse">
-          {/* Mini nieuwsblaadje 1 */}
-          <rect x="75" y="25" width="12" height="15" rx="1" fill="white" className="opacity-80" />
-          <rect x="77" y="28" width="8" height="1" fill="#0369a1" className="opacity-60" />
-          <rect x="77" y="31" width="6" height="1" fill="#0369a1" className="opacity-40" />
-          <rect x="77" y="34" width="7" height="1" fill="#0369a1" className="opacity-40" />
+        {/* Minimalistic news elements */}
+        <g>
+          {/* Simple news icon 1 */}
+          <rect x="72" y="28" width="10" height="12" rx="2" fill="white" className="opacity-90" />
+          <rect x="74" y="31" width="6" height="1" fill="#6b7280" className="opacity-60" />
+          <rect x="74" y="33" width="4" height="1" fill="#6b7280" className="opacity-40" />
+          <rect x="74" y="35" width="5" height="1" fill="#6b7280" className="opacity-40" />
           
-          {/* Mini nieuwsblaadje 2 */}
-          <rect x="12" y="45" width="10" height="12" rx="1" fill="white" className="opacity-70" />
-          <rect x="14" y="48" width="6" height="1" fill="#0369a1" className="opacity-50" />
-          <rect x="14" y="51" width="4" height="1" fill="#0369a1" className="opacity-30" />
+          {/* Simple news icon 2 */}
+          <rect x="15" y="48" width="8" height="10" rx="2" fill="white" className="opacity-80" />
+          <rect x="17" y="51" width="4" height="1" fill="#6b7280" className="opacity-50" />
+          <rect x="17" y="53" width="3" height="1" fill="#6b7280" className="opacity-30" />
           
-          {/* AI sparkles */}
-          <path d="M75 45 L77 47 L75 49 L73 47 Z" fill="#d946ef" className="animate-pulse" />
-          <path d="M85 35 L86 36 L85 37 L84 36 Z" fill="#38bdf8" className="animate-pulse" />
-          <path d="M20 65 L21 66 L20 67 L19 66 Z" fill="#fbbf24" className="animate-pulse" />
+          {/* Subtle accent dots */}
+          <circle cx="78" cy="45" r="1.5" fill="white" className="opacity-60" />
+          <circle cx="20" cy="65" r="1" fill="white" className="opacity-50" />
         </g>
       </svg>
     </div>
   )
 
   const BrandText = () => (
-    <div className={`font-bold font-brand ${textSizeClasses[size]} bg-gradient-brand bg-clip-text text-transparent`}>
+    <div className={`font-semibold ${textSizeClasses[size]} text-gray-900 tracking-tight`}>
       News Pal
     </div>
   )
 
-  if (variant === 'icon') {
-    return <div className={className}><IconSVG /></div>
+  const LogoContent = () => {
+    if (variant === 'icon') {
+      return <IconSVG />
+    }
+
+    if (variant === 'text') {
+      return <BrandText />
+    }
+
+    return (
+      <div className="flex items-center space-x-3">
+        <IconSVG />
+        <BrandText />
+      </div>
+    )
   }
 
-  if (variant === 'text') {
-    return <div className={className}><BrandText /></div>
+  if (clickable) {
+    return (
+      <a 
+        href={href} 
+        className={`${className} hover:opacity-80 transition-opacity duration-200 cursor-pointer`}
+      >
+        <LogoContent />
+      </a>
+    )
   }
 
   return (
-    <div className={`flex items-center space-x-3 ${className}`}>
-      <IconSVG />
-      <BrandText />
+    <div className={className}>
+      <LogoContent />
     </div>
   )
 }

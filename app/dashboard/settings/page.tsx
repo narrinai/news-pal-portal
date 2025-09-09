@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useNotifications } from '../../../components/NotificationSystem'
 
 interface Settings {
   categories: string[]
@@ -22,6 +23,7 @@ interface Settings {
 }
 
 export default function SettingsPage() {
+  const { showNotification, showConfirm, showPrompt } = useNotifications()
   const [settings, setSettings] = useState<Settings>({
     categories: ['cybersecurity-nl', 'cybersecurity-international', 'tech-nl', 'tech-international', 'other'],
     rewriteInstructions: {
@@ -84,25 +86,57 @@ export default function SettingsPage() {
       })
       
       if (response.ok) {
-        alert('Instellingen opgeslagen!')
+        showNotification({
+          type: 'success',
+          title: 'Instellingen opgeslagen',
+          message: 'Alle wijzigingen zijn succesvol opgeslagen',
+          duration: 3000
+        })
       } else {
-        alert('Fout bij opslaan instellingen')
+        showNotification({
+          type: 'error',
+          title: 'Opslaan mislukt',
+          message: 'Fout bij opslaan van instellingen'
+        })
       }
     } catch (error) {
       console.error('Error saving settings:', error)
-      alert('Netwerkfout bij opslaan')
+      showNotification({
+        type: 'error',
+        title: 'Netwerkfout',
+        message: 'Kon verbinding met server niet maken'
+      })
     } finally {
       setSaving(false)
     }
   }
 
-  const addCategory = () => {
-    const newCategory = prompt('Nieuwe categorie naam:')
+  const addCategory = async () => {
+    const newCategory = await showPrompt({
+      title: 'Nieuwe categorie',
+      message: 'Voer de naam van de nieuwe categorie in:',
+      promptPlaceholder: 'Categorie naam...',
+      confirmText: 'Toevoegen',
+      cancelText: 'Annuleren'
+    })
+    
     if (newCategory && !settings.categories.includes(newCategory)) {
       setSettings(prev => ({
         ...prev,
         categories: [...prev.categories, newCategory]
       }))
+      showNotification({
+        type: 'success',
+        title: 'Categorie toegevoegd',
+        message: `"${newCategory}" is toegevoegd aan de categorieën`,
+        duration: 3000
+      })
+    } else if (newCategory && settings.categories.includes(newCategory)) {
+      showNotification({
+        type: 'warning',
+        title: 'Categorie bestaat al',
+        message: `"${newCategory}" bestaat al in de lijst`
+      })
     }
   }
 
@@ -127,7 +161,11 @@ export default function SettingsPage() {
     console.log('Adding new feed:', newFeed)
     
     if (!newFeed.url || !newFeed.name) {
-      alert('URL en naam zijn verplicht')
+      showNotification({
+        type: 'warning',
+        title: 'Velden vereist',
+        message: 'URL en naam zijn verplicht om een RSS feed toe te voegen'
+      })
       return
     }
 
@@ -150,15 +188,28 @@ export default function SettingsPage() {
         await loadFeeds()
         setNewFeed({ url: '', name: '', category: 'cybersecurity-international', maxArticles: 10 })
         setShowAddFeed(false)
-        alert('RSS feed toegevoegd!')
+        showNotification({
+          type: 'success',
+          title: 'RSS feed toegevoegd',
+          message: `${newFeed.name} is succesvol toegevoegd`,
+          duration: 4000
+        })
       } else {
         const errorText = await response.text()
         console.error('API error response:', response.status, errorText)
-        alert(`Fout bij toevoegen: ${response.status}`)
+        showNotification({
+          type: 'error',
+          title: 'Fout bij toevoegen',
+          message: `Server fout: ${response.status}`
+        })
       }
     } catch (error) {
       console.error('Error adding feed:', error)
-      alert('Netwerkfout bij toevoegen feed')
+      showNotification({
+        type: 'error',
+        title: 'Netwerkfout',
+        message: 'Kon RSS feed niet toevoegen vanwege netwerkproblemen'
+      })
     }
   }
 
@@ -176,17 +227,40 @@ export default function SettingsPage() {
 
       if (response.ok) {
         setSettings(prev => ({ ...prev, rssFeeds: updatedFeeds }))
+        const toggledFeed = updatedFeeds.find(f => f.id === feedId)
+        showNotification({
+          type: 'success',
+          title: toggledFeed?.enabled ? 'RSS feed ingeschakeld' : 'RSS feed uitgeschakeld',
+          message: `${toggledFeed?.name} is ${toggledFeed?.enabled ? 'ingeschakeld' : 'uitgeschakeld'}`,
+          duration: 3000
+        })
       } else {
-        alert('Fout bij opslaan feed status')
+        showNotification({
+          type: 'error',
+          title: 'Fout bij opslaan',
+          message: 'Kon feed status niet opslaan'
+        })
       }
     } catch (error) {
       console.error('Error toggling feed:', error)
-      alert('Netwerkfout')
+      showNotification({
+        type: 'error',
+        title: 'Netwerkfout',
+        message: 'Kon verbinding met server niet maken'
+      })
     }
   }
 
   const removeFeed = async (feedId: string) => {
-    if (!confirm('Weet je zeker dat je deze RSS feed wilt verwijderen?')) return
+    const feedToRemove = settings.rssFeeds.find(f => f.id === feedId)
+    const confirmed = await showConfirm({
+      title: 'RSS feed verwijderen',
+      message: `Weet je zeker dat je "${feedToRemove?.name}" wilt verwijderen? Deze actie kan niet ongedaan gemaakt worden.`,
+      confirmText: 'Verwijderen',
+      cancelText: 'Annuleren'
+    })
+    
+    if (!confirmed) return
 
     const updatedFeeds = settings.rssFeeds.filter(feed => feed.id !== feedId)
     
@@ -199,13 +273,26 @@ export default function SettingsPage() {
 
       if (response.ok) {
         setSettings(prev => ({ ...prev, rssFeeds: updatedFeeds }))
-        alert('RSS feed verwijderd!')
+        showNotification({
+          type: 'success',
+          title: 'RSS feed verwijderd',
+          message: `${feedToRemove?.name} is succesvol verwijderd`,
+          duration: 4000
+        })
       } else {
-        alert('Fout bij verwijderen feed')
+        showNotification({
+          type: 'error',
+          title: 'Fout bij verwijderen',
+          message: 'Kon RSS feed niet verwijderen'
+        })
       }
     } catch (error) {
       console.error('Error removing feed:', error)
-      alert('Netwerkfout')
+      showNotification({
+        type: 'error',
+        title: 'Netwerkfout',
+        message: 'Kon verbinding met server niet maken'
+      })
     }
   }
 

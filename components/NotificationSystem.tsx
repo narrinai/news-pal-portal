@@ -26,8 +26,8 @@ interface ModalProps {
 
 interface NotificationContextType {
   showNotification: (notification: Omit<Notification, 'id'>) => void
-  showConfirm: (props: Omit<ModalProps, 'id' | 'type'>) => Promise<boolean>
-  showPrompt: (props: Omit<ModalProps, 'id' | 'type'> & { promptPlaceholder?: string, promptDefaultValue?: string }) => Promise<string | null>
+  showConfirm: (props: Omit<ModalProps, 'id' | 'type' | 'onConfirm' | 'onCancel'>) => Promise<boolean>
+  showPrompt: (props: Omit<ModalProps, 'id' | 'type' | 'onConfirm' | 'onCancel'> & { promptPlaceholder?: string, promptDefaultValue?: string }) => Promise<string | null>
 }
 
 const NotificationContext = createContext<NotificationContextType | null>(null)
@@ -238,7 +238,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setNotifications(prev => prev.filter(n => n.id !== id))
   }
 
-  const showConfirm = (props: Omit<ModalProps, 'id' | 'type'>): Promise<boolean> => {
+  const showConfirm = (props: Omit<ModalProps, 'id' | 'type' | 'onConfirm' | 'onCancel'>): Promise<boolean> => {
     return new Promise((resolve) => {
       const id = Date.now().toString()
       setModal({
@@ -251,7 +251,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  const showPrompt = (props: Omit<ModalProps, 'id' | 'type'> & { promptPlaceholder?: string, promptDefaultValue?: string }): Promise<string | null> => {
+  const showPrompt = (props: Omit<ModalProps, 'id' | 'type' | 'onConfirm' | 'onCancel'> & { promptPlaceholder?: string, promptDefaultValue?: string }): Promise<string | null> => {
     return new Promise((resolve) => {
       const id = Date.now().toString()
       setModal({

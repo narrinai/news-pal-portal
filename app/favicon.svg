@@ -1,46 +1,45 @@
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0ea5e9" />
-      <stop offset="100%" stop-color="#d946ef" />
+      <stop offset="0%" stop-color="#1f2937" />
+      <stop offset="100%" stop-color="#4b5563" />
     </linearGradient>
   </defs>
   
   <!-- Background circle -->
   <circle cx="50" cy="50" r="45" fill="url(#brandGradient)" />
   
-  <!-- Struisvogel silhouet -->
-  <g transform="translate(15, 15) scale(0.7)">
-    <!-- Lichaam -->
-    <ellipse cx="50" cy="65" rx="18" ry="25" fill="white" opacity="0.95" />
+  <!-- Realistic Ostrich silhouet -->
+  <g transform="translate(18, 10) scale(0.6)">
+    <!-- Hoofdlichaam -->
+    <ellipse cx="50" cy="70" rx="22" ry="30" fill="white" opacity="0.95" />
     
-    <!-- Nek -->
-    <ellipse cx="45" cy="40" rx="6" ry="20" fill="white" opacity="0.95" />
+    <!-- Lange nek -->
+    <ellipse cx="40" cy="35" rx="4" ry="25" fill="white" opacity="0.95" />
     
-    <!-- Hoofd -->
-    <ellipse cx="42" cy="22" rx="8" ry="10" fill="white" opacity="0.95" />
+    <!-- Klein hoofd -->
+    <ellipse cx="38" cy="15" rx="6" ry="8" fill="white" opacity="0.95" />
     
-    <!-- Snavel -->
-    <ellipse cx="38" cy="20" rx="4" ry="2" fill="#fbbf24" />
+    <!-- Kleine snavel -->
+    <ellipse cx="34" cy="13" rx="3" ry="1.5" fill="#374151" />
     
     <!-- Oog -->
-    <circle cx="45" cy="20" r="2" fill="#0369a1" />
-    <circle cx="45" cy="20" r="1" fill="white" />
+    <circle cx="40" cy="13" r="1.5" fill="#111827" />
+    <circle cx="40.5" cy="12.5" r="0.5" fill="white" />
     
-    <!-- Poten -->
-    <rect x="42" y="85" width="3" height="15" fill="#fbbf24" />
-    <rect x="52" y="85" width="3" height="15" fill="#fbbf24" />
+    <!-- Lange poten -->
+    <rect x="44" y="95" width="2.5" height="20" fill="#6b7280" />
+    <rect x="52" y="95" width="2.5" height="20" fill="#6b7280" />
     
-    <!-- Veren detail op lichaam -->
-    <path d="M35 55 Q40 50 45 55 Q50 50 55 55 Q60 50 65 55" 
-          stroke="#0369a1" 
-          stroke-width="1.5" 
-          fill="none" 
-          opacity="0.6" />
-    <path d="M35 65 Q40 60 45 65 Q50 60 55 65 Q60 60 65 65" 
-          stroke="#0369a1" 
-          stroke-width="1.5" 
-          fill="none" 
-          opacity="0.4" />
+    <!-- Voeten -->
+    <ellipse cx="45" cy="117" rx="4" ry="2" fill="#374151" />
+    <ellipse cx="53" cy="117" rx="4" ry="2" fill="#374151" />
+    
+    <!-- Vleugel detail -->
+    <path d="M32 60 Q45 55 58 65 Q60 70 55 75 Q45 80 35 75 Q30 68 32 60" 
+          fill="white" 
+          stroke="#6b7280" 
+          stroke-width="1" 
+          opacity="0.8" />
   </g>
 </svg>

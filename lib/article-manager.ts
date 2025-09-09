@@ -24,7 +24,7 @@ export interface LiveArticle {
 // In-memory cache for RSS articles
 let rssCache: LiveArticle[] = []
 let lastFetchTime = 0
-const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes - shorter cache for testing
 
 export async function getLiveArticles(disableFiltering = false): Promise<{
   pending: LiveArticle[]  // From RSS feeds (not in Airtable)
@@ -175,6 +175,13 @@ export function refreshRSSCache(): void {
   rssCache = []
   lastFetchTime = 0
   console.log('RSS cache cleared - will refresh on next fetch with new categorization logic')
+}
+
+export function forceRSSRefresh(): void {
+  // Immediate refresh without cache
+  rssCache = []
+  lastFetchTime = 0
+  console.log('RSS cache force cleared - immediate refresh')
 }
 
 export function getCacheStatus(): { 

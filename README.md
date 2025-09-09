@@ -49,11 +49,17 @@ Maak een nieuwe Airtable base aan met een tabel genaamd "Articles" met de volgen
 Kopieer `.env.example` naar `.env.local` en vul de volgende variabelen in:
 
 ```env
-AIRTABLE_API_KEY=your_airtable_api_key_here
+AIRTABLE_API_KEY=your_personal_access_token_here
 AIRTABLE_BASE_ID=your_airtable_base_id_here
 OPENAI_API_KEY=your_openai_api_key_here
 PORTAL_PASSWORD=jouw_eigen_wachtwoord
 ```
+
+**Belangrijk:** Gebruik een Airtable Personal Access Token (begint met `pat...`) met de volgende scopes:
+- `data.records:read`
+- `data.records:write` 
+- `data.recordComments:write`
+- `schema.bases:read`
 
 ### 3. Lokale Development
 

@@ -92,7 +92,8 @@ export default async function handler(req, res) {
 
     console.log('Publishing to standard posts with News category...')
     
-    const response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
+    // Try custom post type 'news' first, fallback to posts
+    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,
@@ -106,22 +107,53 @@ export default async function handler(req, res) {
       
       return res.status(200).json({
         success: true,
-        message: `Article published as draft in ${newsCategory ? 'News category' : 'default category'}`,
+        message: 'Article published as draft in WordPress News section',
         wordpress: {
           postId: createdPost.id,
           postUrl: createdPost.link,
-          category: newsCategory?.name || 'Uncategorized',
-          editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit`
+          postType: 'news',
+          editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit&lang=nl`
         }
       })
-    } else {
-      const errorData = await response.text()
-      return res.status(500).json({
-        error: 'WordPress publish failed',
-        status: response.status,
-        details: errorData
+    } else if (response.status === 404) {
+      // Custom post type doesn't exist, try standard posts with News category
+      console.log('News post type not found, trying standard posts with category...')
+      
+      response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...wordpressPost,
+          categories: newsCategory ? [newsCategory.id] : []
+        })
       })
+      
+      if (response.ok) {
+        const createdPost = await response.json()
+        return res.status(200).json({
+          success: true,
+          message: `Article published as draft in News category`,
+          wordpress: {
+            postId: createdPost.id,
+            postUrl: createdPost.link,
+            category: newsCategory?.name || 'Default',
+            editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit&lang=nl`
+          }
+        })
+      }
     }
+    
+    const errorData = await response.text()
+    console.error('Both news post type and standard posts failed:', response.status, errorData)
+    return res.status(500).json({
+      error: 'WordPress publish failed',
+      status: response.status,
+      details: errorData,
+      attempted: ['wp/v2/news', 'wp/v2/posts']
+    })
 
   } catch (error) {
     console.error('WordPress publish error:', error)

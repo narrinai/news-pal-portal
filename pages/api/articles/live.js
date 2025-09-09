@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       const cacheStatus = getCacheStatus()
       
       const articles = {
-        pending: pending.slice(0, 50), // Increased limit for more articles
+        pending: pending.slice(0, 75), // Conservative increase: 75 articles
         selected,
         rewritten,
         published

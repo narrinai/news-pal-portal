@@ -28,7 +28,7 @@ export async function parseArticlesFromFeed(
   feed: any, 
   source: string, 
   category: NewsArticle['category'],
-  maxArticles: number = 15,
+  maxArticles: number = 20,
   customKeywords?: string[],
   disableFiltering = false
 ): Promise<Omit<NewsArticle, 'id' | 'createdAt'>[]> {
@@ -124,8 +124,8 @@ export async function fetchAllFeeds(disableFiltering = false): Promise<Omit<News
   
   console.log(`Processing ${enabledFeeds.length} enabled RSS feeds`)
   
-  // Process feeds in smaller batches to avoid timeouts - limit to 8 feeds max
-  const feedsToProcess = enabledFeeds.slice(0, 8)
+  // Process feeds in smaller batches to avoid timeouts - limit to 10 feeds max
+  const feedsToProcess = enabledFeeds.slice(0, 10)
   console.log(`Processing ${feedsToProcess.length} feeds (limited from ${enabledFeeds.length} to prevent timeouts)`)
   
   const batchSize = 3
@@ -141,7 +141,7 @@ export async function fetchAllFeeds(disableFiltering = false): Promise<Omit<News
           feed, 
           rssFeed.name, 
           rssFeed.category as NewsArticle['category'],
-          rssFeed.maxArticles || 15,
+          rssFeed.maxArticles || 20,
           rssFeed.keywords,
           disableFiltering
         )

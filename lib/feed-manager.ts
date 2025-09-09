@@ -22,7 +22,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     name: 'Security.NL',
     category: 'cybersecurity-nl',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'ncsc-nl',
@@ -30,7 +30,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     name: 'NCSC Nederland',
     category: 'cybersecurity-nl',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'cert-nl',
@@ -38,7 +38,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     name: 'CERT-NL',
     category: 'cybersecurity-nl',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'itsecuritynl',
@@ -46,7 +46,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     name: 'IT Security NL',
     category: 'cybersecurity-nl',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'securityfm',
@@ -54,7 +54,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     name: 'Security.fm',
     category: 'cybersecurity-nl',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'beveiligingsnl',
@@ -62,7 +62,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     name: 'Beveiliging.nl',
     category: 'cybersecurity-nl',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   }
 ]
 
@@ -74,7 +74,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'The Hacker News',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'krebs',
@@ -82,7 +82,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'Krebs on Security',
     category: 'cybersecurity-international', 
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'securityweek',
@@ -90,7 +90,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'Security Week',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'threatpost',
@@ -98,7 +98,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'Threatpost',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'darkreading',
@@ -106,7 +106,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'Dark Reading',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'bleepingcomputer',
@@ -114,7 +114,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'BleepingComputer',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'csoonline',
@@ -122,7 +122,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'CSO Online',
     category: 'cybersecurity-international',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   }
 ]
 
@@ -134,7 +134,7 @@ const TECH_NL_FEEDS: RSSFeedConfig[] = [
     name: 'Tweakers',
     category: 'tech-nl',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'computable',
@@ -142,7 +142,7 @@ const TECH_NL_FEEDS: RSSFeedConfig[] = [
     name: 'Computable',
     category: 'tech-nl',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'techzine',
@@ -150,7 +150,7 @@ const TECH_NL_FEEDS: RSSFeedConfig[] = [
     name: 'Techzine',
     category: 'tech-nl',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'iculture',
@@ -170,7 +170,7 @@ const TECH_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'TechCrunch',
     category: 'tech-international',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'ars-technica',
@@ -178,7 +178,7 @@ const TECH_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     name: 'Ars Technica',
     category: 'tech-international',
     enabled: true,
-    maxArticles: 15
+    maxArticles: 20
   },
   {
     id: 'wired',

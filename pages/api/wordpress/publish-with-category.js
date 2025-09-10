@@ -118,10 +118,10 @@ export default async function handler(req, res) {
     }
 
     console.log('Publishing to News custom post type with ACF fields...')
-    console.log('Trying endpoint:', `${wpSiteUrl}/wp-json/wp/v2/news`)
+    console.log('Trying endpoint:', `${wpSiteUrl}/wp-json/wp/v2/news?lang=nl`)
     
-    // Try News custom post type first with proper ACF configuration
-    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
+    // Try News custom post type first with proper ACF configuration and Dutch language
+    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news?lang=nl`, {
       method: 'POST', 
       headers: {
         'Authorization': `Basic ${credentials}`,
@@ -162,7 +162,7 @@ export default async function handler(req, res) {
           postId: createdPost.id,
           postUrl: createdPost.link,
           postType: 'news',
-          editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit`
+          editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit&lang=nl`
         }
       })
     } else {
@@ -209,7 +209,7 @@ export default async function handler(req, res) {
             postUrl: createdPost.link,
             postType: 'post',
             category: newsCategory?.name || 'News',
-            editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit`
+            editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit&lang=nl`
           }
         })
       }

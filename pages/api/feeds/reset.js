@@ -1,41 +1,41 @@
-// Reset RSS feeds to working defaults
+// Reset RSS feeds to working defaults - unified cybersecurity category
 const WORKING_DEFAULT_FEEDS = [
   {
-    id: 'hackernews-default',
-    url: 'https://feeds.feedburner.com/TheHackersNews',
-    name: 'The Hacker News',
-    category: 'cybersecurity',
-    enabled: true,
-    maxArticles: 50
-  },
-  {
-    id: 'tweakers-default',
-    url: 'https://feeds.feedburner.com/tweakers/mixed',
-    name: 'Tweakers',
-    category: 'cybersecurity',
-    enabled: true,
-    maxArticles: 50
-  },
-  {
-    id: 'security-nl-default',
+    id: 'security-nl-reset',
     url: 'https://www.security.nl/rss.xml',
-    name: 'Security.NL',
+    name: 'Security.NL (Dutch)',
     category: 'cybersecurity',
     enabled: true,
     maxArticles: 50
   },
   {
-    id: 'krebs-default',
+    id: 'tweakers-reset',
+    url: 'https://feeds.feedburner.com/tweakers/mixed',
+    name: 'Tweakers (Dutch)',
+    category: 'cybersecurity',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'hackernews-reset',
+    url: 'https://feeds.feedburner.com/TheHackersNews',
+    name: 'The Hacker News (International)',
+    category: 'cybersecurity',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'krebs-reset',
     url: 'https://krebsonsecurity.com/feed/',
-    name: 'Krebs on Security',
+    name: 'Krebs on Security (International)',
     category: 'cybersecurity',
     enabled: true,
     maxArticles: 50
   },
   {
-    id: 'bleeping-default',
+    id: 'bleeping-reset',
     url: 'https://www.bleepingcomputer.com/feed/',
-    name: 'BleepingComputer',
+    name: 'BleepingComputer (International)',
     category: 'cybersecurity',
     enabled: true,
     maxArticles: 50

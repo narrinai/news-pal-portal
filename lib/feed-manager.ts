@@ -14,21 +14,22 @@ export interface RSSFeedConfig {
 // RSS FEEDS GEORGANISEERD PER CATEGORIE
 // ======================================
 
-// 🇳🇱 NEDERLANDSE CYBERSECURITY FEEDS
-const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
-  {
-    id: 'tweakers',
-    url: 'https://feeds.feedburner.com/tweakers/mixed',
-    name: 'Tweakers',
-    category: 'cybersecurity-nl',
-    enabled: true,
-    maxArticles: 50
-  },
+// 🔒 CYBERSECURITY FEEDS (NEDERLANDS EN INTERNATIONAAL)
+const CYBERSECURITY_FEEDS: RSSFeedConfig[] = [
+  // Nederlandse bronnen
   {
     id: 'security-nl-default',
     url: 'https://www.security.nl/rss.xml',
     name: 'Security.NL',
-    category: 'cybersecurity-nl',
+    category: 'cybersecurity',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'tweakers',
+    url: 'https://feeds.feedburner.com/tweakers/mixed',
+    name: 'Tweakers',
+    category: 'cybersecurity',
     enabled: true,
     maxArticles: 50
   },
@@ -36,7 +37,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     id: 'nos-tech',
     url: 'https://feeds.nos.nl/nosnieuwsalgemeen',
     name: 'NOS Tech',
-    category: 'cybersecurity-nl', 
+    category: 'cybersecurity', 
     enabled: true,
     maxArticles: 40
   },
@@ -44,7 +45,7 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     id: 'nu-tech',
     url: 'https://www.nu.nl/rss/Tech',
     name: 'NU.nl Tech',
-    category: 'cybersecurity-nl',
+    category: 'cybersecurity',
     enabled: true,
     maxArticles: 40
   },
@@ -52,19 +53,16 @@ const CYBERSECURITY_NL_FEEDS: RSSFeedConfig[] = [
     id: 'techzine',
     url: 'https://www.techzine.nl/feed/',
     name: 'Techzine',
-    category: 'cybersecurity-nl',
+    category: 'cybersecurity',
     enabled: true,
     maxArticles: 40
-  }
-]
-
-// 🌍 INTERNATIONALE CYBERSECURITY FEEDS  
-const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
+  },
+  // Internationale bronnen
   {
     id: 'hackernews',
     url: 'https://feeds.feedburner.com/TheHackersNews',
     name: 'The Hacker News',
-    category: 'cybersecurity-international',
+    category: 'cybersecurity',
     enabled: true,
     maxArticles: 50
   },
@@ -72,7 +70,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     id: 'krebs',
     url: 'https://krebsonsecurity.com/feed/',
     name: 'Krebs on Security',
-    category: 'cybersecurity-international', 
+    category: 'cybersecurity', 
     enabled: true,
     maxArticles: 50
   },
@@ -80,7 +78,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     id: 'securityweek',
     url: 'https://www.securityweek.com/feed/',
     name: 'Security Week',
-    category: 'cybersecurity-international',
+    category: 'cybersecurity',
     enabled: true,
     maxArticles: 50
   },
@@ -88,7 +86,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     id: 'threatpost',
     url: 'https://threatpost.com/feed/',
     name: 'Threatpost',
-    category: 'cybersecurity-international',
+    category: 'cybersecurity',
     enabled: true,
     maxArticles: 50
   },
@@ -96,7 +94,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     id: 'darkreading',
     url: 'https://www.darkreading.com/rss.xml',
     name: 'Dark Reading',
-    category: 'cybersecurity-international',
+    category: 'cybersecurity',
     enabled: true,
     maxArticles: 50
   },
@@ -104,7 +102,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     id: 'bleepingcomputer',
     url: 'https://www.bleepingcomputer.com/feed/',
     name: 'BleepingComputer',
-    category: 'cybersecurity-international',
+    category: 'cybersecurity',
     enabled: true,
     maxArticles: 50
   },
@@ -112,7 +110,7 @@ const CYBERSECURITY_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
     id: 'csoonline',
     url: 'https://www.csoonline.com/feed/',
     name: 'CSO Online',
-    category: 'cybersecurity-international',
+    category: 'cybersecurity',
     enabled: true,
     maxArticles: 50
   }
@@ -212,8 +210,7 @@ const OTHER_FEEDS: RSSFeedConfig[] = [
 
 // GECOMBINEERDE FEED LIJST
 export const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
-  ...CYBERSECURITY_NL_FEEDS,
-  ...CYBERSECURITY_INTERNATIONAL_FEEDS, 
+  ...CYBERSECURITY_FEEDS,
   ...BOUWCERTIFICATEN_NL_FEEDS,
   ...TECH_INTERNATIONAL_FEEDS,
   ...OTHER_FEEDS

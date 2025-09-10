@@ -102,13 +102,6 @@ export default function SettingsPage() {
         'coding bootcamp', 'online learning', 'mooc', 'coursera', 'udacity', 'edx', 'khan academy',
         'AI skills', 'AI career', 'AI job', 'AI developer', 'AI engineer', 'data scientist',
         'ml engineer', 'ai specialist', 'prompt engineering', 'fine-tuning', 'model training'
-      ],
-      'other': [
-        'news', 'nieuws', 'breaking news', 'update', 'announcement', 'press release', 'statement',
-        'report', 'study', 'research', 'analysis', 'opinion', 'editorial', 'commentary', 'review',
-        'trend', 'development', 'innovation', 'technology', 'tech', 'startup', 'business',
-        'industry', 'market', 'economy', 'finance', 'investment', 'funding', 'acquisition',
-        'merger', 'ipo', 'stock', 'crypto', 'cryptocurrency', 'blockchain', 'bitcoin', 'ethereum'
       ]
     },
     rewriteInstructions: {
@@ -124,7 +117,7 @@ export default function SettingsPage() {
   const [newFeed, setNewFeed] = useState({
     url: '',
     name: '',
-    category: 'cybersecurity-international',
+    category: 'cybersecurity',
     maxArticles: 10
   })
   
@@ -424,7 +417,7 @@ export default function SettingsPage() {
           rssFeeds: [result.feed, ...prev.rssFeeds]
         }))
         
-        setNewFeed({ url: '', name: '', category: 'cybersecurity-international', maxArticles: 10 })
+        setNewFeed({ url: '', name: '', category: 'cybersecurity', maxArticles: 10 })
         setShowAddFeed(false)
         showNotification({
           type: 'success',

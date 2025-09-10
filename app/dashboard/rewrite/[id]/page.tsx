@@ -39,9 +39,9 @@ export default function RewritePage({ params }: RewritePageProps) {
   const wordPressSites = [
     {
       id: 'marketingtoolz',
-      name: 'Marketingtoolz.com',
-      url: 'https://www.marketingtoolz.com',
-      description: 'Main marketing tools website'
+      name: 'Marketingtoolz.nl',
+      url: 'https://www.marketingtoolz.nl',
+      description: 'Nederlandse marketing tools website'
     },
     {
       id: 'cybertijger',

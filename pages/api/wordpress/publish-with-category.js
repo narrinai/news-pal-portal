@@ -131,10 +131,15 @@ export default async function handler(req, res) {
         status: 'draft',
         slug: `nieuws-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`,
         categories: newsCategory ? [newsCategory.id] : [],
-        // Remove ACF fields that don't exist on standard posts
+        // Set language to Dutch
+        lang: 'nl',
+        locale: 'nl_NL',
+        // Custom meta fields
         meta: {
           '_nieuws_artikel': 'ja', // Custom meta to identify as News article
-          '_origineel_van_newspal': 'true'
+          '_origineel_van_newspal': 'true',
+          '_post_language': 'dutch', // Force Dutch language
+          '_locale': 'nl_NL'
         }
       })
     })

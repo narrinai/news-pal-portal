@@ -12,7 +12,7 @@ interface RewritePageProps {
 }
 
 export default function RewritePage({ params }: RewritePageProps) {
-  const { showNotification } = useNotifications()
+  const { showNotification, showConfirm } = useNotifications()
   const [article, setArticle] = useState<NewsArticle | null>(null)
   const [loading, setLoading] = useState(true)
   const [rewriting, setRewriting] = useState(false)
@@ -184,9 +184,16 @@ export default function RewritePage({ params }: RewritePageProps) {
         // Show edit URL for easy access
         if (result.wordpress?.editUrl) {
           setTimeout(() => {
-            if (confirm('Open WordPress editor to review the draft?')) {
-              window.open(result.wordpress.editUrl, '_blank')
-            }
+            showConfirm({
+              title: 'Article published successfully!',
+              message: 'Your article has been published as a draft. Would you like to open the WordPress editor to review it?',
+              confirmText: 'Open Editor',
+              cancelText: 'Stay Here'
+            }).then((confirmed) => {
+              if (confirmed) {
+                window.open(result.wordpress.editUrl, '_blank')
+              }
+            })
           }, 1000)
         }
       } else {

@@ -158,9 +158,12 @@ export default function RewritePage({ params }: RewritePageProps) {
     }
 
     setPublishing(true)
+    console.log('Starting WordPress publish...')
     try {
       const selectedSite = wordPressSites.find(site => site.id === selectedWordPressSite)
+      console.log('Publishing to site:', selectedSite)
       
+      console.log('Making API call to /api/wordpress/publish-with-category')
       const response = await fetch('/api/wordpress/publish-with-category', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -172,8 +175,11 @@ export default function RewritePage({ params }: RewritePageProps) {
         })
       })
 
+      console.log('API response status:', response.status)
+      
       if (response.ok) {
         const result = await response.json()
+        console.log('WordPress publish result:', result)
         showNotification({
           type: 'success',
           title: 'Published to WordPress!',

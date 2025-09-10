@@ -116,8 +116,8 @@ export default async function handler(req, res) {
               "select_num_post": "5",
               "select_best_list": false,
               "news_settings": {
-                "title_above": "News",
-                "news_cat": [28]
+                "title_above": "News", 
+                "news_cat": [37]  // MarketingToolz.nl News category ID
               },
               "posts_settings": {
                 "title_above": "",

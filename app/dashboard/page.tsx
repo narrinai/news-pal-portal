@@ -32,6 +32,14 @@ export default function DashboardPage() {
     ...liveData.published
   ]
 
+  // Log filtering state for debugging
+  console.log('Filtering state:', {
+    totalArticles: allArticles.length,
+    selectedCategories,
+    selectedStatus,
+    sampleArticleCategories: allArticles.slice(0, 3).map(a => a.category)
+  })
+
   // Filter articles based on selected criteria
   const filteredArticles = allArticles.filter(article => {
     // Status filter
@@ -61,6 +69,11 @@ export default function DashboardPage() {
     
     return true
   })
+  
+  console.log('After filtering:', {
+    filteredCount: filteredArticles.length,
+    selectedCategories
+  })
 
   useEffect(() => {
     // Only fetch articles after first manual refresh
@@ -86,6 +99,7 @@ export default function DashboardPage() {
         setLiveData(data.articles)
         setCacheStatus(data.cache)
         console.log('Live articles loaded:', data.totalCounts)
+        console.log('Sample article categories:', data.articles.pending.slice(0, 5).map(a => ({ title: a.title?.substring(0, 30), category: a.category })))
       } else {
         const errorText = await response.text()
         console.error('Live API error:', response.status, errorText)

@@ -59,6 +59,18 @@ export default function DashboardPage() {
       const isDutch = dutchSources.some(source => article.source?.includes(source))
       const isInternational = !isDutch
       
+      // Debug language filtering
+      if (allArticles.indexOf(article) < 3) {
+        console.log('Language filter debug:', {
+          title: article.title?.substring(0, 30),
+          source: article.source,
+          isDutch,
+          isInternational,
+          languageFilter,
+          willPass: languageFilter === 'all' || (languageFilter === 'nl' && isDutch) || (languageFilter === 'international' && isInternational)
+        })
+      }
+      
       if (languageFilter === 'nl' && !isDutch) {
         return false
       }
@@ -102,6 +114,7 @@ export default function DashboardPage() {
         console.log('Live articles loaded:', data.totalCounts)
         console.log('Sample article categories:', data.articles.pending.slice(0, 5).map(a => ({ title: a.title?.substring(0, 30), category: a.category })))
         console.log('All unique categories in articles:', Array.from(new Set(data.articles.pending.map(a => a.category))))
+        console.log('Article sources sample:', data.articles.pending.slice(0, 10).map(a => ({ source: a.source, category: a.category })))
       } else {
         const errorText = await response.text()
         console.error('Live API error:', response.status, errorText)

@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning'])
   const [languageFilter, setLanguageFilter] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [keywordFiltering, setKeywordFiltering] = useState<boolean>(true)
@@ -307,7 +307,7 @@ export default function DashboardPage() {
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">Categories</label>
             <div className="flex flex-wrap gap-3">
-              {['cybersecurity', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'].map((category) => (
+              {['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning'].map((category) => (
                 <button
                   key={category}
                   onClick={() => toggleCategory(category)}
@@ -322,9 +322,9 @@ export default function DashboardPage() {
                   }`} />
                   <span>
                     {category === 'cybersecurity' && '🔒 Cybersecurity'}
-                    {category === 'bouwcertificaten-nl' && '🏗️ Bouwcertificaten'}
-                    {category === 'ai-companion-international' && '🤖 AI Companion'}
-                    {category === 'ai-learning-international' && '🎓 AI Learning'}
+                    {category === 'bouwcertificaten' && '🏗️ Bouwcertificaten'}
+                    {category === 'ai-companion' && '🤖 AI Companion'}
+                    {category === 'ai-learning' && '🎓 AI Learning'}
                   </span>
                 </button>
               ))}
@@ -548,27 +548,39 @@ export default function DashboardPage() {
 
         {!loading && !hasLoadedOnce && (
           <div className="text-center py-16">
-            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-              <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+              <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Welcome to News Pal Portal</h3>
-            <p className="text-gray-600 mb-6">Click "Refresh Articles" to load the latest news from your RSS feeds.</p>
+            <p className="text-gray-600 mb-6">Select categories above and click "Refresh Articles" to load the latest news.</p>
             <button
               onClick={refreshArticles}
-              disabled={refreshing}
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
+              disabled={refreshing || selectedCategories.length === 0}
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Get Started - Load Articles
+              {selectedCategories.length === 0 ? 'Select categories first' : 'Get Started - Load Articles'}
             </button>
           </div>
         )}
 
-        {!loading && hasLoadedOnce && filteredArticles.length === 0 && (
+        {!loading && hasLoadedOnce && selectedCategories.length === 0 && (
+          <div className="text-center py-16">
+            <div className="mx-auto w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center mb-6">
+              <svg className="w-10 h-10 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No categories selected</h3>
+            <p className="text-gray-600 mb-6">Please select one or more categories above to view articles.</p>
+          </div>
+        )}
+
+        {!loading && hasLoadedOnce && selectedCategories.length > 0 && filteredArticles.length === 0 && (
           <div className="text-center py-16">
             <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
               <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -576,7 +588,7 @@ export default function DashboardPage() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No articles found</h3>
-            <p className="text-gray-600 mb-6">Try adjusting the filters, adding RSS feeds in Settings, or refreshing articles.</p>
+            <p className="text-gray-600 mb-6">Try adjusting filters, refreshing articles, or adding RSS feeds in Settings.</p>
           </div>
         )}
       </div>

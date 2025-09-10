@@ -29,7 +29,7 @@ interface Settings {
 export default function SettingsPage() {
   const { showNotification, showConfirm, showPrompt } = useNotifications()
   const [settings, setSettings] = useState<Settings>({
-    categories: ['cybersecurity', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'],
+    categories: ['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning'],
     categoryKeywords: {
       'cybersecurity': [
         // Dutch Security Terms
@@ -66,7 +66,7 @@ export default function SettingsPage() {
         'certified information systems security professional', 'certified cloud security professional',
         'offensive security certified professional', 'comptia security', 'giac security', 'sans institute'
       ],
-      'bouwcertificaten-nl': [
+      'bouwcertificaten': [
         'bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'woning certificaat', 'energielabel',
         'energie label', 'bouwvergunning', 'bouw vergunning', 'woningbouw', 'woning bouw', 'certificering',
         'bouwtoezicht', 'bouw toezicht', 'bouwregelgeving', 'bouw regelgeving', 'bouwvoorschriften',
@@ -77,7 +77,7 @@ export default function SettingsPage() {
         'milieu', 'duurzaamheid', 'energiezuinig', 'energie zuinig', 'warmtepomp', 'zonnepanelen',
         'isolatieglas', 'kierdichting', 'thermische', 'prestatie', 'epc', 'woningwaardering'
       ],
-      'ai-companion-international': [
+      'ai-companion': [
         'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual assistant', 'virtual companion',
         'chatbot', 'chat bot', 'conversational AI', 'character AI', 'personality AI', 'emotional AI',
         'companion robot', 'social robot', 'humanoid', 'android', 'synthetic human', 'digital human',
@@ -89,7 +89,7 @@ export default function SettingsPage() {
         'voice assistant', 'alexa', 'siri', 'google assistant', 'cortana', 'replika', 'xiaoice',
         'romantic AI', 'dating AI', 'relationship AI', 'intimacy AI', 'companionship technology'
       ],
-      'ai-learning-international': [
+      'ai-learning': [
         'AI learning', 'artificial intelligence learning', 'machine learning', 'deep learning', 'neural networks',
         'AI education', 'AI training', 'AI tutorial', 'AI course', 'AI certification', 'AI bootcamp',
         'learn AI', 'study AI', 'AI curriculum', 'AI pedagogy', 'educational AI', 'AI literacy',

@@ -5,7 +5,7 @@ export default async function handler(req, res) {
       const settings = {
         categories: process.env.NEWS_CATEGORIES ? 
           JSON.parse(process.env.NEWS_CATEGORIES) : 
-          ['cybersecurity', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'],
+          ['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning'],
         
         categoryKeywords: process.env.CATEGORY_KEYWORDS ?
           JSON.parse(process.env.CATEGORY_KEYWORDS) : {
@@ -39,30 +39,25 @@ export default async function handler(req, res) {
               'certified information systems security professional', 'certified cloud security professional',
               'offensive security certified professional', 'comptia security', 'giac security', 'sans institute'
             ],
-            'bouwcertificaten-nl': [
+            'bouwcertificaten': [
               'bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'woning certificaat', 'energielabel',
               'energie label', 'bouwvergunning', 'bouw vergunning', 'woningbouw', 'woning bouw', 'certificering',
               'bouwtoezicht', 'bouw toezicht', 'bouwregelgeving', 'bouw regelgeving', 'bouwvoorschriften',
               'bouw voorschriften', 'woningwet', 'woning wet', 'bouwbesluit', 'bouw besluit', 'nta', 'nen',
               'keur', 'keuring', 'inspectie', 'bouwkundige', 'architect', 'constructeur', 'installateur'
             ],
-            'ai-companion-international': [
+            'ai-companion': [
               'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual assistant', 'virtual companion',
               'chatbot', 'chat bot', 'conversational AI', 'character AI', 'personality AI', 'emotional AI',
               'companion robot', 'social robot', 'humanoid', 'android', 'synthetic human', 'digital human',
               'avatar', 'virtual character', 'AI friend', 'AI relationship', 'digital companion', 'virtual being'
             ],
-            'ai-learning-international': [
+            'ai-learning': [
               'AI learning', 'artificial intelligence learning', 'machine learning', 'deep learning', 'neural networks',
               'AI education', 'AI training', 'AI tutorial', 'AI course', 'AI certification', 'AI bootcamp',
               'learn AI', 'study AI', 'AI curriculum', 'AI pedagogy', 'educational AI', 'AI literacy',
               'data science', 'data analytics', 'big data', 'statistics', 'algorithms', 'programming'
             ],
-            'other': [
-              'news', 'nieuws', 'breaking news', 'update', 'announcement', 'press release', 'statement',
-              'report', 'study', 'research', 'analysis', 'opinion', 'editorial', 'commentary', 'review',
-              'trend', 'development', 'innovation', 'technology', 'tech', 'startup', 'business'
-            ]
           },
         
         rewriteInstructions: {

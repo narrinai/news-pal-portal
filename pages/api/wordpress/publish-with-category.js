@@ -110,35 +110,9 @@ export default async function handler(req, res) {
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
         categories: newsCategory ? [newsCategory.id] : [],
         format: 'standard',
-        // ACF fields for News post type - exact structure from working posts
-        acf: {
-          'title': title,
-          'flexible_sidebar': [
-            {
-              'acf_fc_layout': 'standard_sidebar',
-              'sidebar_type': 'news',
-              'select_num_post': '5',
-              'select_best_list': false,
-              'news_settings': {
-                'title_above': 'News',
-                'news_cat': [28]  // Use News category ID from working posts
-              },
-              'posts_settings': {
-                'title_above': '',
-                'post_cat': false
-              },
-              'custom_sidebar_content': {
-                'title_above': '',
-                'content_editor': '',
-                'sidebar_button': {
-                  'buttons_position': 'left',
-                  'buttons_repeater': false
-                }
-              }
-            }
-          ],
-          'acf_show_author': 'no',
-          'hero_bg_element': 'deactive'
+        // Minimal approach - create News post first, then update ACF fields separately
+        fields: {
+          'title': title
         },
         meta: {
           '_nieuws_artikel': 'ja',
@@ -157,6 +131,54 @@ export default async function handler(req, res) {
         type: createdPost.type,
         categories: createdPost.categories
       })
+      
+      // Now try to update ACF fields separately
+      console.log('Updating ACF fields for News post...')
+      try {
+        const acfUpdateResponse = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news/${createdPost.id}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${credentials}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            acf: {
+              'flexible_sidebar': [
+                {
+                  'acf_fc_layout': 'standard_sidebar',
+                  'sidebar_type': 'news',
+                  'select_num_post': '5',
+                  'select_best_list': false,
+                  'news_settings': {
+                    'title_above': 'News',
+                    'news_cat': [28]
+                  },
+                  'posts_settings': {
+                    'title_above': '',
+                    'post_cat': false
+                  },
+                  'custom_sidebar_content': {
+                    'title_above': '',
+                    'content_editor': '',
+                    'sidebar_button': {
+                      'buttons_position': 'left',
+                      'buttons_repeater': false
+                    }
+                  }
+                }
+              ]
+            }
+          })
+        })
+        
+        if (acfUpdateResponse.ok) {
+          console.log('ACF fields updated successfully')
+        } else {
+          console.error('ACF update failed:', acfUpdateResponse.status)
+        }
+      } catch (acfError) {
+        console.error('ACF update error:', acfError.message)
+      }
       
       const actualPostType = createdPost.type || 'post'
       const successMessage = actualPostType === 'news' 

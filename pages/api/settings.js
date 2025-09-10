@@ -84,7 +84,7 @@ Voorbeeld gewenste output structuur:
 <h2>Wat kun je doen?</h2>
 <p>Praktische adviezen...</p>`,
           
-          professional: process.env.AI_INSTRUCTION_PROFESSIONAL || `Gebruik een zakelijke, professionele toon. Focus op de business impact en relevantie.
+          professional: process.env.AI_INSTRUCTION_PROFESSIONAL || `Gebruik een zakelijke, professionele toon. Focus op de business impact en relevantie. Noem de bronnen en voeg onderaan het artikel een lijst met bronnen op. Voeg extra bronnen toe als je die weet met de url eronder. Voeg de url toe aan de bronnen van de originele bron (het originele artikel).
 
 WORDPRESS HTML FORMAT - Zakelijke stijl:
 <h2>Executive Summary</h2>
@@ -97,7 +97,13 @@ WORDPRESS HTML FORMAT - Zakelijke stijl:
 </ul>
 
 <h2>Aanbevelingen</h2>
-<p>Concrete actiepunten voor beslissers...</p>`,
+<p>Concrete actiepunten voor beslissers...</p>
+
+<h2>Bronnen en Referenties</h2>
+<ul>
+<li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">Origineel artikel</a></li>
+<li><a href="https://example.com/extra-bron" target="_blank">Relevante extra bron (indien beschikbaar)</a></li>
+</ul>`,
           
           engaging: process.env.AI_INSTRUCTION_ENGAGING || `Schrijf op een boeiende manier die lezers betrekt. Gebruik voorbeelden en maak het toegankelijk.
 

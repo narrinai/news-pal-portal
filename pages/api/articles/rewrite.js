@@ -24,7 +24,8 @@ export default async function handler(req, res) {
       article.title,
       article.originalContent || article.description,
       options,
-      customInstructions
+      customInstructions,
+      article.url
     )
 
     // Update the article in Airtable

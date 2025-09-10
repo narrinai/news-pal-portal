@@ -20,10 +20,11 @@ export async function rewriteArticle(
     language: 'nl',
     tone: 'informative'
   },
-  customInstructions?: string
+  customInstructions?: string,
+  originalUrl?: string
 ): Promise<{ title: string; content: string; wordpressHtml: string }> {
   try {
-    const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions)
+    const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
     
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
@@ -66,7 +67,8 @@ function createRewritePrompt(
   title: string,
   content: string,
   options: RewriteOptions,
-  customInstructions?: string
+  customInstructions?: string,
+  originalUrl?: string
 ): string {
   const lengthInstructions = {
     short: 'Houd de tekst kort en bondig (200-300 woorden)',
@@ -91,6 +93,7 @@ Herschrijf het volgende cybersecurity nieuwsartikel voor een Nederlandse doelgro
 
 ORIGINELE TITEL: ${title}
 ORIGINELE CONTENT: ${content}
+${originalUrl ? `ORIGINELE URL: ${originalUrl}` : ''}
 
 INSTRUCTIES:
 - ${styleInstructions[options.style]}
@@ -102,6 +105,7 @@ INSTRUCTIES:
 - Gebruik duidelijke alinea's
 - Voeg relevante context toe voor Nederlandse lezers waar nodig
 - Vermijd jargon zonder uitleg
+${originalUrl ? `- Voeg aan het einde een bronnenlijst toe met de originele URL: ${originalUrl}` : ''}
 
 FORMAT JE ANTWOORD ALS VOLGT:
 TITEL: [Nieuwe Nederlandse titel]

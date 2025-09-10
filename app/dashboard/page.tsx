@@ -101,7 +101,7 @@ export default function DashboardPage() {
         setCacheStatus(data.cache)
         console.log('Live articles loaded:', data.totalCounts)
         console.log('Sample article categories:', data.articles.pending.slice(0, 5).map(a => ({ title: a.title?.substring(0, 30), category: a.category })))
-        console.log('All unique categories in articles:', [...new Set(data.articles.pending.map(a => a.category))])
+        console.log('All unique categories in articles:', Array.from(new Set(data.articles.pending.map(a => a.category))))
       } else {
         const errorText = await response.text()
         console.error('Live API error:', response.status, errorText)

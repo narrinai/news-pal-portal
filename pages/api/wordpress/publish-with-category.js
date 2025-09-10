@@ -60,7 +60,8 @@ export default async function handler(req, res) {
         newsCategory = categories.find(cat => 
           cat.name.toLowerCase() === 'news' || 
           cat.name.toLowerCase() === 'nieuws' ||
-          cat.slug === 'news'
+          cat.slug === 'news' ||
+          cat.slug === 'nieuws'
         )
         console.log(`Found ${categories.length} categories, News category:`, newsCategory?.name || 'not found')
       }
@@ -75,8 +76,8 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            name: 'News',
-            slug: 'news',
+            name: 'Nieuws',
+            slug: 'nieuws',
             description: 'Nieuws en updates van News Pal Portal'
           })
         })
@@ -129,7 +130,7 @@ export default async function handler(req, res) {
         title: title,
         content: wordpressHtml,
         status: 'draft',
-        slug: `nieuws-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`,
+        slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
         categories: newsCategory ? [newsCategory.id] : [],
         // Set language to Dutch
         lang: 'nl',

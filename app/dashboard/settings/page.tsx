@@ -632,7 +632,6 @@ export default function SettingsPage() {
                 >
                   + Add Category
                 </button>
-              </div>
             </div>
             
             <div className="space-y-3">

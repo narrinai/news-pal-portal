@@ -35,15 +35,15 @@ export default function Logo({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Modern gradient definitions */}
+        {/* Blue gradient definitions */}
         <defs>
           <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#1f2937" />
-            <stop offset="100%" stopColor="#4b5563" />
+            <stop offset="0%" stopColor="#3b82f6" />
+            <stop offset="100%" stopColor="#1d4ed8" />
           </linearGradient>
           <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#374151" />
-            <stop offset="100%" stopColor="#6b7280" />
+            <stop offset="0%" stopColor="#60a5fa" />
+            <stop offset="100%" stopColor="#2563eb" />
           </linearGradient>
         </defs>
         

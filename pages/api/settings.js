@@ -5,45 +5,38 @@ export default async function handler(req, res) {
       const settings = {
         categories: process.env.NEWS_CATEGORIES ? 
           JSON.parse(process.env.NEWS_CATEGORIES) : 
-          ['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international', 'other'],
+          ['cybersecurity', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'],
         
         categoryKeywords: process.env.CATEGORY_KEYWORDS ?
           JSON.parse(process.env.CATEGORY_KEYWORDS) : {
-            'cybersecurity-nl': [
-              'beveiliging', 'cyberbeveiliging', 'cybersecurity', 'datalek', 'privacy', 'hack', 'hacker', 'malware', 
-              'ransomware', 'phishing', 'virus', 'trojan', 'spyware', 'adware', 'botnet', 'ddos', 'firewall',
-              'antivirus', 'encryptie', 'encryption', 'vpn', 'ssl', 'tls', 'certificaat', 'kwetsbaarheid',
-              'vulnerability', 'exploit', 'patch', 'update', 'beveiligingslek', 'cyberaanval', 'attack',
-              'threat', 'dreging', 'risico', 'risk', 'incident', 'breach', 'inbreuk', 'lekken', 'leak',
-              'cybercrime', 'cybercriminaliteit', 'fraude', 'identiteitsdiefstal', 'social engineering',
-              'twee-factor', 'authenticatie', 'wachtwoord', 'password', 'biometric', 'toegangscontrole',
-              'gdpr', 'avg', 'compliance', 'audit', 'pentesting', 'ethisch hacken', 'white hat', 'black hat'
-            ],
-            'cybersecurity-international': [
-              // Core Security Terms
-              'security', 'cybersecurity', 'cyber security', 'hack', 'hacker', 'breach', 'data breach', 'malware', 
-              'ransomware', 'phishing', 'spear phishing', 'vulnerability', 'exploit', 'zero-day', 'zero day',
-              'apt', 'advanced persistent threat', 'ddos', 'denial of service', 'firewall', 'antivirus',
-              'encryption', 'vpn', 'virtual private network', 'ssl', 'tls', 'certificate', 'threat',
-              'cyber attack', 'cyberattack', 'attack', 'incident', 'response', 'forensics', 'digital forensics',
-              'penetration testing', 'pentest', 'red team', 'blue team', 'soc', 'security operations center',
+            'cybersecurity': [
+              // Combined Dutch + International Security Keywords
+              'beveiliging', 'cyberbeveiliging', 'cybersecurity', 'cyber security', 'datalek', 'privacy', 'hack', 'hacker', 'malware', 
+              'ransomware', 'phishing', 'spear phishing', 'virus', 'trojan', 'spyware', 'adware', 'botnet', 'ddos', 'firewall',
+              'antivirus', 'encryptie', 'encryption', 'vpn', 'virtual private network', 'ssl', 'tls', 'certificaat', 'certificate', 'kwetsbaarheid',
+              'vulnerability', 'exploit', 'patch', 'update', 'beveiligingslek', 'cyberaanval', 'attack', 'cyber attack', 'cyberattack',
+              'threat', 'dreging', 'risico', 'risk', 'incident', 'breach', 'data breach', 'inbreuk', 'lekken', 'leak',
+              'cybercrime', 'cybercriminaliteit', 'fraude', 'fraud', 'identiteitsdiefstal', 'identity theft', 'social engineering',
+              'twee-factor', 'multifactor', 'authenticatie', 'authentication', 'wachtwoord', 'password', 'biometric', 'toegangscontrole',
+              'access control', 'gdpr', 'avg', 'compliance', 'audit', 'pentesting', 'penetration testing', 'pentest',
+              'ethisch hacken', 'ethical hacking', 'white hat', 'black hat', 'red team', 'blue team', 'zero-day', 'zero day',
+              'apt', 'advanced persistent threat', 'denial of service', 'soc', 'security operations center',
               'siem', 'endpoint protection', 'network security', 'application security', 'web security',
               'mobile security', 'cloud security', 'iot security', 'scada', 'industrial control',
-              'identity theft', 'fraud', 'social engineering', 'phishing email', 'trojan', 'virus',
-              'worm', 'rootkit', 'backdoor', 'keylogger', 'spyware', 'adware', 'botnet', 'c2', 'command control',
-              'patch', 'update', 'cve', 'cvss', 'nist', 'iso 27001', 'gdpr', 'compliance', 'audit',
-              'risk assessment', 'threat intelligence', 'threat hunting', 'incident response', 'disaster recovery',
-              'business continuity', 'backup', 'authentication', 'authorization', 'access control', 'iam',
-              'multifactor', 'biometric', 'password', 'credential', 'privilege escalation', 'lateral movement',
+              'forensics', 'digital forensics', 'worm', 'rootkit', 'backdoor', 'keylogger', 'c2', 'command control',
+              'cve', 'cvss', 'nist', 'iso 27001', 'risk assessment', 'threat intelligence', 'threat hunting',
+              'incident response', 'disaster recovery', 'business continuity', 'backup', 'authorization', 'iam',
+              'credential', 'privilege escalation', 'lateral movement',
               
               // Cybersecurity Certifications
               'cissp', 'ccsp', 'sscp', 'csslp', 'hcispp', 'cgrc', 'cisa', 'cism', 'crisc', 'cgeit', 'cdpse',
-              'cobit', 'ceh', 'chfi', 'cpent', 'cnd', 'cciso', 'ecih', 'security+', 'cysa+', 'pentest+', 'casp+',
+              'cobit', 'cobit-di', 'ceh', 'chfi', 'cpent', 'cnd', 'cciso', 'ecih', 'security+', 'cysa+', 'pentest+', 'casp+',
               'gsec', 'gcih', 'gcia', 'gpen', 'gwapt', 'gcfe', 'gcfa', 'oscp', 'oswe', 'osep', 'osed', 'oswp',
               'sc-200', 'sc-300', 'sc-400', 'sc-100', 'az-500', 'aws-security', 'gcp-security',
               'cyberops associate', 'cyberops professional', 'ccnp security', 'ccie security',
-              'cipp/e', 'cipm', 'cipt', 'isfs', 'iso27001-la', 'iso27001-li', 'iso27701', 'itil4',
+              'cipp/e', 'cipm', 'cipt', 'isfs', 'iso27001-la', 'iso27001-li', 'iso27701', 'itil4', 'itil4-mp/sl',
               'certified ethical hacker', 'certified information systems auditor', 'certified information security manager',
+              'certified information systems security professional', 'certified cloud security professional',
               'offensive security certified professional', 'comptia security', 'giac security', 'sans institute'
             ],
             'bouwcertificaten-nl': [

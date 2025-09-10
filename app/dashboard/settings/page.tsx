@@ -32,80 +32,39 @@ export default function SettingsPage() {
     categories: ['cybersecurity', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'],
     categoryKeywords: {
       'cybersecurity': [
-        // Combined Dutch + English cybersecurity keywords
-        'beveiliging', 'cyberbeveiliging', 'cybersecurity', 'cyber security', 'datalek', 'privacy', 'hack', 'hacker', 'malware', 
-        'ransomware', 'phishing', 'spear phishing', 'virus', 'trojan', 'spyware', 'adware', 'botnet', 'ddos', 'firewall',
-        'antivirus', 'encryptie', 'encryption', 'vpn', 'ssl', 'tls', 'certificaat', 'certificate', 'kwetsbaarheid',
-        'vulnerability', 'exploit', 'patch', 'update', 'beveiligingslek', 'cyberaanval', 'attack', 'cyber attack', 'cyberattack',
-        'threat', 'dreging', 'risico', 'risk', 'incident', 'breach', 'data breach', 'inbreuk', 'lekken', 'leak',
-        'cybercrime', 'cybercriminaliteit', 'fraude', 'fraud', 'identiteitsdiefstal', 'identity theft', 'social engineering',
-        'twee-factor', 'multifactor', 'authenticatie', 'authentication', 'wachtwoord', 'password', 'biometric', 'toegangscontrole',
-        'access control', 'gdpr', 'avg', 'compliance', 'audit', 'pentesting', 'penetration testing', 'pentest',
-        'ethisch hacken', 'ethical hacking', 'white hat', 'black hat', 'red team', 'blue team', 'zero-day', 'zero day',
-        'apt', 'advanced persistent threat', 'soc', 'security operations center', 'siem', 'endpoint protection',
-        'network security', 'cloud security', 'iot security', 'cve', 'cvss', 'nist', 'iso 27001'
-      ],
-        // Core Security Terms
-        'security', 'cybersecurity', 'cyber security', 'hack', 'hacker', 'breach', 'data breach', 'malware', 
-        'ransomware', 'phishing', 'spear phishing', 'vulnerability', 'exploit', 'zero-day', 'zero day',
-        'apt', 'advanced persistent threat', 'ddos', 'denial of service', 'firewall', 'antivirus',
-        'encryption', 'vpn', 'virtual private network', 'ssl', 'tls', 'certificate', 'threat',
-        'cyber attack', 'cyberattack', 'attack', 'incident', 'response', 'forensics', 'digital forensics',
+        // Dutch Security Terms
+        'beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 'hack', 'hacker', 'malware', 
+        'ransomware', 'phishing', 'virus', 'trojan', 'spyware', 'adware', 'botnet', 'ddos', 'firewall',
+        'antivirus', 'encryptie', 'vpn', 'ssl', 'tls', 'certificaat', 'kwetsbaarheid',
+        'vulnerability', 'exploit', 'patch', 'update', 'beveiligingslek', 'cyberaanval', 
+        'threat', 'dreging', 'risico', 'risk', 'incident', 'breach', 'inbreuk', 'lekken', 'leak',
+        'cybercrime', 'cybercriminaliteit', 'fraude', 'identiteitsdiefstal', 'social engineering',
+        'twee-factor', 'authenticatie', 'wachtwoord', 'password', 'biometric', 'toegangscontrole',
+        'gdpr', 'avg', 'compliance', 'audit', 'pentesting', 'ethisch hacken', 'white hat', 'black hat',
+        
+        // International Security Terms
+        'security', 'cybersecurity', 'cyber security', 'breach', 'data breach', 'spear phishing', 'zero-day', 'zero day',
+        'apt', 'advanced persistent threat', 'denial of service', 'encryption', 'virtual private network', 'certificate',
+        'cyber attack', 'cyberattack', 'attack', 'response', 'forensics', 'digital forensics',
         'penetration testing', 'pentest', 'red team', 'blue team', 'soc', 'security operations center',
         'siem', 'endpoint protection', 'network security', 'application security', 'web security',
         'mobile security', 'cloud security', 'iot security', 'scada', 'industrial control',
-        'identity theft', 'fraud', 'social engineering', 'phishing email', 'trojan', 'virus',
-        'worm', 'rootkit', 'backdoor', 'keylogger', 'spyware', 'adware', 'botnet', 'c2', 'command control',
-        'patch', 'update', 'cve', 'cvss', 'nist', 'iso 27001', 'gdpr', 'compliance', 'audit',
+        'identity theft', 'fraud', 'phishing email', 'worm', 'rootkit', 'backdoor', 'keylogger',
+        'c2', 'command control', 'cve', 'cvss', 'nist', 'iso 27001',
         'risk assessment', 'threat intelligence', 'threat hunting', 'incident response', 'disaster recovery',
-        'business continuity', 'backup', 'authentication', 'authorization', 'access control', 'iam',
-        'multifactor', 'biometric', 'password', 'credential', 'privilege escalation', 'lateral movement',
+        'business continuity', 'backup', 'authorization', 'access control', 'iam',
+        'multifactor', 'credential', 'privilege escalation', 'lateral movement',
         
-        // ISC² Certifications
-        'cissp', 'ccsp', 'sscp', 'csslp', 'hcispp', 'cgrc', 'certified information systems security professional',
-        'certified cloud security professional', 'systems security certified practitioner',
-        'certified secure software lifecycle professional', 'healthcare information security',
-        
-        // ISACA Certifications
-        'cisa', 'cism', 'crisc', 'cgeit', 'cdpse', 'cobit', 'cobit-di',
-        'certified information systems auditor', 'certified information security manager',
-        'certified in risk and information systems control', 'certified in governance of enterprise it',
-        
-        // EC-Council Certifications
-        'ceh', 'chfi', 'cpent', 'cnd', 'cciso', 'ecih', 'certified ethical hacker',
-        'computer hacking forensic investigator', 'certified penetration testing professional',
-        'certified network defender', 'certified chief information security officer',
-        
-        // CompTIA Certifications
-        'security+', 'cysa+', 'pentest+', 'casp+', 'comptia security', 'comptia cysa', 
-        'comptia pentest', 'comptia casp', 'cybersecurity analyst',
-        
-        // GIAC/SANS Certifications
-        'gsec', 'gcih', 'gcia', 'gpen', 'gwapt', 'gcfe', 'gcfa', 'giac security essentials',
-        'giac certified incident handler', 'giac certified intrusion analyst', 'giac penetration tester',
-        'giac web application penetration tester', 'giac certified forensic examiner',
-        
-        // Offensive Security
-        'oscp', 'oswe', 'osep', 'osed', 'oswp', 'offensive security certified professional',
-        'offensive security web expert', 'offensive security experienced penetration tester',
-        
-        // Cloud Security Certifications
+        // Cybersecurity Certifications
+        'cissp', 'ccsp', 'sscp', 'csslp', 'hcispp', 'cgrc', 'cisa', 'cism', 'crisc', 'cgeit', 'cdpse',
+        'cobit', 'cobit-di', 'ceh', 'chfi', 'cpent', 'cnd', 'cciso', 'ecih', 'security+', 'cysa+', 'pentest+', 'casp+',
+        'gsec', 'gcih', 'gcia', 'gpen', 'gwapt', 'gcfe', 'gcfa', 'oscp', 'oswe', 'osep', 'osed', 'oswp',
         'sc-200', 'sc-300', 'sc-400', 'sc-100', 'az-500', 'aws-security', 'gcp-security',
-        'microsoft security operations analyst', 'microsoft identity and access administrator',
-        'microsoft information protection administrator', 'microsoft cybersecurity architect',
-        'azure security engineer', 'aws certified security specialty', 'google cloud security engineer',
-        
-        // Cisco Certifications
         'cyberops associate', 'cyberops professional', 'ccnp security', 'ccie security',
-        'cisco cyberops', 'cisco security',
-        
-        // Privacy Certifications
-        'cipp/e', 'cipm', 'cipt', 'certified information privacy professional',
-        'certified information privacy manager', 'certified information privacy technologist',
-        
-        // Other Standards
-        'isfs', 'iso27001-la', 'iso27001-li', 'iso27701', 'itil4', 'itil4-mp/sl',
-        'information security foundation', 'iso 27001 lead auditor', 'iso 27001 lead implementer'
+        'cipp/e', 'cipm', 'cipt', 'isfs', 'iso27001-la', 'iso27001-li', 'iso27701', 'itil4', 'itil4-mp/sl',
+        'certified ethical hacker', 'certified information systems auditor', 'certified information security manager',
+        'certified information systems security professional', 'certified cloud security professional',
+        'offensive security certified professional', 'comptia security', 'giac security', 'sans institute'
       ],
       'bouwcertificaten-nl': [
         'bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'woning certificaat', 'energielabel',
@@ -171,7 +130,7 @@ export default function SettingsPage() {
   
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'categories' | 'keywords' | 'instructions' | 'feeds'>('categories')
-  const [selectedCategory, setSelectedCategory] = useState('cybersecurity-nl')
+  const [selectedCategory, setSelectedCategory] = useState('cybersecurity')
   const router = useRouter()
 
   useEffect(() => {
@@ -526,6 +485,44 @@ export default function SettingsPage() {
         type: 'error',
         title: 'Network error',
         message: 'Could not connect to server'
+      })
+    }
+  }
+
+  const resetFeeds = async () => {
+    const confirmed = await showConfirm({
+      title: 'Reset RSS Feeds',
+      message: 'This will reset to working default feeds (Security.NL, Tweakers, Hacker News, etc.). Your custom feeds will be lost. Continue?',
+      confirmText: 'Reset to Defaults',
+      cancelText: 'Cancel'
+    })
+    
+    if (!confirmed) return
+    
+    try {
+      const response = await fetch('/api/feeds/reset', { method: 'POST' })
+      if (response.ok) {
+        const result = await response.json()
+        showNotification({
+          type: 'success',
+          title: 'Feeds reset successfully',
+          message: `Reset to ${result.feedsReset} working RSS feeds`,
+          duration: 4000
+        })
+        await loadFeeds() // Refresh the list
+      } else {
+        showNotification({
+          type: 'error',
+          title: 'Reset failed',
+          message: 'Could not reset feeds'
+        })
+      }
+    } catch (error) {
+      console.error('Error resetting feeds:', error)
+      showNotification({
+        type: 'error',
+        title: 'Network error',
+        message: 'Could not reset feeds'
       })
     }
   }
@@ -886,15 +883,23 @@ export default function SettingsPage() {
                   <h2 className="text-xl font-semibold">RSS Feed Sources</h2>
                   <p className="text-sm text-gray-600 mt-1">Manage your RSS feed sources for article collection</p>
                 </div>
-                <button
-                  onClick={() => {
-                    console.log('Add Website button clicked')
-                    setShowAddFeed(true)
-                  }}
-                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
-                >
-                  + Add RSS Feed
-                </button>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={resetFeeds}
+                    className="bg-orange-100 text-orange-700 hover:bg-orange-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                  >
+                    🔄 Reset to Defaults
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('Add Website button clicked')
+                      setShowAddFeed(true)
+                    }}
+                    className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                  >
+                    + Add RSS Feed
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">

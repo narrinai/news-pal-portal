@@ -240,14 +240,14 @@ let customFeeds: RSSFeedConfig[] = []
 // Feed configuration storage/retrieval functions
 export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
   try {
-    // Try to load from persistent API storage
+    // PRIORITY 1: Try to load from persistent API storage
     try {
       const response = await fetch('http://localhost:3000/api/feeds/store')
       if (response.ok) {
         const data = await response.json()
         if (data.feeds && data.feeds.length > 0) {
           customFeeds = data.feeds
-          console.log(`Using ${data.feeds.length} persistent feeds from API storage`)
+          console.log(`✅ Using ${data.feeds.length} persistent feeds from API storage`)
           return data.feeds
         }
       }
@@ -255,18 +255,58 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
       console.warn('Could not load from API storage:', apiError.message)
     }
     
-    // Check memory storage
+    // PRIORITY 2: Check memory storage
     if (customFeeds.length > 0) {
-      console.log(`Using ${customFeeds.length} custom feeds from memory`)
+      console.log(`✅ Using ${customFeeds.length} custom feeds from memory`)
       return customFeeds
     }
     
-    // Start with empty feeds
-    console.log('No feeds configured - starting with empty list')
-    return []
+    // PRIORITY 3: Initialize with defaults and save them persistently
+    console.log('🔧 No feeds found - initializing with working defaults and saving persistently...')
+    const workingDefaults = [
+      {
+        id: 'hackernews-persistent',
+        url: 'https://feeds.feedburner.com/TheHackersNews',
+        name: 'The Hacker News',
+        category: 'cybersecurity',
+        enabled: true,
+        maxArticles: 50
+      },
+      {
+        id: 'tweakers-persistent',
+        url: 'https://feeds.feedburner.com/tweakers/mixed',
+        name: 'Tweakers',
+        category: 'cybersecurity',
+        enabled: true,
+        maxArticles: 50
+      },
+      {
+        id: 'security-nl-persistent',
+        url: 'https://www.security.nl/rss.xml',
+        name: 'Security.NL',
+        category: 'cybersecurity',
+        enabled: true,
+        maxArticles: 50
+      },
+      {
+        id: 'krebs-persistent',
+        url: 'https://krebsonsecurity.com/feed/',
+        name: 'Krebs on Security',
+        category: 'cybersecurity',
+        enabled: true,
+        maxArticles: 50
+      }
+    ]
+    
+    // Save defaults persistently
+    await saveFeedConfigs(workingDefaults)
+    console.log(`✅ Saved ${workingDefaults.length} default feeds persistently`)
+    return workingDefaults
+    
   } catch (error) {
     console.warn('Error loading feed configs:', error)
-    return []
+    // Return working defaults as last resort
+    return DEFAULT_RSS_FEEDS.slice(0, 4) // Just a few reliable ones
   }
 }
 

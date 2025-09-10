@@ -19,7 +19,7 @@ const CYBERSECURITY_FEEDS: RSSFeedConfig[] = [
   // Nederlandse bronnen
   {
     id: 'security-nl-default',
-    url: 'https://www.security.nl/rss.xml',
+    url: 'https://www.security.nl/rss/headlines.xml',
     name: 'Security.NL',
     category: 'cybersecurity',
     enabled: true,
@@ -279,7 +279,7 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
       },
       {
         id: 'security-nl-persistent',
-        url: 'https://www.security.nl/rss.xml',
+        url: 'https://www.security.nl/rss/headlines.xml',
         name: 'Security.NL',
         category: 'cybersecurity',
         enabled: true,

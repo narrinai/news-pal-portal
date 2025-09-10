@@ -22,11 +22,19 @@ export default async function handler(req, res) {
     
     const wpSiteUrl = siteConfig.url || process.env.WORDPRESS_SITE_URL || 'https://www.marketingtoolz.com'
     
-    // For now, use same credentials for all sites (can be expanded later)
-    const wpUsername = process.env.WORDPRESS_USERNAME
-    const wpPassword = process.env.WORDPRESS_APP_PASSWORD
+    // Get site-specific credentials
+    let wpUsername, wpPassword
     
-    console.log(`Publishing to WordPress site: ${siteConfig.name || wpSiteUrl}`)
+    if (siteConfig.id === 'cybertijger') {
+      wpUsername = process.env.CYBERTIJGER_USERNAME
+      wpPassword = process.env.CYBERTIJGER_APP_PASSWORD
+    } else {
+      // Default to MarketingToolz credentials
+      wpUsername = process.env.WORDPRESS_USERNAME
+      wpPassword = process.env.WORDPRESS_APP_PASSWORD
+    }
+    
+    console.log(`Publishing to WordPress site: ${siteConfig.name || wpSiteUrl} (${siteConfig.id})`)
     
     if (!wpUsername || !wpPassword) {
       return res.status(500).json({ 

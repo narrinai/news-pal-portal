@@ -42,8 +42,13 @@ export default function RewritePage({ params }: RewritePageProps) {
       name: 'MarketingToolz.com',
       url: 'https://www.marketingtoolz.com',
       description: 'Main marketing tools website'
+    },
+    {
+      id: 'cybertijger',
+      name: 'CyberTijger.nl',
+      url: 'https://cybertijger.nl',
+      description: 'Cybersecurity focused website'
     }
-    // Future sites can be added here
   ]
 
   useEffect(() => {

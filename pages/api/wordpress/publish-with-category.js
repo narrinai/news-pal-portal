@@ -133,7 +133,8 @@ export default async function handler(req, res) {
       })
       
       // Now try to update ACF fields separately
-      console.log('Updating ACF fields for News post...')
+      console.log('Step 2: Updating ACF fields for News post ID:', createdPost.id)
+      console.log('ACF update endpoint:', `${wpSiteUrl}/wp-json/wp/v2/news/${createdPost.id}`)
       try {
         const acfUpdateResponse = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news/${createdPost.id}`, {
           method: 'POST',
@@ -172,9 +173,11 @@ export default async function handler(req, res) {
         })
         
         if (acfUpdateResponse.ok) {
-          console.log('ACF fields updated successfully')
+          const acfResult = await acfUpdateResponse.json()
+          console.log('ACF fields updated successfully:', acfResult.acf?.flexible_sidebar?.length || 'no sidebar data')
         } else {
-          console.error('ACF update failed:', acfUpdateResponse.status)
+          const acfError = await acfUpdateResponse.text()
+          console.error('ACF update failed:', acfUpdateResponse.status, acfError)
         }
       } catch (acfError) {
         console.error('ACF update error:', acfError.message)

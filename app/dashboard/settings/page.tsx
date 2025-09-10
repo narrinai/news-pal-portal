@@ -520,42 +520,6 @@ export default function SettingsPage() {
     }
   }
 
-  const migrateCategories = async () => {
-    const confirmed = await showConfirm({
-      title: 'Migrate Article Categories',
-      message: 'This will update all existing articles to use the new simplified category system. Continue?',
-      confirmText: 'Migrate',
-      cancelText: 'Cancel'
-    })
-    
-    if (!confirmed) return
-    
-    try {
-      const response = await fetch('/api/migrate-categories', { method: 'POST' })
-      if (response.ok) {
-        const result = await response.json()
-        showNotification({
-          type: 'success',
-          title: 'Categories migrated',
-          message: `${result.migratedArticles} articles updated to new category system`,
-          duration: 4000
-        })
-      } else {
-        showNotification({
-          type: 'error',
-          title: 'Migration failed',
-          message: 'Could not migrate categories'
-        })
-      }
-    } catch (error) {
-      console.error('Error migrating categories:', error)
-      showNotification({
-        type: 'error',
-        title: 'Network error',
-        message: 'Could not migrate categories'
-      })
-    }
-  }
 
   const removeFeed = async (feedId: string) => {
     const feedToRemove = settings.rssFeeds.find(f => f.id === feedId)
@@ -662,14 +626,7 @@ export default function SettingsPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">Article Categories</h2>
-              <div className="flex space-x-3">
-                <button
-                  onClick={migrateCategories}
-                  className="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-                >
-                  🔄 Migrate Old Categories
-                </button>
-                <button
+              <button
                   onClick={addCategory}
                   className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
                 >

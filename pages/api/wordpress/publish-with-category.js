@@ -94,7 +94,7 @@ export default async function handler(req, res) {
     }
 
 
-    console.log('Creating Post with News category (sidebar compatibility)...')
+    console.log(`Creating Post with News category on ${siteConfig.id} (sidebar compatibility)...`)
     
     let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
       method: 'POST',
@@ -127,8 +127,8 @@ export default async function handler(req, res) {
       
       const actualPostType = createdPost.type || 'post'
       const successMessage = actualPostType === 'post' 
-        ? 'SUCCESS: Article published as Post with News category (working sidebar)' 
-        : `Article published as ${actualPostType}`
+        ? `SUCCESS: Article published to ${siteConfig.id} as Post with News category (working sidebar)` 
+        : `Article published as ${actualPostType} to ${siteConfig.id}`
       
       return res.status(200).json({
         success: true,

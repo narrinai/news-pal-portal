@@ -133,10 +133,10 @@ export default async function handler(req, res) {
       console.log('Could not fetch post types:', e.message)
     }
     
-    // Since News post type is not available via REST API, we'll use regular Posts
-    // but configure them to behave like News posts with proper categorization
-    console.log('News post type not available via REST API, using Posts with News category...')
+    // Since News post type exists but not REST-enabled, try alternative approaches
+    console.log('Attempting to create News post via alternative methods...')
     
+    // Method 1: Try to create post with post_type override in body
     let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
       method: 'POST',
       headers: {
@@ -148,28 +148,28 @@ export default async function handler(req, res) {
         content: wordpressHtml,
         status: 'draft',
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-        categories: newsCategory ? [newsCategory.id] : [],
+        // Try to force post type to News
+        type: 'news',
+        post_type: 'news',
         // Set language to Dutch  
         lang: 'nl',
         locale: 'nl_NL',
-        // Try to set post format or custom taxonomies for News-like behavior
         format: 'standard',
-        // Extensive meta fields to try to trigger News post behavior
         meta: {
+          '_post_type': 'news', // Force News post type
+          '_custom_post_type': 'news',
           '_nieuws_artikel': 'ja',
           '_origineel_van_newspal': 'true', 
           '_post_language': 'dutch',
           '_locale': 'nl_NL',
-          '_post_type': 'news', // Try to override post type
-          '_custom_post_type': 'news',
-          // Various ACF attempts
+          // ACF fields for News post type
           'sidebar_type': 'Nieuws',
           '_sidebar_type': 'Nieuws',
           'field_sidebar_type': 'Nieuws',
           '_acf_sidebar_type': 'Nieuws',
-          // Try to make it behave as News
-          '_news_post': 'true',
-          '_treat_as_news': 'true'
+          'aantal_berichten_tonen': 5,
+          'titel_boven_berichten': 'Laatste Nieuws',
+          'nieuws_titel': title
         }
       })
     })
@@ -185,13 +185,18 @@ export default async function handler(req, res) {
         categories: createdPost.categories
       })
       
+      const actualPostType = createdPost.type || 'post'
+      const successMessage = actualPostType === 'news' 
+        ? 'Article published as News post type!' 
+        : 'Article published in Posts with News category'
+      
       return res.status(200).json({
         success: true,
-        message: 'Article published as draft in News category (Posts section)',
+        message: successMessage,
         wordpress: {
           postId: createdPost.id,
           postUrl: createdPost.link,
-          postType: 'post',
+          postType: actualPostType,
           category: newsCategory?.name || 'News',
           editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit&lang=nl`
         }

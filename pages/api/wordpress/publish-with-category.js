@@ -100,18 +100,18 @@ export default async function handler(req, res) {
       // ACF fields for News post type
       acf: {
         'nieuws_titel': title, // "Nieuws Titel" field from screenshot
-        'sidebar_type': 'Nieuws', // Sidebar type dropdown = "Nieuws"
+        'sidebar_type': 'news', // Fixed: Use valid option 'news' instead of 'Nieuws'
         'aantal_berichten_tonen': 5, // Number of posts to show
         'titel_boven_berichten': 'News' // Title above posts
       },
       // Meta fields backup
       meta: {
         'nieuws_titel': title,
-        'sidebar_type': 'Nieuws',
+        'sidebar_type': 'news', // Fixed: Use valid option 'news'
         'aantal_berichten_tonen': 5,
         'titel_boven_berichten': 'News',
         '_nieuws_titel': title,
-        '_sidebar_type': 'Nieuws'
+        '_sidebar_type': 'news' // Fixed: Use valid option 'news'
       }
     }
 

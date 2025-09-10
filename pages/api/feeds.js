@@ -13,7 +13,7 @@ export default async function handler(req, res) {
             id: 'hackernews-init',
             url: 'https://feeds.feedburner.com/TheHackersNews',
             name: 'The Hacker News',
-            category: 'cybersecurity-international',
+            category: 'cybersecurity',
             enabled: true,
             maxArticles: 50
           },
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
             id: 'tweakers-init',
             url: 'https://feeds.feedburner.com/tweakers/mixed',
             name: 'Tweakers',
-            category: 'cybersecurity-nl',
+            category: 'cybersecurity',
             enabled: true,
             maxArticles: 50
           }

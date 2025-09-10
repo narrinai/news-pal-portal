@@ -55,7 +55,7 @@ export default function DashboardPage() {
     // Language filter - now based on source language instead of category
     if (languageFilter !== 'all') {
       // Determine language based on source
-      const dutchSources = ['Tweakers', 'Security.NL', 'NOS Tech', 'NU.nl Tech', 'Techzine', 'Computable']
+      const dutchSources = ['Tweakers', 'Security.NL', 'SecurityNL', 'security.nl', 'NOS Tech', 'NU.nl Tech', 'Techzine', 'Computable']
       const isDutch = dutchSources.some(source => article.source?.includes(source))
       const isInternational = !isDutch
       

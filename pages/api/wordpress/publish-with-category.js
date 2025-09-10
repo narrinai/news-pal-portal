@@ -110,16 +110,7 @@ export default async function handler(req, res) {
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
         categories: newsCategory ? [newsCategory.id] : [],
         format: 'standard',
-        // Try to set ACF fields during creation with simpler structure
-        acf: {
-          'flexible_sidebar_0_acf_fc_layout': 'standard_sidebar',
-          'flexible_sidebar_0_sidebar_type': 'news',
-          'flexible_sidebar_0_select_num_post': '5',
-          'flexible_sidebar_0_select_best_list': 0,
-          'flexible_sidebar_0_news_settings_title_above': 'News',
-          'flexible_sidebar_0_news_settings_news_cat_0': 28,
-          'flexible_sidebar': 1  // Number of flexible content rows
-        },
+        // Keep it simple - no ACF fields to avoid validation errors
         meta: {
           '_nieuws_artikel': 'ja',
           '_origineel_van_newspal': 'true'
@@ -138,7 +129,7 @@ export default async function handler(req, res) {
         categories: createdPost.categories
       })
       
-      console.log('ACF fields set during creation with flattened structure')
+      console.log('News post created successfully - ACF sidebar must be set manually in WordPress admin')
       
       const actualPostType = createdPost.type || 'post'
       const successMessage = actualPostType === 'news' 

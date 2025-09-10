@@ -117,11 +117,12 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log('Publishing to standard Posts with News category and /nieuws/ URL structure...')
+    console.log('Publishing to News custom post type with ACF fields...')
+    console.log('Trying endpoint:', `${wpSiteUrl}/wp-json/wp/v2/news`)
     
-    // Create post as standard post with News category
-    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
-      method: 'POST',
+    // Try News custom post type first with proper ACF configuration
+    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
+      method: 'POST', 
       headers: {
         'Authorization': `Basic ${credentials}`,
         'Content-Type': 'application/json'
@@ -131,23 +132,22 @@ export default async function handler(req, res) {
         content: wordpressHtml,
         status: 'draft',
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-        categories: newsCategory ? [newsCategory.id] : [],
         // Set language to Dutch
         lang: 'nl',
         locale: 'nl_NL',
-        // Custom meta fields including ACF-style fields
+        // ACF fields for News post type (as seen in previous screenshots)
+        acf: {
+          'sidebar_type': 'Nieuws', // This should match the dropdown option
+          'aantal_berichten_tonen': 5,
+          'titel_boven_berichten': 'Laatste Nieuws',
+          'nieuws_titel': title
+        },
+        // Backup meta fields
         meta: {
-          '_nieuws_artikel': 'ja', // Custom meta to identify as News article
+          '_nieuws_artikel': 'ja',
           '_origineel_van_newspal': 'true',
-          '_post_language': 'dutch', // Force Dutch language
-          '_locale': 'nl_NL',
-          // ACF field attempts
-          'sidebar_type': 'Nieuws',
-          '_sidebar_type': 'field_sidebar_type', // ACF field reference
-          'field_sidebar_type': 'Nieuws', // Direct ACF value
-          // Try various ACF formats
-          'acf_sidebar_type': 'Nieuws',
-          '_acf_sidebar_type': 'Nieuws'
+          '_post_language': 'dutch',
+          '_locale': 'nl_NL'
         }
       })
     })
@@ -157,24 +157,71 @@ export default async function handler(req, res) {
       
       return res.status(200).json({
         success: true,
-        message: 'Article published as draft in News category with /nieuws/ URL',
+        message: 'Article published as draft in News post type',
         wordpress: {
           postId: createdPost.id,
           postUrl: createdPost.link,
-          postType: 'post',
-          category: newsCategory?.name || 'News',
+          postType: 'news',
           editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit`
         }
       })
+    } else {
+      console.log(`News post type failed with status: ${response.status}`)
+      const newsError = await response.text()
+      console.log('News post type error:', newsError)
+      
+      if (response.status === 404) {
+        console.log('404: News post type endpoint not found, falling back to Posts with News category...')
+      } else {
+        console.log('Non-404 error, still trying fallback to Posts...')
+      }
+      
+      response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: title,
+          content: wordpressHtml,
+          status: 'draft',
+          slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+          categories: newsCategory ? [newsCategory.id] : [],
+          lang: 'nl',
+          locale: 'nl_NL',
+          meta: {
+            '_nieuws_artikel': 'ja',
+            '_origineel_van_newspal': 'true',
+            '_post_language': 'dutch',
+            '_locale': 'nl_NL'
+          }
+        })
+      })
+      
+      if (response.ok) {
+        const createdPost = await response.json()
+        return res.status(200).json({
+          success: true,
+          message: 'Article published as draft in News category (Posts)',
+          wordpress: {
+            postId: createdPost.id,
+            postUrl: createdPost.link,
+            postType: 'post',
+            category: newsCategory?.name || 'News',
+            editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit`
+          }
+        })
+      }
     }
     
     const errorData = await response.text()
-    console.error('WordPress post publish failed:', response.status, errorData)
+    console.error('WordPress publishing failed for both News and Posts:', response.status, errorData)
     return res.status(response.status).json({
       error: 'WordPress publish failed',
       status: response.status,
       details: errorData,
-      message: 'Failed to create WordPress post'
+      message: 'Failed to create News post or regular post'
     })
 
   } catch (error) {

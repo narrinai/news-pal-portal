@@ -184,7 +184,14 @@ export default async function handler(req, res) {
     console.error('WordPress publish error:', error)
     return res.status(500).json({
       error: 'WordPress publish failed',
-      details: error.message
+      details: error.message,
+      stack: error.stack,
+      requestBody: { articleId, title, hasSiteConfig: !!wordPressSite },
+      environment: {
+        hasUsername: !!wpUsername,
+        hasPassword: !!wpPassword,
+        siteUrl: wpSiteUrl
+      }
     })
   }
 }

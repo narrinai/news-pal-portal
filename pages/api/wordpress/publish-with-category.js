@@ -118,50 +118,85 @@ export default async function handler(req, res) {
     }
 
     console.log('Publishing to News custom post type with ACF fields...')
-    console.log('Trying endpoint:', `${wpSiteUrl}/wp-json/wp/v2/news?lang=nl`)
     
-    // Try News custom post type first with proper ACF configuration and Dutch language
-    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news?lang=nl`, {
-      method: 'POST', 
-      headers: {
-        'Authorization': `Basic ${credentials}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        title: title,
-        content: wordpressHtml,
-        status: 'draft',
-        slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-        // Set language to Dutch
-        lang: 'nl',
-        locale: 'nl_NL',
-        // ACF fields for News post type (as seen in previous screenshots)
-        acf: {
-          'sidebar_type': 'Nieuws', // This should match the dropdown option
-          'aantal_berichten_tonen': 5,
-          'titel_boven_berichten': 'Laatste Nieuws',
-          'nieuws_titel': title
-        },
-        // Backup meta fields
-        meta: {
-          '_nieuws_artikel': 'ja',
-          '_origineel_van_newspal': 'true',
-          '_post_language': 'dutch',
-          '_locale': 'nl_NL'
-        }
+    // First, let's discover what post types are available
+    let postTypesResponse
+    try {
+      postTypesResponse = await fetch(`${wpSiteUrl}/wp-json/wp/v2/types`, {
+        headers: { 'Authorization': `Basic ${credentials}` }
       })
-    })
+      if (postTypesResponse.ok) {
+        const postTypes = await postTypesResponse.json()
+        console.log('Available post types:', Object.keys(postTypes))
+      }
+    } catch (e) {
+      console.log('Could not fetch post types:', e.message)
+    }
+    
+    // Try multiple possible endpoints for News post type
+    const newsEndpoints = [
+      `${wpSiteUrl}/wp-json/wp/v2/news?lang=nl`,
+      `${wpSiteUrl}/wp-json/wp/v2/nieuws?lang=nl`, 
+      `${wpSiteUrl}/wp-json/wp/v2/news`,
+      `${wpSiteUrl}/wp-json/wp/v2/nieuws`
+    ]
+    
+    let response
+    let successfulEndpoint = null
+    
+    for (const endpoint of newsEndpoints) {
+      console.log('Trying News endpoint:', endpoint)
+      response = await fetch(endpoint, {
+        method: 'POST', 
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: title,
+          content: wordpressHtml,
+          status: 'draft',
+          slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+          // Set language to Dutch
+          lang: 'nl',
+          locale: 'nl_NL',
+          // ACF fields for News post type (as seen in previous screenshots)
+          acf: {
+            'sidebar_type': 'Nieuws', // This should match the dropdown option
+            'aantal_berichten_tonen': 5,
+            'titel_boven_berichten': 'Laatste Nieuws',
+            'nieuws_titel': title
+          },
+          // Backup meta fields
+          meta: {
+            '_nieuws_artikel': 'ja',
+            '_origineel_van_newspal': 'true',
+            '_post_language': 'dutch',
+            '_locale': 'nl_NL'
+          }
+        })
+      })
+      
+      if (response.ok) {
+        successfulEndpoint = endpoint
+        console.log('Success with endpoint:', endpoint)
+        break
+      } else {
+        console.log(`Failed with ${endpoint}: ${response.status}`)
+      }
+    }
 
     if (response.ok) {
       const createdPost = await response.json()
       
       return res.status(200).json({
         success: true,
-        message: 'Article published as draft in News post type',
+        message: `Article published as draft in News post type (${successfulEndpoint})`,
         wordpress: {
           postId: createdPost.id,
           postUrl: createdPost.link,
           postType: 'news',
+          endpoint: successfulEndpoint,
           editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit&lang=nl`
         }
       })

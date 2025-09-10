@@ -106,11 +106,7 @@ export default async function handler(req, res) {
         title: title,
         content: wordpressHtml,
         status: 'draft',
-        slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-        meta: {
-          '_nieuws_artikel': 'ja',
-          '_origineel_van_newspal': 'true'
-        }
+        slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
       })
     })
 

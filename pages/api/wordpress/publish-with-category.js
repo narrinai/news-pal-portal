@@ -133,10 +133,10 @@ export default async function handler(req, res) {
       console.log('Could not fetch post types:', e.message)
     }
     
-    // Since News post type exists but not REST-enabled, try alternative approaches
-    console.log('Attempting to create News post via alternative methods...')
+    // News post type is theme-based and not REST-enabled
+    // Use Posts with News category and extensive meta fields to mimic News post behavior
+    console.log('Creating post in News category (theme-based News post type not REST accessible)...')
     
-    // Method 1: Try to create post with post_type override in body
     let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
       method: 'POST',
       headers: {

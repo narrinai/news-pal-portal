@@ -116,16 +116,27 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log('Publishing to News custom post type with /nieuws/ URL structure...')
+    console.log('Publishing to standard Posts with News category and /nieuws/ URL structure...')
     
-    // Force publish to News custom post type only (no fallback to regular posts)
-    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
+    // Create post as standard post with News category
+    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(wordpressPost)
+      body: JSON.stringify({
+        title: title,
+        content: wordpressHtml,
+        status: 'draft',
+        slug: `nieuws-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`,
+        categories: newsCategory ? [newsCategory.id] : [],
+        // Remove ACF fields that don't exist on standard posts
+        meta: {
+          '_nieuws_artikel': 'ja', // Custom meta to identify as News article
+          '_origineel_van_newspal': 'true'
+        }
+      })
     })
 
     if (response.ok) {
@@ -133,23 +144,24 @@ export default async function handler(req, res) {
       
       return res.status(200).json({
         success: true,
-        message: 'Article published as draft in News section with /nieuws/ URL',
+        message: 'Article published as draft in News category with /nieuws/ URL',
         wordpress: {
           postId: createdPost.id,
           postUrl: createdPost.link,
-          postType: 'news',
+          postType: 'post',
+          category: newsCategory?.name || 'News',
           editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit`
         }
       })
     }
     
     const errorData = await response.text()
-    console.error('News post type publish failed:', response.status, errorData)
+    console.error('WordPress post publish failed:', response.status, errorData)
     return res.status(response.status).json({
-      error: 'WordPress News post type publish failed',
+      error: 'WordPress publish failed',
       status: response.status,
       details: errorData,
-      message: response.status === 404 ? 'News post type not found on WordPress site' : 'ACF validation or permissions error'
+      message: 'Failed to create WordPress post'
     })
 
   } catch (error) {

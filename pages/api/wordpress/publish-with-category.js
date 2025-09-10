@@ -92,18 +92,25 @@ export default async function handler(req, res) {
       console.error('Category management error:', error.message)
     }
 
-    // News post object with required custom fields
+    // News post object with required ACF fields (from screenshots)
     const wordpressPost = {
       title: title,
       content: wordpressHtml,
       status: 'draft',
-      // Custom fields for your News post type
+      // ACF fields for News post type
       acf: {
-        'sidebar_type': 'Nieuws' // Set to 'Nieuws' option from your screenshot
+        'nieuws_titel': title, // "Nieuws Titel" field from screenshot
+        'sidebar_type': 'Nieuws', // Sidebar type dropdown = "Nieuws"
+        'aantal_berichten_tonen': 5, // Number of posts to show
+        'titel_boven_berichten': 'News' // Title above posts
       },
-      // Alternative meta approach if ACF doesn't work
+      // Meta fields backup
       meta: {
+        'nieuws_titel': title,
         'sidebar_type': 'Nieuws',
+        'aantal_berichten_tonen': 5,
+        'titel_boven_berichten': 'News',
+        '_nieuws_titel': title,
         '_sidebar_type': 'Nieuws'
       }
     }

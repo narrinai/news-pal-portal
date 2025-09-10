@@ -107,10 +107,6 @@ export default async function handler(req, res) {
         content: wordpressHtml,
         status: 'draft',
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-        // Initialize empty flexible sidebar to enable ACF functionality
-        acf: {
-          'flexible_sidebar': []
-        }
       })
     })
 
@@ -125,7 +121,7 @@ export default async function handler(req, res) {
         categories: createdPost.categories
       })
       
-      console.log('News post created - sidebar will need manual configuration in WordPress')
+      console.log('Clean News post created - ACF fields should now work normally')
       
       const actualPostType = createdPost.type || 'post'
       const successMessage = actualPostType === 'news' 

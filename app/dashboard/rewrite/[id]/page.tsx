@@ -191,10 +191,15 @@ export default function RewritePage({ params }: RewritePageProps) {
         }
       } else {
         const error = await response.json()
+        console.error('WordPress publish failed:', {
+          status: response.status,
+          error: error,
+          fullErrorDetails: JSON.stringify(error, null, 2)
+        })
         showNotification({
           type: 'error',
           title: 'WordPress publish failed',
-          message: error.details || 'Could not publish to WordPress'
+          message: error.details || `Server error: ${response.status}`
         })
       }
     } catch (error) {

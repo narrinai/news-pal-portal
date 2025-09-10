@@ -138,7 +138,6 @@ export default async function handler(req, res) {
             }
           ],
           'acf_show_author': 'no',
-          'acf_sec_hero_img': false,
           'hero_bg_element': 'deactive'
         },
         meta: {

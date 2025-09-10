@@ -180,6 +180,10 @@ export default function RewritePage({ params }: RewritePageProps) {
       if (response.ok) {
         const result = await response.json()
         console.log('WordPress publish result:', result)
+        
+        if (result.acfUpdateAttempted) {
+          console.log('ACF update was attempted - check backend logs for details')
+        }
         showNotification({
           type: 'success',
           title: 'Published to WordPress!',

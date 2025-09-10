@@ -110,9 +110,15 @@ export default async function handler(req, res) {
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
         categories: newsCategory ? [newsCategory.id] : [],
         format: 'standard',
-        // Minimal approach - create News post first, then update ACF fields separately
-        fields: {
-          'title': title
+        // Try to set ACF fields during creation with simpler structure
+        acf: {
+          'flexible_sidebar_0_acf_fc_layout': 'standard_sidebar',
+          'flexible_sidebar_0_sidebar_type': 'news',
+          'flexible_sidebar_0_select_num_post': '5',
+          'flexible_sidebar_0_select_best_list': 0,
+          'flexible_sidebar_0_news_settings_title_above': 'News',
+          'flexible_sidebar_0_news_settings_news_cat_0': 28,
+          'flexible_sidebar': 1  // Number of flexible content rows
         },
         meta: {
           '_nieuws_artikel': 'ja',
@@ -132,56 +138,7 @@ export default async function handler(req, res) {
         categories: createdPost.categories
       })
       
-      // Now try to update ACF fields separately
-      console.log('Step 2: Updating ACF fields for News post ID:', createdPost.id)
-      console.log('ACF update endpoint:', `${wpSiteUrl}/wp-json/wp/v2/news/${createdPost.id}`)
-      try {
-        const acfUpdateResponse = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news/${createdPost.id}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Basic ${credentials}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            acf: {
-              'flexible_sidebar': [
-                {
-                  'acf_fc_layout': 'standard_sidebar',
-                  'sidebar_type': 'news',
-                  'select_num_post': '5',
-                  'select_best_list': false,
-                  'news_settings': {
-                    'title_above': 'News',
-                    'news_cat': [28]
-                  },
-                  'posts_settings': {
-                    'title_above': '',
-                    'post_cat': false
-                  },
-                  'custom_sidebar_content': {
-                    'title_above': '',
-                    'content_editor': '',
-                    'sidebar_button': {
-                      'buttons_position': 'left',
-                      'buttons_repeater': false
-                    }
-                  }
-                }
-              ]
-            }
-          })
-        })
-        
-        if (acfUpdateResponse.ok) {
-          const acfResult = await acfUpdateResponse.json()
-          console.log('ACF fields updated successfully:', acfResult.acf?.flexible_sidebar?.length || 'no sidebar data')
-        } else {
-          const acfError = await acfUpdateResponse.text()
-          console.error('ACF update failed:', acfUpdateResponse.status, acfError)
-        }
-      } catch (acfError) {
-        console.error('ACF update error:', acfError.message)
-      }
+      console.log('ACF fields set during creation with flattened structure')
       
       const actualPostType = createdPost.type || 'post'
       const successMessage = actualPostType === 'news' 
@@ -191,6 +148,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         success: true,
         message: successMessage,
+        acfUpdateAttempted: true, // Flag to show ACF update was tried
         wordpress: {
           postId: createdPost.id,
           postUrl: createdPost.link,

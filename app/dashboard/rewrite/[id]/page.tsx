@@ -32,7 +32,19 @@ export default function RewritePage({ params }: RewritePageProps) {
   const [showHtml, setShowHtml] = useState(false)
   const [tooltips, setTooltips] = useState<{[key: string]: boolean}>({})
   const [publishing, setPublishing] = useState(false)
+  const [selectedWordPressSite, setSelectedWordPressSite] = useState('marketingtoolz')
   const router = useRouter()
+
+  // WordPress site configurations
+  const wordPressSites = [
+    {
+      id: 'marketingtoolz',
+      name: 'MarketingToolz.com',
+      url: 'https://www.marketingtoolz.com',
+      description: 'Main marketing tools website'
+    }
+    // Future sites can be added here
+  ]
 
   useEffect(() => {
     fetchArticle()
@@ -142,13 +154,16 @@ export default function RewritePage({ params }: RewritePageProps) {
 
     setPublishing(true)
     try {
+      const selectedSite = wordPressSites.find(site => site.id === selectedWordPressSite)
+      
       const response = await fetch('/api/wordpress/publish-with-category', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           articleId: params.id,
           title: rewritten.title,
-          wordpressHtml: rewritten.wordpressHtml
+          wordpressHtml: rewritten.wordpressHtml,
+          wordPressSite: selectedSite
         })
       })
 
@@ -442,6 +457,19 @@ export default function RewritePage({ params }: RewritePageProps) {
                         )}
                       </div>
                       
+                      {/* WordPress Site Selector */}
+                      <select
+                        value={selectedWordPressSite}
+                        onChange={(e) => setSelectedWordPressSite(e.target.value)}
+                        className="text-sm border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {wordPressSites.map(site => (
+                          <option key={site.id} value={site.id}>
+                            {site.name}
+                          </option>
+                        ))}
+                      </select>
+                      
                       {/* WordPress Publish Button */}
                       <button
                         onClick={publishToWordPress}
@@ -461,7 +489,7 @@ export default function RewritePage({ params }: RewritePageProps) {
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                             </svg>
-                            Publish to WordPress
+                            Publish to {wordPressSites.find(s => s.id === selectedWordPressSite)?.name}
                           </>
                         )}
                       </button>

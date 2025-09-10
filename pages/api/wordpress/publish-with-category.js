@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
   try {
     console.log('WordPress publish with category API called')
-    const { articleId, wordpressHtml, title } = req.body
+    const { articleId, wordpressHtml, title, wordPressSite } = req.body
 
     if (!articleId || !wordpressHtml || !title) {
       return res.status(400).json({ 
@@ -14,9 +14,19 @@ export default async function handler(req, res) {
       })
     }
 
-    const wpSiteUrl = process.env.WORDPRESS_SITE_URL || 'https://www.marketingtoolz.com'
+    // Get WordPress site configuration
+    const siteConfig = wordPressSite || { 
+      id: 'marketingtoolz', 
+      url: 'https://www.marketingtoolz.com' 
+    }
+    
+    const wpSiteUrl = siteConfig.url || process.env.WORDPRESS_SITE_URL || 'https://www.marketingtoolz.com'
+    
+    // For now, use same credentials for all sites (can be expanded later)
     const wpUsername = process.env.WORDPRESS_USERNAME
     const wpPassword = process.env.WORDPRESS_APP_PASSWORD
+    
+    console.log(`Publishing to WordPress site: ${siteConfig.name || wpSiteUrl}`)
     
     if (!wpUsername || !wpPassword) {
       return res.status(500).json({ 

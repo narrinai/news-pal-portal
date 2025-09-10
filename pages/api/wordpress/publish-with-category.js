@@ -133,130 +133,78 @@ export default async function handler(req, res) {
       console.log('Could not fetch post types:', e.message)
     }
     
-    // Try multiple possible endpoints for News post type
-    const newsEndpoints = [
-      `${wpSiteUrl}/wp-json/wp/v2/news?lang=nl`,
-      `${wpSiteUrl}/wp-json/wp/v2/nieuws?lang=nl`, 
-      `${wpSiteUrl}/wp-json/wp/v2/news`,
-      `${wpSiteUrl}/wp-json/wp/v2/nieuws`
-    ]
+    // Since News post type is not available via REST API, we'll use regular Posts
+    // but configure them to behave like News posts with proper categorization
+    console.log('News post type not available via REST API, using Posts with News category...')
     
-    let response
-    let successfulEndpoint = null
-    
-    for (const endpoint of newsEndpoints) {
-      console.log('Trying News endpoint:', endpoint)
-      response = await fetch(endpoint, {
-        method: 'POST', 
-        headers: {
-          'Authorization': `Basic ${credentials}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: title,
-          content: wordpressHtml,
-          status: 'draft',
-          slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-          // Set language to Dutch
-          lang: 'nl',
-          locale: 'nl_NL',
-          // ACF fields for News post type (as seen in previous screenshots)
-          acf: {
-            'sidebar_type': 'Nieuws', // This should match the dropdown option
-            'aantal_berichten_tonen': 5,
-            'titel_boven_berichten': 'Laatste Nieuws',
-            'nieuws_titel': title
-          },
-          // Backup meta fields
-          meta: {
-            '_nieuws_artikel': 'ja',
-            '_origineel_van_newspal': 'true',
-            '_post_language': 'dutch',
-            '_locale': 'nl_NL'
-          }
-        })
+    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${credentials}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: title,
+        content: wordpressHtml,
+        status: 'draft',
+        slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+        categories: newsCategory ? [newsCategory.id] : [],
+        // Set language to Dutch  
+        lang: 'nl',
+        locale: 'nl_NL',
+        // Try to set post format or custom taxonomies for News-like behavior
+        format: 'standard',
+        // Extensive meta fields to try to trigger News post behavior
+        meta: {
+          '_nieuws_artikel': 'ja',
+          '_origineel_van_newspal': 'true', 
+          '_post_language': 'dutch',
+          '_locale': 'nl_NL',
+          '_post_type': 'news', // Try to override post type
+          '_custom_post_type': 'news',
+          // Various ACF attempts
+          'sidebar_type': 'Nieuws',
+          '_sidebar_type': 'Nieuws',
+          'field_sidebar_type': 'Nieuws',
+          '_acf_sidebar_type': 'Nieuws',
+          // Try to make it behave as News
+          '_news_post': 'true',
+          '_treat_as_news': 'true'
+        }
       })
-      
-      if (response.ok) {
-        successfulEndpoint = endpoint
-        console.log('Success with endpoint:', endpoint)
-        break
-      } else {
-        console.log(`Failed with ${endpoint}: ${response.status}`)
-      }
-    }
+    })
 
     if (response.ok) {
       const createdPost = await response.json()
       
+      // Log what actually got created
+      console.log('Created post details:', {
+        id: createdPost.id,
+        link: createdPost.link,
+        type: createdPost.type,
+        categories: createdPost.categories
+      })
+      
       return res.status(200).json({
         success: true,
-        message: `Article published as draft in News post type (${successfulEndpoint})`,
+        message: 'Article published as draft in News category (Posts section)',
         wordpress: {
           postId: createdPost.id,
           postUrl: createdPost.link,
-          postType: 'news',
-          endpoint: successfulEndpoint,
+          postType: 'post',
+          category: newsCategory?.name || 'News',
           editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit&lang=nl`
         }
       })
-    } else {
-      console.log(`News post type failed with status: ${response.status}`)
-      const newsError = await response.text()
-      console.log('News post type error:', newsError)
-      
-      if (response.status === 404) {
-        console.log('404: News post type endpoint not found, falling back to Posts with News category...')
-      } else {
-        console.log('Non-404 error, still trying fallback to Posts...')
-      }
-      
-      response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${credentials}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: title,
-          content: wordpressHtml,
-          status: 'draft',
-          slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-          categories: newsCategory ? [newsCategory.id] : [],
-          lang: 'nl',
-          locale: 'nl_NL',
-          meta: {
-            '_nieuws_artikel': 'ja',
-            '_origineel_van_newspal': 'true',
-            '_post_language': 'dutch',
-            '_locale': 'nl_NL'
-          }
-        })
-      })
-      
-      if (response.ok) {
-        const createdPost = await response.json()
-        return res.status(200).json({
-          success: true,
-          message: 'Article published as draft in News category (Posts)',
-          wordpress: {
-            postId: createdPost.id,
-            postUrl: createdPost.link,
-            postType: 'post',
-            category: newsCategory?.name || 'News',
-            editUrl: `${wpSiteUrl}/wp-admin/post.php?post=${createdPost.id}&action=edit&lang=nl`
-          }
-        })
-      }
     }
     
     const errorData = await response.text()
-    console.error('WordPress publishing failed for both News and Posts:', response.status, errorData)
+    console.error('WordPress Posts publish failed:', response.status, errorData)
     return res.status(response.status).json({
       error: 'WordPress publish failed',
       status: response.status,
       details: errorData,
-      message: 'Failed to create News post or regular post'
+      message: 'Failed to create post in News category'
     })
 
   } catch (error) {

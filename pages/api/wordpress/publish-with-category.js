@@ -135,12 +135,19 @@ export default async function handler(req, res) {
         // Set language to Dutch
         lang: 'nl',
         locale: 'nl_NL',
-        // Custom meta fields
+        // Custom meta fields including ACF-style fields
         meta: {
           '_nieuws_artikel': 'ja', // Custom meta to identify as News article
           '_origineel_van_newspal': 'true',
           '_post_language': 'dutch', // Force Dutch language
-          '_locale': 'nl_NL'
+          '_locale': 'nl_NL',
+          // ACF field attempts
+          'sidebar_type': 'Nieuws',
+          '_sidebar_type': 'field_sidebar_type', // ACF field reference
+          'field_sidebar_type': 'Nieuws', // Direct ACF value
+          // Try various ACF formats
+          'acf_sidebar_type': 'Nieuws',
+          '_acf_sidebar_type': 'Nieuws'
         }
       })
     })

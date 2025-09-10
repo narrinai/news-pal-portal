@@ -94,9 +94,9 @@ export default async function handler(req, res) {
     }
 
 
-    console.log('Creating News post...')
+    console.log('Creating Post with News category (sidebar compatibility)...')
     
-    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
+    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,
@@ -107,33 +107,8 @@ export default async function handler(req, res) {
         content: wordpressHtml,
         status: 'draft',
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-        // Copy exact ACF structure from working News post 17458
-        acf: {
-          'flexible_sidebar': [
-            {
-              "acf_fc_layout": "standard_sidebar",
-              "sidebar_type": "news",
-              "select_num_post": "5",
-              "select_best_list": false,
-              "news_settings": {
-                "title_above": "News", 
-                "news_cat": [37]  // MarketingToolz.nl News category ID
-              },
-              "posts_settings": {
-                "title_above": "",
-                "post_cat": false
-              },
-              "custom_sidebar_content": {
-                "title_above": "",
-                "content_editor": "",
-                "sidebar_button": {
-                  "buttons_position": "left",
-                  "buttons_repeater": false
-                }
-              }
-            }
-          ]
-        },
+        categories: newsCategory ? [newsCategory.id] : [],
+        // No ACF fields - let WordPress Posts handle sidebar normally
       })
     })
 
@@ -151,9 +126,9 @@ export default async function handler(req, res) {
       console.log('Clean News post created - ACF fields should now work normally')
       
       const actualPostType = createdPost.type || 'post'
-      const successMessage = actualPostType === 'news' 
-        ? 'SUCCESS: Article published as News post type!' 
-        : `WARNING: Article published as ${actualPostType} instead of News`
+      const successMessage = actualPostType === 'post' 
+        ? 'SUCCESS: Article published as Post with News category (working sidebar)' 
+        : `Article published as ${actualPostType}`
       
       return res.status(200).json({
         success: true,

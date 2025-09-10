@@ -29,19 +29,22 @@ interface Settings {
 export default function SettingsPage() {
   const { showNotification, showConfirm, showPrompt } = useNotifications()
   const [settings, setSettings] = useState<Settings>({
-    categories: ['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international', 'other'],
+    categories: ['cybersecurity', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'],
     categoryKeywords: {
-      'cybersecurity-nl': [
-        'beveiliging', 'cyberbeveiliging', 'cybersecurity', 'datalek', 'privacy', 'hack', 'hacker', 'malware', 
-        'ransomware', 'phishing', 'virus', 'trojan', 'spyware', 'adware', 'botnet', 'ddos', 'firewall',
-        'antivirus', 'encryptie', 'encryption', 'vpn', 'ssl', 'tls', 'certificaat', 'kwetsbaarheid',
-        'vulnerability', 'exploit', 'patch', 'update', 'beveiligingslek', 'cyberaanval', 'attack',
-        'threat', 'dreging', 'risico', 'risk', 'incident', 'breach', 'inbreuk', 'lekken', 'leak',
-        'cybercrime', 'cybercriminaliteit', 'fraude', 'identiteitsdiefstal', 'social engineering',
-        'twee-factor', 'authenticatie', 'wachtwoord', 'password', 'biometric', 'toegangscontrole',
-        'gdpr', 'avg', 'compliance', 'audit', 'pentesting', 'ethisch hacken', 'white hat', 'black hat'
+      'cybersecurity': [
+        // Combined Dutch + English cybersecurity keywords
+        'beveiliging', 'cyberbeveiliging', 'cybersecurity', 'cyber security', 'datalek', 'privacy', 'hack', 'hacker', 'malware', 
+        'ransomware', 'phishing', 'spear phishing', 'virus', 'trojan', 'spyware', 'adware', 'botnet', 'ddos', 'firewall',
+        'antivirus', 'encryptie', 'encryption', 'vpn', 'ssl', 'tls', 'certificaat', 'certificate', 'kwetsbaarheid',
+        'vulnerability', 'exploit', 'patch', 'update', 'beveiligingslek', 'cyberaanval', 'attack', 'cyber attack', 'cyberattack',
+        'threat', 'dreging', 'risico', 'risk', 'incident', 'breach', 'data breach', 'inbreuk', 'lekken', 'leak',
+        'cybercrime', 'cybercriminaliteit', 'fraude', 'fraud', 'identiteitsdiefstal', 'identity theft', 'social engineering',
+        'twee-factor', 'multifactor', 'authenticatie', 'authentication', 'wachtwoord', 'password', 'biometric', 'toegangscontrole',
+        'access control', 'gdpr', 'avg', 'compliance', 'audit', 'pentesting', 'penetration testing', 'pentest',
+        'ethisch hacken', 'ethical hacking', 'white hat', 'black hat', 'red team', 'blue team', 'zero-day', 'zero day',
+        'apt', 'advanced persistent threat', 'soc', 'security operations center', 'siem', 'endpoint protection',
+        'network security', 'cloud security', 'iot security', 'cve', 'cvss', 'nist', 'iso 27001'
       ],
-      'cybersecurity-international': [
         // Core Security Terms
         'security', 'cybersecurity', 'cyber security', 'hack', 'hacker', 'breach', 'data breach', 'malware', 
         'ransomware', 'phishing', 'spear phishing', 'vulnerability', 'exploit', 'zero-day', 'zero day',

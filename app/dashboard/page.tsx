@@ -44,12 +44,14 @@ export default function DashboardPage() {
       return false
     }
     
-    // Language filter
+    // Language filter - now based on source language instead of category
     if (languageFilter !== 'all') {
-      const isNL = article.category.includes('-nl')
-      const isInternational = article.category.includes('-international')
+      // Determine language based on source
+      const dutchSources = ['Tweakers', 'Security.NL', 'NOS Tech', 'NU.nl Tech', 'Techzine', 'Computable']
+      const isDutch = dutchSources.some(source => article.source?.includes(source))
+      const isInternational = !isDutch
       
-      if (languageFilter === 'nl' && !isNL) {
+      if (languageFilter === 'nl' && !isDutch) {
         return false
       }
       if (languageFilter === 'international' && !isInternational) {
@@ -305,7 +307,7 @@ export default function DashboardPage() {
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">Categories</label>
             <div className="flex flex-wrap gap-3">
-              {['cybersecurity-nl', 'cybersecurity-international', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'].map((category) => (
+              {['cybersecurity', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international'].map((category) => (
                 <button
                   key={category}
                   onClick={() => toggleCategory(category)}
@@ -319,8 +321,7 @@ export default function DashboardPage() {
                     selectedCategories.includes(category) ? 'bg-white' : 'bg-gray-400'
                   }`} />
                   <span>
-                    {category === 'cybersecurity-nl' && '🇳🇱 Cybersecurity NL'}
-                    {category === 'cybersecurity-international' && '🌍 Cybersecurity International'}
+                    {category === 'cybersecurity' && '🔒 Cybersecurity'}
                     {category === 'bouwcertificaten-nl' && '🏗️ Bouwcertificaten NL'}
                     {category === 'ai-companion-international' && '🤖 AI Companion'}
                     {category === 'ai-learning-international' && '🎓 AI Learning'}

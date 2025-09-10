@@ -93,49 +93,8 @@ export default async function handler(req, res) {
       console.error('Category management error:', error.message)
     }
 
-    // News post object with required ACF fields and proper URL structure
-    const wordpressPost = {
-      title: title,
-      content: wordpressHtml,
-      status: 'draft',
-      slug: `nieuws-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`, // Custom slug with /nieuws/ prefix
-      // ACF fields for News post type
-      acf: {
-        'nieuws_titel': title, // "Nieuws Titel" field from screenshot
-        'sidebar_type': 'Nieuws', // Use 'Nieuws' (Dutch) as shown in screenshot dropdown
-        'aantal_berichten_tonen': 5, // Number of posts to show
-        'titel_boven_berichten': 'Laatste Nieuws' // Dutch title
-      },
-      // Meta fields backup
-      meta: {
-        'nieuws_titel': title,
-        'sidebar_type': 'Nieuws', // Use 'Nieuws' (Dutch) 
-        'aantal_berichten_tonen': 5,
-        'titel_boven_berichten': 'Laatste Nieuws',
-        '_nieuws_titel': title,
-        '_sidebar_type': 'Nieuws'
-      }
-    }
 
-    console.log('Publishing to News custom post type with ACF fields...')
-    
-    // First, let's discover what post types are available
-    let postTypesResponse
-    try {
-      postTypesResponse = await fetch(`${wpSiteUrl}/wp-json/wp/v2/types`, {
-        headers: { 'Authorization': `Basic ${credentials}` }
-      })
-      if (postTypesResponse.ok) {
-        const postTypes = await postTypesResponse.json()
-        console.log('Available post types:', Object.keys(postTypes))
-      }
-    } catch (e) {
-      console.log('Could not fetch post types:', e.message)
-    }
-    
-    // News post type is theme-based and not REST-enabled
-    // Use Posts with News category and extensive meta fields to mimic News post behavior
-    console.log('Creating post in News category (theme-based News post type not REST accessible)...')
+    console.log('Publishing to WordPress Posts with News category...')
     
     let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
       method: 'POST',
@@ -148,28 +107,13 @@ export default async function handler(req, res) {
         content: wordpressHtml,
         status: 'draft',
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-        // Try to force post type to News
-        type: 'news',
-        post_type: 'news',
-        // Set language to Dutch  
-        lang: 'nl',
-        locale: 'nl_NL',
+        categories: newsCategory ? [newsCategory.id] : [],
         format: 'standard',
         meta: {
-          '_post_type': 'news', // Force News post type
-          '_custom_post_type': 'news',
           '_nieuws_artikel': 'ja',
-          '_origineel_van_newspal': 'true', 
-          '_post_language': 'dutch',
-          '_locale': 'nl_NL',
-          // ACF fields for News post type
+          '_origineel_van_newspal': 'true',
           'sidebar_type': 'Nieuws',
-          '_sidebar_type': 'Nieuws',
-          'field_sidebar_type': 'Nieuws',
-          '_acf_sidebar_type': 'Nieuws',
-          'aantal_berichten_tonen': 5,
-          'titel_boven_berichten': 'Laatste Nieuws',
-          'nieuws_titel': title
+          '_sidebar_type': 'Nieuws'
         }
       })
     })

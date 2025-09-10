@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international', 'other'])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning'])
   const [languageFilter, setLanguageFilter] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [keywordFiltering, setKeywordFiltering] = useState<boolean>(true)
@@ -307,7 +307,7 @@ export default function DashboardPage() {
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">Categories</label>
             <div className="flex flex-wrap gap-3">
-              {['cybersecurity', 'bouwcertificaten-nl', 'ai-companion-international', 'ai-learning-international', 'other'].map((category) => (
+              {['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning'].map((category) => (
                 <button
                   key={category}
                   onClick={() => toggleCategory(category)}
@@ -322,10 +322,9 @@ export default function DashboardPage() {
                   }`} />
                   <span>
                     {category === 'cybersecurity' && '🔒 Cybersecurity'}
-                    {category === 'bouwcertificaten-nl' && '🏗️ Bouwcertificaten NL'}
-                    {category === 'ai-companion-international' && '🤖 AI Companion'}
-                    {category === 'ai-learning-international' && '🎓 AI Learning'}
-                    {category === 'other' && '📰 Other'}
+                    {category === 'bouwcertificaten' && '🏗️ Bouwcertificaten'}
+                    {category === 'ai-companion' && '🤖 AI Companion'}
+                    {category === 'ai-learning' && '🎓 AI Learning'}
                   </span>
                 </button>
               ))}

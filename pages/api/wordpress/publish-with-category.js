@@ -106,7 +106,11 @@ export default async function handler(req, res) {
         title: title,
         content: wordpressHtml,
         status: 'draft',
-        slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+        slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+        // Initialize empty flexible sidebar to enable ACF functionality
+        acf: {
+          'flexible_sidebar': []
+        }
       })
     })
 

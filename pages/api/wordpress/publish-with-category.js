@@ -110,24 +110,36 @@ export default async function handler(req, res) {
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
         categories: newsCategory ? [newsCategory.id] : [],
         format: 'standard',
-        // ACF fields for News post type based on working examples
+        // ACF fields for News post type - exact structure from working posts
         acf: {
+          'title': title,
           'flexible_sidebar': [
             {
               'acf_fc_layout': 'standard_sidebar',
               'sidebar_type': 'news',
-              'select_num_post': '5',
+              'select_num_post': 5,
               'select_best_list': false,
               'news_settings': {
                 'title_above': 'News',
-                'news_cat': []
+                'news_cat': newsCategory ? [newsCategory.id] : []
               },
               'posts_settings': {
                 'title_above': '',
                 'post_cat': false
+              },
+              'custom_sidebar_content': {
+                'title_above': '',
+                'content_editor': '',
+                'sidebar_button': {
+                  'buttons_position': 'left',
+                  'buttons_repeater': false
+                }
               }
             }
-          ]
+          ],
+          'acf_show_author': 'no',
+          'acf_sec_hero_img': false,
+          'hero_bg_element': 'deactive'
         },
         meta: {
           '_nieuws_artikel': 'ja',

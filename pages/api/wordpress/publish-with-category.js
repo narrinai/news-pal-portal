@@ -94,9 +94,10 @@ export default async function handler(req, res) {
     }
 
 
-    console.log('Publishing to WordPress Posts with News category...')
+    console.log('Publishing to WordPress News post type...')
+    console.log('Trying News endpoint:', `${wpSiteUrl}/wp-json/wp/v2/news`)
     
-    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
+    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,
@@ -131,8 +132,8 @@ export default async function handler(req, res) {
       
       const actualPostType = createdPost.type || 'post'
       const successMessage = actualPostType === 'news' 
-        ? 'Article published as News post type!' 
-        : 'Article published in Posts with News category'
+        ? 'SUCCESS: Article published as News post type!' 
+        : `WARNING: Article published as ${actualPostType} instead of News`
       
       return res.status(200).json({
         success: true,

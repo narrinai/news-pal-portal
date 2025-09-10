@@ -94,47 +94,8 @@ export default async function handler(req, res) {
     }
 
 
-    console.log('Creating News post by duplicating working template...')
+    console.log('Creating News post...')
     
-    // First, get a working News post as template (e.g., post 17458)
-    let templateResponse
-    try {
-      templateResponse = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news/17458`, {
-        headers: { 'Authorization': `Basic ${credentials}` }
-      })
-      
-      if (templateResponse.ok) {
-        const template = await templateResponse.json()
-        console.log('Using working post as template, ACF structure:', !!template.acf?.flexible_sidebar)
-        
-        // Create new post based on working template structure
-        let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Basic ${credentials}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            title: title,
-            content: wordpressHtml,
-            status: 'draft',
-            slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-            // Copy exact ACF structure from working post
-            acf: template.acf,
-            meta: {
-              '_nieuws_artikel': 'ja',
-              '_origineel_van_newspal': 'true'
-            }
-          })
-        })
-        
-        return response
-      }
-    } catch (templateError) {
-      console.log('Could not load template, creating simple News post...')
-    }
-    
-    // Fallback: create simple News post
     let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
       method: 'POST',
       headers: {
@@ -164,7 +125,7 @@ export default async function handler(req, res) {
         categories: createdPost.categories
       })
       
-      console.log('News post created successfully - ACF sidebar must be set manually in WordPress admin')
+      console.log('News post created - sidebar will need manual configuration in WordPress')
       
       const actualPostType = createdPost.type || 'post'
       const successMessage = actualPostType === 'news' 

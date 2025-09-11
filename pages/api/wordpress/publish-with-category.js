@@ -94,9 +94,9 @@ export default async function handler(req, res) {
     }
 
 
-    console.log(`Creating Post with News category on ${siteConfig.id} (sidebar compatibility)...`)
+    console.log(`Creating News post type on ${siteConfig.id} (cache should be cleared)...`)
     
-    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/posts`, {
+    let response = await fetch(`${wpSiteUrl}/wp-json/wp/v2/news`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,
@@ -107,8 +107,10 @@ export default async function handler(req, res) {
         content: wordpressHtml,
         status: 'draft',
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-        categories: newsCategory ? [newsCategory.id] : [],
-        // No ACF fields - let WordPress Posts handle sidebar normally
+        // Initialize with minimal working ACF structure for News posts
+        acf: {
+          'flexible_sidebar': []  // Empty array allows manual configuration
+        }
       })
     })
 
@@ -126,8 +128,8 @@ export default async function handler(req, res) {
       console.log('Clean News post created - ACF fields should now work normally')
       
       const actualPostType = createdPost.type || 'post'
-      const successMessage = actualPostType === 'post' 
-        ? `SUCCESS: Article published to ${siteConfig.id} as Post with News category (working sidebar)` 
+      const successMessage = actualPostType === 'news' 
+        ? `SUCCESS: Article published to ${siteConfig.id} as News post type!` 
         : `Article published as ${actualPostType} to ${siteConfig.id}`
       
       return res.status(200).json({

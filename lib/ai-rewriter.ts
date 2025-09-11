@@ -27,11 +27,19 @@ export async function rewriteArticle(
     const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
     
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o',  // Updated to model with web browsing capability
       messages: [
         {
           role: 'system',
-          content: customInstructions || `Je bent een professionele Nederlandse tech journalist gespecialiseerd in cybersecurity. Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, waarbij je de kernboodschap behoudt maar de tekst toegankelijker en boeiender maakt.`
+          content: customInstructions || `Je bent een professionele Nederlandse tech journalist gespecialiseerd in cybersecurity. 
+
+Je hebt web browsing capability. Voordat je het artikel herschrijft:
+1. Zoek online naar 2-3 gerelateerde bronnen over hetzelfde onderwerp
+2. Gebruik betrouwbare cybersecurity bronnen (NIST, CISA, vendor advisories)
+3. Controleer of er recente updates of aanvullende informatie beschikbaar is
+4. Integreer deze extra informatie in je herschrijving
+
+Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, waarbij je de kernboodschap behoudt maar verrijkt met aanvullende bronnen en context.`
         },
         {
           role: 'user',
@@ -96,16 +104,29 @@ ORIGINELE CONTENT: ${content}
 ${originalUrl ? `ORIGINELE URL: ${originalUrl}` : ''}
 
 INSTRUCTIES:
+STAP 1 - RESEARCH:
+- Zoek eerst online naar 2-3 gerelateerde bronnen over dit onderwerp
+- Controleer vendor websites, security advisories, NIST, CISA voor updates
+- Zoek naar aanvullende context, gevolgen, of oplossingen
+- Verifieer en update informatie uit het originele artikel indien nodig
+
+STAP 2 - HERSCHRIJVEN:
 - ${styleInstructions[options.style]}
 - ${lengthInstructions[options.length]}
 - ${toneInstructions[options.tone]}
 - Schrijf in het Nederlands
-- Behoud de kernboodschap en belangrijke feiten
+- Integreer informatie uit je online research
+- Behoud de kernboodschap maar verrijk met gevonden bronnen
 - Maak de tekst SEO-vriendelijk
 - Gebruik duidelijke alinea's
 - Voeg relevante context toe voor Nederlandse lezers waar nodig
 - Vermijd jargon zonder uitleg
-${originalUrl ? `- Voeg aan het einde een bronnenlijst toe met de originele URL: ${originalUrl}` : ''}
+
+STAP 3 - BRONNEN:
+- Voeg aan het einde een complete bronnenlijst toe
+- Include originele bron: ${originalUrl || '[Originele artikel URL]'}
+- Include alle online gevonden bronnen met werkende URLs
+- Format als clickbare HTML links
 
 FORMAT JE ANTWOORD ALS VOLGT:
 TITEL: [Nieuwe Nederlandse titel]

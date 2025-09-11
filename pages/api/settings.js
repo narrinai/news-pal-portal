@@ -84,7 +84,11 @@ Voorbeeld gewenste output structuur:
 <h2>Wat kun je doen?</h2>
 <p>Praktische adviezen...</p>`,
           
-          professional: process.env.AI_INSTRUCTION_PROFESSIONAL || `Gebruik een zakelijke, professionele toon. Focus op de business impact en relevantie. Noem de bronnen en voeg onderaan het artikel een lijst met bronnen op. Voeg extra bronnen toe als je die weet met de url eronder. Voeg de url toe aan de bronnen van de originele bron (het originele artikel).
+          professional: process.env.AI_INSTRUCTION_PROFESSIONAL || `Gebruik een zakelijke, professionele toon. Focus op de business impact en relevantie. 
+
+RESEARCH FIRST: Zoek online naar 2-3 gerelateerde bronnen over dit cybersecurity onderwerp. Controleer vendor advisories, NIST, CISA, en andere betrouwbare bronnen voor aanvullende context of updates.
+
+Noem de bronnen en voeg onderaan het artikel een lijst met bronnen op. Voeg extra bronnen toe die je via research hebt gevonden met de url eronder. Voeg de url toe aan de bronnen van de originele bron (het originele artikel).
 
 WORDPRESS HTML FORMAT - Zakelijke stijl:
 <h2>Executive Summary</h2>

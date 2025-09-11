@@ -90,23 +90,23 @@ RESEARCH FIRST: Zoek online naar 2-3 gerelateerde bronnen over dit cybersecurity
 
 Noem de bronnen en voeg onderaan het artikel een lijst met bronnen op. Voeg extra bronnen toe die je via research hebt gevonden met de url eronder. Voeg de url toe aan de bronnen van de originele bron (het originele artikel).
 
-WORDPRESS HTML FORMAT - Zakelijke stijl:
-<h2>Executive Summary</h2>
-<p>Korte samenvatting voor management...</p>
+WORDPRESS HTML FORMAT - Nieuwsbericht stijl:
+<h2>Wat is er gebeurd?</h2>
+<p>Helder verhaal van het incident of ontwikkeling...</p>
 
-<h2>Business Impact</h2>
+<h2>Waarom is dit belangrijk?</h2>
+<p>Impact en relevantie voor lezers...</p>
+
+<h2>Wat betekent dit voor organisaties?</h2>
 <ul>
-<li><strong>Financiële gevolgen:</strong> Details</li>
-<li><strong>Operationele risico's:</strong> Uitleg</li>
+<li><strong>Directe gevolgen:</strong> Wat er nu gebeurt</li>
+<li><strong>Vervolgstappen:</strong> Wat organisaties moeten doen</li>
 </ul>
 
-<h2>Aanbevelingen</h2>
-<p>Concrete actiepunten voor beslissers...</p>
-
-<h2>Bronnen en Referenties</h2>
+<h2>Bronnen en meer informatie</h2>
 <ul>
 <li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">Origineel artikel</a></li>
-<li><a href="https://example.com/extra-bron" target="_blank">Relevante extra bron (indien beschikbaar)</a></li>
+<li><a href="https://example.com/extra-bron" target="_blank">Aanvullende bronnen</a></li>
 </ul>`,
           
           engaging: process.env.AI_INSTRUCTION_ENGAGING || `Schrijf op een boeiende manier die lezers betrekt. Gebruik voorbeelden en maak het toegankelijk.

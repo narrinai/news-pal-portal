@@ -85,9 +85,9 @@ function createRewritePrompt(
   }
 
   const styleInstructions = {
-    professional: 'Gebruik een professionele, zakelijke toon',
-    engaging: 'Schrijf op een boeiende, toegankelijke manier die lezers betrekt',
-    technical: 'Gebruik technische precisie en gedetailleerde uitleg'
+    professional: 'Schrijf als een nieuwsbericht voor een professioneel publiek - helder, informatief en menselijk',
+    engaging: 'Schrijf als een toegankelijk nieuwsbericht dat lezers betrekt met verhaal en context',
+    technical: 'Schrijf als een technisch nieuwsbericht met diepgaande analyse maar begrijpelijke uitleg'
   }
 
   const toneInstructions = {
@@ -114,13 +114,14 @@ STAP 2 - HERSCHRIJVEN:
 - ${styleInstructions[options.style]}
 - ${lengthInstructions[options.length]}
 - ${toneInstructions[options.tone]}
-- Schrijf in het Nederlands
-- Integreer informatie uit je online research
+- Schrijf in het Nederlands als een nieuwsbericht/persbericht
+- Integreer informatie uit je online research natuurlijk in het verhaal
 - Behoud de kernboodschap maar verrijk met gevonden bronnen
-- Maak de tekst SEO-vriendelijk
-- Gebruik duidelijke alinea's
-- Voeg relevante context toe voor Nederlandse lezers waar nodig
-- Vermijd jargon zonder uitleg
+- Gebruik een nieuwsbericht structuur: wat, waarom, impact, vervolgstappen
+- Vermijd corporate jargon zoals 'Executive Summary' of 'Business Impact'
+- Gebruik menselijke, toegankelijke koppen zoals 'Wat is er gebeurd?' 
+- Maak het informatief maar leesbaar voor een breed publiek
+- Voeg relevante context toe voor Nederlandse lezers
 
 STAP 3 - BRONNEN:
 - Voeg aan het einde een complete bronnenlijst toe

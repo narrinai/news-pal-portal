@@ -54,11 +54,34 @@ Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, wa
     
     // Parse the response to extract title and content
     const sections = response.split('---')
-    const title = sections[0]?.replace('TITEL:', '').trim() || originalTitle
-    const content = sections[1]?.replace('CONTENT:', '').trim() || response
-    
-    // Generate WordPress HTML
-    const wordpressHtml = generateWordPressHTML(title, content)
+    let title = sections[0]?.replace('TITEL:', '').replace('Titel:', '').trim() || originalTitle
+    let content = sections[1]?.replace('CONTENT:', '').trim() || response
+
+    // If the content already contains HTML tags, use it as-is for WordPress
+    // Otherwise, generate HTML from plain text
+    let wordpressHtml: string
+
+    if (content.includes('<p>') || content.includes('<h2>')) {
+      // Content is already HTML formatted
+      wordpressHtml = content
+      // Convert HTML to plain text for the content field
+      content = content
+        .replace(/<h[1-6][^>]*>/g, '\n\n')
+        .replace(/<\/h[1-6]>/g, '\n')
+        .replace(/<p[^>]*>/g, '\n')
+        .replace(/<\/p>/g, '')
+        .replace(/<li[^>]*>/g, '• ')
+        .replace(/<\/li>/g, '\n')
+        .replace(/<ul[^>]*>|<\/ul>/g, '\n')
+        .replace(/<strong[^>]*>|<\/strong>/g, '')
+        .replace(/<em[^>]*>|<\/em>/g, '')
+        .replace(/<a[^>]*>|<\/a>/g, '')
+        .replace(/\n\s*\n/g, '\n\n')
+        .trim()
+    } else {
+      // Content is plain text, generate HTML
+      wordpressHtml = generateWordPressHTML(title, content)
+    }
     
     return {
       title,
@@ -133,7 +156,9 @@ STAP 3 - BRONNEN:
 FORMAT JE ANTWOORD ALS VOLGT:
 TITEL: [Nieuwe Nederlandse titel]
 ---
-CONTENT: [Herschreven Nederlandse content]
+CONTENT: [Herschreven Nederlandse content als HTML met <p> tags en <h2>Bronnen</h2> sectie]
+
+Belangrijk: Geef de content terug als WordPress-ready HTML met <p> tags voor paragrafen en <h2>Bronnen</h2> voor de bronnenlijst.
 
 Begin nu met het herschrijven:
 `

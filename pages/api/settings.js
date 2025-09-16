@@ -144,9 +144,12 @@ WORDPRESS HTML FORMAT - Technische stijl:
 
 KRITIEKE VEREISTEN - VOLG DEZE EXACT:
 
-1. DATUM: Gebruik de publicatiedatum van het ORIGINELE artikel, niet vandaag
+1. DATUM: Gebruik de EXACTE publicatiedatum van het ORIGINELE artikel (NIET vandaag's datum!)
+   - Kijk naar de publicatiedatum in het originele artikel
+   - Als geen datum bekend is, gebruik dan "recent" in plaats van een datum
 2. LOCATIE: Gebruik de relevante locatie waar het incident plaatsvond
 3. KOPJES: Gebruik ALLEEN zakelijke kopjes, NOOIT vragen
+4. BRONLINKS: ALTIJD werkende hyperlinks toevoegen, niet alleen tekst!
 
 VERBODEN KOPJES (gebruik deze NOOIT):
 ❌ "Wat is er gebeurd?"
@@ -165,7 +168,7 @@ TOEGESTANE ZAKELIJKE KOPJES (gebruik deze wel):
 ✅ "Tijdlijn van gebeurtenissen"
 
 VERPLICHTE STRUCTUUR:
-<p>[Relevante stad/land], [datum van originele artikel] - [Kernboodschap in 1-2 zinnen]</p>
+<p>[Relevante stad/land], [EXACTE datum originele artikel] - [Kernboodschap]. <a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">Bron: [Platform naam]</a></p>
 
 <p><strong>[Zakelijk kopje zonder vraag]</strong><br>
 [Paragraaf met details direct na het kopje zonder extra break]</p>
@@ -175,9 +178,14 @@ VERPLICHTE STRUCTUUR:
 
 <p><strong>Bronnen en meer informatie</strong></p>
 <ul>
-<li><a href="[ORIGINELE_URL]" target="_blank">[PLATFORM_NAAM]</a></li>
-<li><a href="[RESEARCH_URL]" target="_blank">[EXTRA_BRON]</a></li>
+<li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">[PLATFORM_NAAM] - Origineel artikel</a></li>
+<li><a href="[RESEARCH_URL_1]" target="_blank">[EXTRA_BRON_1]</a></li>
+<li><a href="[RESEARCH_URL_2]" target="_blank">[EXTRA_BRON_2]</a></li>
+<li><a href="[RESEARCH_URL_3]" target="_blank">[EXTRA_BRON_3]</a></li>
 </ul>
+
+VOORBEELD MET LINKS:
+<p>Washington D.C., 15 oktober 2023 - Amerikaanse scholen gesloten na ransomware-aanval. <a href="https://security.nl/posting/123" target="_blank">Bron: Security.nl</a></p>
 
 VOORBEELD CORRECT FORMAT:
 "Detroit, 15 oktober 2023 - Ford Motor Company heeft de productie in drie fabrieken stopgezet..."

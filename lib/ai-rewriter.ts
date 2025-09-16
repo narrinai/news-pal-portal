@@ -180,10 +180,13 @@ FORMAT JE ANTWOORD ALS VOLGT:
 ---
 <p>[Relevante locatie], [datum originele artikel] - [kernboodschap]</p>
 
-<h2>[Zakelijk kopje - GEEN vraag!]</h2>
-<p>[Details...]</p>
+<p><strong>[Zakelijk kopje - GEEN vraag!]</strong><br>
+[Details direct na het kopje, geen extra regel ertussen]</p>
 
-<h2>Bronnen en meer informatie</h2>
+<p><strong>[Volgend zakelijk kopje]</strong><br>
+[Volgende paragraaf direct na het kopje]</p>
+
+<p><strong>Bronnen en meer informatie</strong></p>
 <ul>
 <li><a href="${originalUrl || '[URL]'}" target="_blank">[Platform naam]</a></li>
 </ul>

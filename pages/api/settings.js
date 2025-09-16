@@ -167,13 +167,13 @@ TOEGESTANE ZAKELIJKE KOPJES (gebruik deze wel):
 VERPLICHTE STRUCTUUR:
 <p>[Relevante stad/land], [datum van originele artikel] - [Kernboodschap in 1-2 zinnen]</p>
 
-<h2>[Zakelijk kopje zonder vraag]</h2>
-<p>[Paragraaf met details]</p>
+<p><strong>[Zakelijk kopje zonder vraag]</strong><br>
+[Paragraaf met details direct na het kopje zonder extra break]</p>
 
-<h2>[Volgend zakelijk kopje zonder vraag]</h2>
-<p>[Volgende paragraaf]</p>
+<p><strong>[Volgend zakelijk kopje zonder vraag]</strong><br>
+[Volgende paragraaf direct na het kopje zonder extra break]</p>
 
-<h2>Bronnen en meer informatie</h2>
+<p><strong>Bronnen en meer informatie</strong></p>
 <ul>
 <li><a href="[ORIGINELE_URL]" target="_blank">[PLATFORM_NAAM]</a></li>
 <li><a href="[RESEARCH_URL]" target="_blank">[EXTRA_BRON]</a></li>

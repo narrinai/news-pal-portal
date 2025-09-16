@@ -165,10 +165,10 @@ STAP 3 - BRONNEN:
 
 KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 
-1. DATUM: Gebruik de EXACTE publicatiedatum van het ORIGINELE artikel (NIET vandaag!)
+1. DATUM: Gebruik standaard 16 september 2025 (vandaag)
 2. LOCATIE: Gebruik de relevante locatie waar het incident plaatsvond
 3. KOPJES: Gebruik ALLEEN zakelijke stellingen, NOOIT vragen
-4. LINKS: Voeg ALTIJD werkende hyperlinks toe, zowel in intro als bronnenlijst!
+4. LINKS: Verwerk subtiel in de tekst, geen "Bron:" labels
 
 VERBODEN KOPJES:
 ❌ "Wat is er gebeurd?" ❌ "Waarom is dit belangrijk?" ❌ "Wat betekent dit?"
@@ -179,7 +179,7 @@ TOEGESTANE KOPJES:
 FORMAT JE ANTWOORD ALS VOLGT:
 [Krachtige Nederlandse titel ZONDER "TITEL:" ervoor]
 ---
-<p>[Relevante locatie], [EXACTE datum originele artikel] - [kernboodschap]. <a href="${originalUrl || '[URL]'}" target="_blank">Bron: [Platform naam]</a></p>
+<p>[Relevante locatie], 16 september 2025 - [kernboodschap met subtiele <a href="${originalUrl || '[URL]'}" target="_blank">link verwerkt in tekst</a>]</p>
 
 <p><strong>[Zakelijk kopje - GEEN vraag!]</strong><br>
 [Details direct na het kopje, geen extra regel ertussen]</p>
@@ -189,12 +189,12 @@ FORMAT JE ANTWOORD ALS VOLGT:
 
 <p><strong>Bronnen en meer informatie</strong></p>
 <ul>
-<li><a href="${originalUrl || '[URL]'}" target="_blank">[Platform naam] - Origineel artikel</a></li>
+<li><a href="${originalUrl || '[URL]'}" target="_blank">[Platform naam]</a></li>
 <li><a href="[RESEARCH_URL_1]" target="_blank">[EXTRA_BRON_1]</a></li>
 <li><a href="[RESEARCH_URL_2]" target="_blank">[EXTRA_BRON_2]</a></li>
 </ul>
 
-CONTROLEER: Exacte datum gebruikt? Bronlink in intro? Werkende hyperlinks in bronnenlijst?
+CONTROLEER: Vandaag's datum gebruikt? Subtiele link in intro? Clean bronnenlijst?
 
 Begin nu met het herschrijven:
 `

@@ -144,12 +144,11 @@ WORDPRESS HTML FORMAT - Technische stijl:
 
 KRITIEKE VEREISTEN - VOLG DEZE EXACT:
 
-1. DATUM: Gebruik de EXACTE publicatiedatum van het ORIGINELE artikel (NIET vandaag's datum!)
-   - Kijk naar de publicatiedatum in het originele artikel
-   - Als geen datum bekend is, gebruik dan "recent" in plaats van een datum
+1. DATUM: Gebruik standaard vandaag's datum (16 september 2025), tenzij het originele artikel een specifieke recente datum heeft die relevanter is
 2. LOCATIE: Gebruik de relevante locatie waar het incident plaatsvond
 3. KOPJES: Gebruik ALLEEN zakelijke kopjes, NOOIT vragen
-4. BRONLINKS: ALTIJD werkende hyperlinks toevoegen, niet alleen tekst!
+4. BRONLINKS: Verwerk subtiel in de tekst, niet met "Bron:" labels
+5. BRONNENLIJST: Gebruik gewoon de naam van de bron, geen extra labels
 
 VERBODEN KOPJES (gebruik deze NOOIT):
 ❌ "Wat is er gebeurd?"
@@ -168,7 +167,7 @@ TOEGESTANE ZAKELIJKE KOPJES (gebruik deze wel):
 ✅ "Tijdlijn van gebeurtenissen"
 
 VERPLICHTE STRUCTUUR:
-<p>[Relevante stad/land], [EXACTE datum originele artikel] - [Kernboodschap]. <a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">Bron: [Platform naam]</a></p>
+<p>[Relevante stad/land], 16 september 2025 - [Kernboodschap met subtiele <a href="[URL]" target="_blank">link naar originele bron</a> verwerkt in de tekst]</p>
 
 <p><strong>[Zakelijk kopje zonder vraag]</strong><br>
 [Paragraaf met details direct na het kopje zonder extra break]</p>
@@ -178,14 +177,18 @@ VERPLICHTE STRUCTUUR:
 
 <p><strong>Bronnen en meer informatie</strong></p>
 <ul>
-<li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">[PLATFORM_NAAM] - Origineel artikel</a></li>
+<li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">[PLATFORM_NAAM]</a></li>
 <li><a href="[RESEARCH_URL_1]" target="_blank">[EXTRA_BRON_1]</a></li>
 <li><a href="[RESEARCH_URL_2]" target="_blank">[EXTRA_BRON_2]</a></li>
 <li><a href="[RESEARCH_URL_3]" target="_blank">[EXTRA_BRON_3]</a></li>
 </ul>
 
-VOORBEELD MET LINKS:
-<p>Washington D.C., 15 oktober 2023 - Amerikaanse scholen gesloten na ransomware-aanval. <a href="https://security.nl/posting/123" target="_blank">Bron: Security.nl</a></p>
+VOORBEELD MET SUBTIELE LINKS:
+<p>Washington D.C., 16 september 2025 - Amerikaanse scholen blijven gesloten na een <a href="https://security.nl/posting/123" target="_blank">verwoestende ransomware-aanval</a> die hun digitale systemen platlegde.</p>
+
+BRONNENLIJST VOORBEELD:
+<li><a href="https://security.nl/posting/123" target="_blank">Security.nl</a></li>
+<li><a href="https://cisa.gov/alert" target="_blank">CISA</a></li>
 
 VOORBEELD CORRECT FORMAT:
 "Detroit, 15 oktober 2023 - Ford Motor Company heeft de productie in drie fabrieken stopgezet..."

@@ -342,6 +342,7 @@ export default function RewritePage({ params }: RewritePageProps) {
                     <option value="professional">Professional</option>
                     <option value="engaging">Engaging</option>
                     <option value="technical">Technical</option>
+                    <option value="news">News</option>
                   </select>
                 </div>
 

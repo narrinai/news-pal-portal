@@ -5,7 +5,7 @@ const openai = new OpenAI({
 })
 
 export interface RewriteOptions {
-  style: 'professional' | 'engaging' | 'technical'
+  style: 'professional' | 'engaging' | 'technical' | 'news'
   length: 'short' | 'medium' | 'long'
   language: 'nl' | 'en'
   tone: 'neutral' | 'warning' | 'informative'
@@ -87,7 +87,8 @@ function createRewritePrompt(
   const styleInstructions = {
     professional: 'Schrijf als een nieuwsbericht voor een professioneel publiek - helder, informatief en menselijk',
     engaging: 'Schrijf als een toegankelijk nieuwsbericht dat lezers betrekt met verhaal en context',
-    technical: 'Schrijf als een technisch nieuwsbericht met diepgaande analyse maar begrijpelijke uitleg'
+    technical: 'Schrijf als een technisch nieuwsbericht met diepgaande analyse maar begrijpelijke uitleg',
+    news: 'Schrijf als een helder nieuwsbericht in journalistieke stijl - direct, informatief en gestructureerd zoals traditionele nieuwsartikelen'
   }
 
   const toneInstructions = {

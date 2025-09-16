@@ -15,6 +15,7 @@ interface Settings {
     professional: string
     engaging: string
     technical: string
+    news: string
   }
   rssFeeds: {
     id: string
@@ -108,7 +109,8 @@ export default function SettingsPage() {
       general: 'Rewrite this article in clear English for a technical audience. Preserve all important facts and figures.',
       professional: 'Use a business-oriented, professional tone. Focus on business impact and relevance.',
       engaging: 'Write in an engaging way that captivates readers. Use examples and make it accessible.',
-      technical: 'Use technical precision and detailed explanation. Add technical context where relevant.'
+      technical: 'Use technical precision and detailed explanation. Add technical context where relevant.',
+      news: 'Write as a clear news article in journalistic style. Research 3-4 related sources and include them.'
     },
     rssFeeds: []
   })
@@ -767,6 +769,18 @@ export default function SettingsPage() {
                 <textarea
                   value={settings.rewriteInstructions.technical}
                   onChange={(e) => updateInstruction('technical', e.target.value)}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  News Style
+                </label>
+                <textarea
+                  value={settings.rewriteInstructions.news}
+                  onChange={(e) => updateInstruction('news', e.target.value)}
                   rows={3}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                 />

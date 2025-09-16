@@ -61,11 +61,11 @@ export default async function handler(req, res) {
           },
         
         rewriteInstructions: {
-          general: process.env.AI_INSTRUCTION_GENERAL || `Herschrijf dit artikel naar helder Nederlands voor een technische doelgroep. Behoud alle belangrijke feiten en cijfers. 
+          general: process.env.AI_INSTRUCTION_GENERAL || `Herschrijf dit artikel naar helder Nederlands voor een technische doelgroep. Behoud alle belangrijke feiten en cijfers.
 
 WORDPRESS HTML FORMAT VEREIST:
 - Gebruik <h2> voor hoofdsecties
-- Gebruik <p> voor paragrafen  
+- Gebruik <p> voor paragrafen
 - Gebruik <ul><li> voor opsommingen
 - Gebruik <strong> voor belangrijke punten
 - Gebruik <em> voor nadruk
@@ -83,8 +83,8 @@ Voorbeeld gewenste output structuur:
 
 <h2>Wat kun je doen?</h2>
 <p>Praktische adviezen...</p>`,
-          
-          professional: process.env.AI_INSTRUCTION_PROFESSIONAL || `Gebruik een zakelijke, professionele toon. Focus op de business impact en relevantie. 
+
+          professional: process.env.AI_INSTRUCTION_PROFESSIONAL || `Gebruik een zakelijke, professionele toon. Focus op de business impact en relevantie.
 
 RESEARCH FIRST: Zoek online naar 2-3 gerelateerde bronnen over dit cybersecurity onderwerp. Controleer vendor advisories, NIST, CISA, en andere betrouwbare bronnen voor aanvullende context of updates.
 
@@ -108,7 +108,7 @@ WORDPRESS HTML FORMAT - Nieuwsbericht stijl:
 <li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">Origineel artikel</a></li>
 <li><a href="https://example.com/extra-bron" target="_blank">Aanvullende bronnen</a></li>
 </ul>`,
-          
+
           engaging: process.env.AI_INSTRUCTION_ENGAGING || `Schrijf op een boeiende manier die lezers betrekt. Gebruik voorbeelden en maak het toegankelijk.
 
 WORDPRESS HTML FORMAT - Toegankelijke stijl:
@@ -123,7 +123,7 @@ WORDPRESS HTML FORMAT - Toegankelijke stijl:
 
 <h2>Volgende stappen</h2>
 <p>Heldere actiepunten...</p>`,
-          
+
           technical: process.env.AI_INSTRUCTION_TECHNICAL || `Gebruik technische precisie en gedetailleerde uitleg. Voeg technische context toe waar relevant.
 
 WORDPRESS HTML FORMAT - Technische stijl:
@@ -138,7 +138,33 @@ WORDPRESS HTML FORMAT - Technische stijl:
 </ul>
 
 <h2>Mitigatie en Patches</h2>
-<p>Technische oplossingen en configuraties...</p>`
+<p>Technische oplossingen en configuraties...</p>`,
+
+          news: process.env.AI_INSTRUCTION_NEWS || `RESEARCH FIRST: Zoek online naar 3-4 gerelateerde bronnen over dit cybersecurity onderwerp. Controleer vendor advisories, NIST, CISA, en andere betrouwbare bronnen voor aanvullende context of updates.
+
+Noem de bronnen en voeg onderaan het artikel een lijst met bronnen op. Voeg extra bronnen toe die je via research hebt gevonden met de url eronder. Voeg de url toe aan de bronnen van de originele bron (het originele artikel). Noem dit geen 'origineel artikel' maar noem het platform van de bron.
+
+WORDPRESS HTML FORMAT - Nieuwsbericht stijl:
+<h2>Wat is er gebeurd?</h2>
+<p>Helder verhaal van het incident of ontwikkeling...</p>
+
+<h2>Waarom is dit belangrijk?</h2>
+<p>Impact en relevantie voor lezers...</p>
+
+<h2>Wat betekent dit voor organisaties?</h2>
+<ul>
+<li><strong>Directe gevolgen:</strong> Wat er nu gebeurt</li>
+<li><strong>Vervolgstappen:</strong> Wat organisaties moeten doen</li>
+</ul>
+
+<h2>Bronnen en meer informatie</h2>
+<ul>
+<li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">[PLATFORM_NAAM]</a></li>
+<li><a href="https://example.com/extra-bron" target="_blank">Aanvullende bronnen</a></li>
+</ul>
+
+STRUCTUUR EN TOON VAN NIEUWSBERICHT:
+Schrijf als een helder nieuwsartikel in journalistieke stijl. Begin met een krachtige titel en een informatieve introductie die de kernboodschap samenvat. Gebruik korte, heldere paragrafen. Presenteer feiten objectief en chronologisch waar mogelijk. Voeg context en achtergrond toe zonder te oordelen. Eindig met vervolgstappen of wat dit betekent voor de lezer.`
         }
       }
       

@@ -142,45 +142,44 @@ WORDPRESS HTML FORMAT - Technische stijl:
 
           news: process.env.AI_INSTRUCTION_NEWS || `RESEARCH FIRST: Zoek online naar 3-4 gerelateerde bronnen over dit cybersecurity onderwerp. Controleer vendor advisories, NIST, CISA, en andere betrouwbare bronnen voor aanvullende context of updates.
 
-JOURNALISTIEKE NIEUWSBERICHT STRUCTUUR - Gebruik GEEN vaste kopjes, maar volg deze natuurlijke nieuwsstructuur:
+NIEUWSBERICHT STRUCTUUR:
 
-1. TITEL: Krachtige, informatieve titel die de kernboodschap samenvat
-2. LEAD/INTRODUCTIE: Eerste paragraaf met de belangrijkste informatie (wie, wat, waar, wanneer)
-3. BODY: Volgende paragrafen die het verhaal uitbreiden met:
-   - Context en achtergrond
-   - Gevolgen en impact
-   - Reacties van betrokken partijen
-   - Technische details waar relevant
-   - Vervolgstappen en wat er nu gebeurt
+1. TITEL: Schrijf een krachtige, zakelijke titel ZONDER "TITEL:" ervoor
+2. INTRODUCTIE: Begin met locatie en datum gevolgd door kernboodschap
+   Format: "[Stad], [datum] - [Kernboodschap met wie, wat, waar, wanneer]"
+   Voorbeeld: "Amsterdam, 16 september 2025 - Jaguar Land Rover kampt met productiestoringen..."
+3. BODY: Gebruik zakelijke H2 kopjes die aangeven waar de paragraaf over gaat
+4. BRONNEN: Lijst onderaan
 
-4. BRONNEN: Lijst onderaan met alle bronnen
+WORDPRESS HTML FORMAT:
+<p>[Stad], [datum] - [Lead paragraaf met kernboodschap en link naar originele bron]</p>
 
-WORDPRESS HTML FORMAT - Natuurlijke paragraaf stijl:
-<p>Introductie paragraaf met kernboodschap...</p>
-<p>Tweede paragraaf met meer details...</p>
-<p>Derde paragraaf met context...</p>
-<p>Etc. - gebruik gewone paragrafen zonder kunstmatige kopjes</p>
+<h2>[Zakelijk kopje dat aangeeft waar paragraaf over gaat]</h2>
+<p>[Paragraaf met details...]</p>
 
-<h2>Bronnen</h2>
+<h2>[Volgend zakelijk kopje]</h2>
+<p>[Volgende paragraaf...]</p>
+
+<h2>Bronnen en meer informatie</h2>
 <ul>
 <li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">[PLATFORM_NAAM]</a></li>
-<li><a href="https://example.com/extra-bron" target="_blank">Aanvullende bronnen uit research</a></li>
+<li><a href="https://example.com/extra-bron" target="_blank">Aanvullende bronnen</a></li>
 </ul>
 
-SCHRIJFSTIJL:
-- Schrijf als professionele journalist voor Nederlandse lezers
-- Begin met de belangrijkste informatie (lead)
-- Gebruik korte, heldere zinnen en paragrafen
-- Blijf objectief en feitelijk
-- Vermijd vragen als kopjes ("Wat is er gebeurd?")
-- Laat het verhaal natuurlijk vloeien van begin naar eind
-- Eindig met vooruitzichten of vervolgstappen
+VOORBEELDEN VAN ZAKELIJKE KOPJES:
+- "Aard en omvang van de aanval"
+- "Impact op bedrijfsvoering"
+- "Reactie en herstelmaatregelen"
+- "Gevolgen voor de sector"
+- "Preventieve maatregelen"
+- "Vooruitzichten en vervolgstappen"
 
-VOORBEELD STRUCTUUR zoals klimaatartikel:
-Titel: [Korte, krachtige titel]
-Lead: [Kernboodschap in eerste paragraaf]
-Body: [Natuurlijke paragrafen die het verhaal uitbouwen]
-Bronnen: [Lijst met werkende links]`
+SCHRIJFSTIJL:
+- Begin met locatie en datum in de eerste paragraaf
+- Gebruik zakelijke, informatieve kopjes (geen vragen)
+- Blijf objectief en professioneel
+- Voeg links toe naar bronnen in de introductie waar relevant
+- Eindig altijd met bronnenlijst`
         }
       }
       

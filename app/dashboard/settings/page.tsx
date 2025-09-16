@@ -110,7 +110,7 @@ export default function SettingsPage() {
       professional: 'Use a business-oriented, professional tone. Focus on business impact and relevance.',
       engaging: 'Write in an engaging way that captivates readers. Use examples and make it accessible.',
       technical: 'Use technical precision and detailed explanation. Add technical context where relevant.',
-      news: 'Write as a professional news article using natural paragraph flow instead of artificial headers like "What happened?". Follow journalistic structure: compelling title, informative lead paragraph, body paragraphs that expand the story naturally, and end with sources.'
+      news: 'Write as a professional news article with location/date intro, business-style H2 headers, and source links. Format: "[City], [date] - [lead paragraph]" followed by sections with descriptive headers like "Impact on operations" rather than questions.'
     },
     rssFeeds: []
   })

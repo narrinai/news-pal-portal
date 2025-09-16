@@ -54,8 +54,18 @@ Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, wa
     
     // Parse the response to extract title and content
     const sections = response.split('---')
-    let title = sections[0]?.replace('TITEL:', '').replace('Titel:', '').trim() || originalTitle
-    let content = sections[1]?.replace('CONTENT:', '').trim() || response
+    let title = sections[0]?.replace(/^(TITEL|Titel):\s*/i, '').trim() || originalTitle
+    let content = sections[1]?.replace(/^CONTENT:\s*/i, '').trim() || response
+
+    // If there's no --- separator, try to extract title from first line
+    if (sections.length === 1) {
+      const lines = response.split('\n')
+      const firstLine = lines[0]?.replace(/^(TITEL|Titel):\s*/i, '').trim()
+      if (firstLine && firstLine.length > 0 && firstLine.length < 200) {
+        title = firstLine
+        content = lines.slice(1).join('\n').replace(/^CONTENT:\s*/i, '').trim()
+      }
+    }
 
     // If the content already contains HTML tags, use it as-is for WordPress
     // Otherwise, generate HTML from plain text
@@ -154,11 +164,15 @@ STAP 3 - BRONNEN:
 - Format als clickbare HTML links
 
 FORMAT JE ANTWOORD ALS VOLGT:
-TITEL: [Nieuwe Nederlandse titel]
+[Krachtige Nederlandse titel ZONDER "TITEL:" ervoor]
 ---
-CONTENT: [Herschreven Nederlandse content als HTML met <p> tags en <h2>Bronnen</h2> sectie]
+[Herschreven Nederlandse content als HTML beginnend met locatie/datum introductie]
 
-Belangrijk: Geef de content terug als WordPress-ready HTML met <p> tags voor paragrafen en <h2>Bronnen</h2> voor de bronnenlijst.
+Belangrijk:
+- Geef ALLEEN de titel terug, geen "TITEL:" ervoor
+- Begin content met: "<p>[Stad], [datum] - [kernboodschap]</p>"
+- Gebruik <h2> kopjes voor verschillende secties
+- Eindig met <h2>Bronnen en meer informatie</h2> sectie
 
 Begin nu met het herschrijven:
 `

@@ -163,16 +163,32 @@ STAP 3 - BRONNEN:
 - Include alle online gevonden bronnen met werkende URLs
 - Format als clickbare HTML links
 
+KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
+
+1. DATUM: Gebruik de publicatiedatum van het ORIGINELE artikel (niet vandaag!)
+2. LOCATIE: Gebruik de relevante locatie waar het incident plaatsvond
+3. KOPJES: Gebruik ALLEEN zakelijke stellingen, NOOIT vragen
+
+VERBODEN KOPJES:
+❌ "Wat is er gebeurd?" ❌ "Waarom is dit belangrijk?" ❌ "Wat betekent dit?"
+
+TOEGESTANE KOPJES:
+✅ "Details van de aanval" ✅ "Impact op bedrijfsvoering" ✅ "Reactie van het bedrijf"
+
 FORMAT JE ANTWOORD ALS VOLGT:
 [Krachtige Nederlandse titel ZONDER "TITEL:" ervoor]
 ---
-[Herschreven Nederlandse content als HTML beginnend met locatie/datum introductie]
+<p>[Relevante locatie], [datum originele artikel] - [kernboodschap]</p>
 
-Belangrijk:
-- Geef ALLEEN de titel terug, geen "TITEL:" ervoor
-- Begin content met: "<p>[Stad], [datum] - [kernboodschap]</p>"
-- Gebruik <h2> kopjes voor verschillende secties
-- Eindig met <h2>Bronnen en meer informatie</h2> sectie
+<h2>[Zakelijk kopje - GEEN vraag!]</h2>
+<p>[Details...]</p>
+
+<h2>Bronnen en meer informatie</h2>
+<ul>
+<li><a href="${originalUrl || '[URL]'}" target="_blank">[Platform naam]</a></li>
+</ul>
+
+CONTROLEER: Geen vraag-kopjes gebruikt? Juiste datum? Relevante locatie?
 
 Begin nu met het herschrijven:
 `

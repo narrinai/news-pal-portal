@@ -142,44 +142,52 @@ WORDPRESS HTML FORMAT - Technische stijl:
 
           news: process.env.AI_INSTRUCTION_NEWS || `RESEARCH FIRST: Zoek online naar 3-4 gerelateerde bronnen over dit cybersecurity onderwerp. Controleer vendor advisories, NIST, CISA, en andere betrouwbare bronnen voor aanvullende context of updates.
 
-NIEUWSBERICHT STRUCTUUR:
+KRITIEKE VEREISTEN - VOLG DEZE EXACT:
 
-1. TITEL: Schrijf een krachtige, zakelijke titel ZONDER "TITEL:" ervoor
-2. INTRODUCTIE: Begin met locatie en datum gevolgd door kernboodschap
-   Format: "[Stad], [datum] - [Kernboodschap met wie, wat, waar, wanneer]"
-   Voorbeeld: "Amsterdam, 16 september 2025 - Jaguar Land Rover kampt met productiestoringen..."
-3. BODY: Gebruik zakelijke H2 kopjes die aangeven waar de paragraaf over gaat
-4. BRONNEN: Lijst onderaan
+1. DATUM: Gebruik de publicatiedatum van het ORIGINELE artikel, niet vandaag
+2. LOCATIE: Gebruik de relevante locatie waar het incident plaatsvond
+3. KOPJES: Gebruik ALLEEN zakelijke kopjes, NOOIT vragen
 
-WORDPRESS HTML FORMAT:
-<p>[Stad], [datum] - [Lead paragraaf met kernboodschap en link naar originele bron]</p>
+VERBODEN KOPJES (gebruik deze NOOIT):
+❌ "Wat is er gebeurd?"
+❌ "Waarom is dit belangrijk?"
+❌ "Wat betekent dit voor organisaties?"
+❌ "Hoe kunnen bedrijven zich beschermen?"
 
-<h2>[Zakelijk kopje dat aangeeft waar paragraaf over gaat]</h2>
-<p>[Paragraaf met details...]</p>
+TOEGESTANE ZAKELIJKE KOPJES (gebruik deze wel):
+✅ "Details van de cyberaanval"
+✅ "Impact op bedrijfsvoering"
+✅ "Reactie van het bedrijf"
+✅ "Gevolgen voor de sector"
+✅ "Herstelmaatregelen"
+✅ "Beveiligingsaanbevelingen"
+✅ "Financiële impact"
+✅ "Tijdlijn van gebeurtenissen"
 
-<h2>[Volgend zakelijk kopje]</h2>
-<p>[Volgende paragraaf...]</p>
+VERPLICHTE STRUCTUUR:
+<p>[Relevante stad/land], [datum van originele artikel] - [Kernboodschap in 1-2 zinnen]</p>
+
+<h2>[Zakelijk kopje zonder vraag]</h2>
+<p>[Paragraaf met details]</p>
+
+<h2>[Volgend zakelijk kopje zonder vraag]</h2>
+<p>[Volgende paragraaf]</p>
 
 <h2>Bronnen en meer informatie</h2>
 <ul>
-<li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">[PLATFORM_NAAM]</a></li>
-<li><a href="https://example.com/extra-bron" target="_blank">Aanvullende bronnen</a></li>
+<li><a href="[ORIGINELE_URL]" target="_blank">[PLATFORM_NAAM]</a></li>
+<li><a href="[RESEARCH_URL]" target="_blank">[EXTRA_BRON]</a></li>
 </ul>
 
-VOORBEELDEN VAN ZAKELIJKE KOPJES:
-- "Aard en omvang van de aanval"
-- "Impact op bedrijfsvoering"
-- "Reactie en herstelmaatregelen"
-- "Gevolgen voor de sector"
-- "Preventieve maatregelen"
-- "Vooruitzichten en vervolgstappen"
+VOORBEELD CORRECT FORMAT:
+"Detroit, 15 oktober 2023 - Ford Motor Company heeft de productie in drie fabrieken stopgezet..."
 
-SCHRIJFSTIJL:
-- Begin met locatie en datum in de eerste paragraaf
-- Gebruik zakelijke, informatieve kopjes (geen vragen)
-- Blijf objectief en professioneel
-- Voeg links toe naar bronnen in de introductie waar relevant
-- Eindig altijd met bronnenlijst`
+VOORBEELD CORRECTE KOPJES:
+- "Omvang van de productiestoringen" (NIET: "Wat is er gebeurd?")
+- "Reactie van Ford-management" (NIET: "Hoe reageert Ford?")
+- "Impact op leveranciersketen" (NIET: "Wat betekent dit voor leveranciers?")
+
+LET OP: Controleer dubbel dat je GEEN vraag-kopjes gebruikt!`
         }
       }
       

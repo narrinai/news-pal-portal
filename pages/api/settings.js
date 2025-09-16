@@ -142,29 +142,45 @@ WORDPRESS HTML FORMAT - Technische stijl:
 
           news: process.env.AI_INSTRUCTION_NEWS || `RESEARCH FIRST: Zoek online naar 3-4 gerelateerde bronnen over dit cybersecurity onderwerp. Controleer vendor advisories, NIST, CISA, en andere betrouwbare bronnen voor aanvullende context of updates.
 
-Noem de bronnen en voeg onderaan het artikel een lijst met bronnen op. Voeg extra bronnen toe die je via research hebt gevonden met de url eronder. Voeg de url toe aan de bronnen van de originele bron (het originele artikel). Noem dit geen 'origineel artikel' maar noem het platform van de bron.
+JOURNALISTIEKE NIEUWSBERICHT STRUCTUUR - Gebruik GEEN vaste kopjes, maar volg deze natuurlijke nieuwsstructuur:
 
-WORDPRESS HTML FORMAT - Nieuwsbericht stijl:
-<h2>Wat is er gebeurd?</h2>
-<p>Helder verhaal van het incident of ontwikkeling...</p>
+1. TITEL: Krachtige, informatieve titel die de kernboodschap samenvat
+2. LEAD/INTRODUCTIE: Eerste paragraaf met de belangrijkste informatie (wie, wat, waar, wanneer)
+3. BODY: Volgende paragrafen die het verhaal uitbreiden met:
+   - Context en achtergrond
+   - Gevolgen en impact
+   - Reacties van betrokken partijen
+   - Technische details waar relevant
+   - Vervolgstappen en wat er nu gebeurt
 
-<h2>Waarom is dit belangrijk?</h2>
-<p>Impact en relevantie voor lezers...</p>
+4. BRONNEN: Lijst onderaan met alle bronnen
 
-<h2>Wat betekent dit voor organisaties?</h2>
-<ul>
-<li><strong>Directe gevolgen:</strong> Wat er nu gebeurt</li>
-<li><strong>Vervolgstappen:</strong> Wat organisaties moeten doen</li>
-</ul>
+WORDPRESS HTML FORMAT - Natuurlijke paragraaf stijl:
+<p>Introductie paragraaf met kernboodschap...</p>
+<p>Tweede paragraaf met meer details...</p>
+<p>Derde paragraaf met context...</p>
+<p>Etc. - gebruik gewone paragrafen zonder kunstmatige kopjes</p>
 
-<h2>Bronnen en meer informatie</h2>
+<h2>Bronnen</h2>
 <ul>
 <li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">[PLATFORM_NAAM]</a></li>
-<li><a href="https://example.com/extra-bron" target="_blank">Aanvullende bronnen</a></li>
+<li><a href="https://example.com/extra-bron" target="_blank">Aanvullende bronnen uit research</a></li>
 </ul>
 
-STRUCTUUR EN TOON VAN NIEUWSBERICHT:
-Schrijf als een helder nieuwsartikel in journalistieke stijl. Begin met een krachtige titel en een informatieve introductie die de kernboodschap samenvat. Gebruik korte, heldere paragrafen. Presenteer feiten objectief en chronologisch waar mogelijk. Voeg context en achtergrond toe zonder te oordelen. Eindig met vervolgstappen of wat dit betekent voor de lezer.`
+SCHRIJFSTIJL:
+- Schrijf als professionele journalist voor Nederlandse lezers
+- Begin met de belangrijkste informatie (lead)
+- Gebruik korte, heldere zinnen en paragrafen
+- Blijf objectief en feitelijk
+- Vermijd vragen als kopjes ("Wat is er gebeurd?")
+- Laat het verhaal natuurlijk vloeien van begin naar eind
+- Eindig met vooruitzichten of vervolgstappen
+
+VOORBEELD STRUCTUUR zoals klimaatartikel:
+Titel: [Korte, krachtige titel]
+Lead: [Kernboodschap in eerste paragraaf]
+Body: [Natuurlijke paragrafen die het verhaal uitbouwen]
+Bronnen: [Lijst met werkende links]`
         }
       }
       

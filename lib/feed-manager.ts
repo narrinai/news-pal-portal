@@ -345,20 +345,31 @@ export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
 
 export function validateFeedConfig(feed: Partial<RSSFeedConfig>): string[] {
   const errors: string[] = []
-  
+
   if (!feed.url) errors.push('URL is required')
   if (!feed.name) errors.push('Name is required')
   if (!feed.category) errors.push('Category is required')
-  
-  if (feed.url && !isValidUrl(feed.url)) {
-    errors.push('Invalid URL format')
+
+  if (feed.url) {
+    // Normalize URL by adding https:// if missing
+    if (!feed.url.startsWith('http://') && !feed.url.startsWith('https://')) {
+      feed.url = 'https://' + feed.url
+    }
+
+    if (!isValidUrl(feed.url)) {
+      errors.push('Invalid URL format')
+    }
   }
-  
+
   return errors
 }
 
 function isValidUrl(string: string): boolean {
   try {
+    // If URL doesn't start with protocol, add https://
+    if (!string.startsWith('http://') && !string.startsWith('https://')) {
+      string = 'https://' + string
+    }
     new URL(string)
     return true
   } catch (_) {

@@ -114,6 +114,55 @@ export async function getLiveArticles(disableFiltering = false): Promise<{
             'coding bootcamp', 'online learning', 'mooc', 'coursera', 'udacity', 'edx', 'khan academy',
             'AI skills', 'AI career', 'AI job', 'AI developer', 'AI engineer', 'data scientist',
             'ml engineer', 'ai specialist', 'prompt engineering', 'fine-tuning', 'model training'
+          ],
+          'marketingtoolz': [
+            // Marketing Strategy & Concepts
+            'marketing', 'digital marketing', 'content marketing', 'inbound marketing', 'outbound marketing',
+            'growth marketing', 'performance marketing', 'affiliate marketing', 'influencer marketing',
+            'social media marketing', 'email marketing', 'seo', 'search engine optimization', 'sem',
+            'search engine marketing', 'ppc', 'pay per click', 'google ads', 'facebook ads',
+            'instagram marketing', 'linkedin marketing', 'twitter marketing', 'tiktok marketing',
+            'youtube marketing', 'video marketing', 'podcast marketing', 'webinar marketing',
+            'conversion optimization', 'cro', 'conversion rate optimization', 'a/b testing',
+            'landing page', 'sales funnel', 'marketing funnel', 'lead generation', 'lead nurturing',
+            'customer acquisition', 'customer retention', 'customer lifetime value', 'clv', 'churn',
+            'brand awareness', 'brand building', 'brand strategy', 'brand positioning', 'branding',
+            'market research', 'customer insights', 'buyer persona', 'target audience', 'segmentation',
+            'personalization', 'marketing automation', 'drip campaign', 'nurture campaign',
+            'omnichannel', 'multichannel', 'cross-channel', 'attribution', 'marketing attribution',
+
+            // Marketing Tools & Platforms
+            'mailchimp', 'hubspot', 'marketo', 'pardot', 'salesforce marketing cloud', 'activecampaign',
+            'convertkit', 'constant contact', 'aweber', 'getresponse', 'klaviyo', 'drip',
+            'google analytics', 'google tag manager', 'facebook pixel', 'hotjar', 'mixpanel',
+            'amplitude', 'segment', 'optimizely', 'unbounce', 'leadpages', 'clickfunnels',
+            'wordpress', 'shopify', 'magento', 'woocommerce', 'squarespace', 'wix',
+            'canva', 'figma', 'adobe creative', 'photoshop', 'illustrator', 'after effects',
+            'buffer', 'hootsuite', 'sprout social', 'later', 'socialbakers', 'brandwatch',
+            'mention', 'buzzsumo', 'ahrefs', 'semrush', 'moz', 'screaming frog', 'yoast',
+            'zapier', 'ifttt', 'microsoft power automate', 'slack', 'trello', 'asana', 'notion',
+            'typeform', 'surveymonkey', 'calendly', 'acuity scheduling', 'zoom', 'loom',
+            'intercom', 'zendesk', 'freshworks', 'drift', 'chatbot', 'live chat',
+
+            // AI & MarTech Innovation
+            'martech', 'marketing technology', 'marketing stack', 'mar tech stack', 'cdp',
+            'customer data platform', 'dmp', 'data management platform', 'crm integration',
+            'api integration', 'webhook', 'marketing apis', 'no-code', 'low-code',
+            'artificial intelligence marketing', 'ai marketing', 'machine learning marketing',
+            'predictive analytics', 'behavioral analytics', 'real-time personalization',
+            'dynamic content', 'recommendation engine', 'chatgpt marketing', 'ai copywriting',
+            'ai content generation', 'automated content', 'programmatic advertising',
+            'rtb', 'real-time bidding', 'header bidding', 'ad exchange', 'dsp', 'ssp',
+
+            // Metrics & Analytics
+            'kpi', 'roi', 'return on investment', 'roas', 'return on ad spend', 'cpc', 'cpm', 'ctr',
+            'click through rate', 'open rate', 'bounce rate', 'conversion rate', 'cost per lead',
+            'cost per acquisition', 'customer acquisition cost', 'cac', 'ltv', 'mrr',
+            'monthly recurring revenue', 'arr', 'annual recurring revenue', 'cohort analysis',
+            'retention rate', 'engagement rate', 'reach', 'impressions', 'frequency',
+            'attribution modeling', 'multi-touch attribution', 'first-touch', 'last-touch',
+            'utm tracking', 'campaign tracking', 'cross-device tracking', 'privacy compliance',
+            'gdpr', 'ccpa', 'cookie consent', 'first-party data', 'zero-party data', 'third-party cookies'
           ]
         }
         categoryKeywords = settings

@@ -155,7 +155,7 @@ export default function SettingsPage() {
     url: '',
     name: '',
     category: 'cybersecurity',
-    maxArticles: 10
+    maxArticles: 25
   })
   
   const [saving, setSaving] = useState(false)
@@ -454,7 +454,7 @@ export default function SettingsPage() {
           rssFeeds: [result.feed, ...prev.rssFeeds]
         }))
         
-        setNewFeed({ url: '', name: '', category: 'cybersecurity', maxArticles: 10 })
+        setNewFeed({ url: '', name: '', category: 'cybersecurity', maxArticles: 25 })
         setShowAddFeed(false)
         showNotification({
           type: 'success',
@@ -947,7 +947,7 @@ export default function SettingsPage() {
                           <div className="font-medium text-gray-900">{feed.name}</div>
                           <div className="text-sm text-gray-500">{feed.url}</div>
                           <div className="text-xs text-gray-400 mt-1">
-                            {feed.category} • Max {feed.maxArticles || 10} articles
+                            {feed.category} • Max {feed.maxArticles || 25} articles
                           </div>
                         </div>
                       </div>

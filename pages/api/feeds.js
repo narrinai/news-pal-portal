@@ -112,7 +112,7 @@ export default async function handler(req, res) {
       const feedWithDefaults = {
         ...newFeed,
         enabled: newFeed.enabled ?? true,
-        maxArticles: newFeed.maxArticles ?? 10
+        maxArticles: newFeed.maxArticles ?? 25
       }
       console.log('Feed with defaults:', feedWithDefaults)
 

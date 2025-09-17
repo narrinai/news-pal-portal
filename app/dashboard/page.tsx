@@ -55,7 +55,13 @@ export default function DashboardPage() {
     // Language filter - now based on source language instead of category
     if (languageFilter !== 'all') {
       // Determine language based on source
-      const dutchSources = ['Tweakers', 'Security.NL', 'SecurityNL', 'security.nl', 'NOS Tech', 'NU.nl Tech', 'Techzine', 'Computable']
+      const dutchSources = [
+        // Cybersecurity Dutch sources
+        'Tweakers', 'Security.NL', 'SecurityNL', 'security.nl', 'NOS Tech', 'NU.nl Tech', 'Techzine', 'Computable',
+        // Marketing Dutch sources (exact feed names)
+        'Marketing Tribune Nederland', 'Frank Watching', 'Marketing Facts', 'Emerce', 'Marketing Online',
+        'B2B Marketing Nederland', 'Agentschap Nederland'
+      ]
       const isDutch = dutchSources.some(source => article.source?.includes(source))
       const isInternational = !isDutch
       

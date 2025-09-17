@@ -166,7 +166,7 @@ WORDPRESS HTML FORMAT - Technische stijl:
 <h2>Mitigatie en Patches</h2>
 <p>Technische oplossingen en configuraties...</p>`,
 
-          news: process.env.AI_INSTRUCTION_NEWS || `RESEARCH FIRST: Zoek online naar 3-4 gerelateerde bronnen over dit cybersecurity onderwerp. Controleer vendor advisories, NIST, CISA, en andere betrouwbare bronnen voor aanvullende context of updates.
+          news: process.env.AI_INSTRUCTION_NEWS || `RESEARCH FIRST: Zoek online naar 3-4 gerelateerde bronnen over dit onderwerp. Controleer betrouwbare bronnen voor aanvullende context of updates.
 
 KRITIEKE VEREISTEN - VOLG DEZE EXACT:
 

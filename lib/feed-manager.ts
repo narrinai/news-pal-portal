@@ -272,8 +272,27 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
       console.log(`✅ Using ${customFeeds.length} custom feeds from memory`)
       return customFeeds
     }
-    
-    // PRIORITY 3: Initialize with defaults and save them persistently
+
+    // PRIORITY 3: Try to load from file system (fallback)
+    try {
+      const fs = require('fs')
+      const path = require('path')
+      const feedsFilePath = path.join(process.cwd(), 'feeds-data.json')
+
+      if (fs.existsSync(feedsFilePath)) {
+        const fileData = fs.readFileSync(feedsFilePath, 'utf8')
+        const fileFeeds = JSON.parse(fileData)
+        if (fileFeeds && fileFeeds.length > 0) {
+          customFeeds = fileFeeds
+          console.log(`✅ Loaded ${fileFeeds.length} feeds from file system fallback`)
+          return fileFeeds
+        }
+      }
+    } catch (fileError) {
+      console.warn('Could not load feeds from file:', fileError.message)
+    }
+
+    // PRIORITY 4: Initialize with defaults and save them persistently
     console.log('🔧 No feeds found - initializing with working defaults and saving persistently...')
     const workingDefaults = [
       {
@@ -309,7 +328,7 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
         maxArticles: 50
       }
     ]
-    
+
     // Save defaults persistently
     await saveFeedConfigs(workingDefaults)
     console.log(`✅ Saved ${workingDefaults.length} default feeds persistently`)
@@ -345,7 +364,18 @@ export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
     } catch (apiError) {
       console.warn('Could not save to API storage:', apiError.message)
     }
-    
+
+    // Also save to file system as backup
+    try {
+      const fs = require('fs')
+      const path = require('path')
+      const feedsFilePath = path.join(process.cwd(), 'feeds-data.json')
+      fs.writeFileSync(feedsFilePath, JSON.stringify(feeds, null, 2))
+      console.log(`✅ Feeds also saved to file system (${feeds.length} feeds)`)
+    } catch (fileError) {
+      console.warn('Could not save to file system:', fileError.message)
+    }
+
     // Clear RSS cache to force refresh with new feeds
     const { refreshRSSCache } = require('./article-manager')
     refreshRSSCache()

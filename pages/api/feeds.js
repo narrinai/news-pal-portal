@@ -1,10 +1,36 @@
 import { getFeedConfigs, saveFeedConfigs, validateFeedConfig, generateFeedId, DEFAULT_RSS_FEEDS } from '../../lib/feed-manager'
+const fs = require('fs')
+const path = require('path')
+
+const FEEDS_FILE = path.join(process.cwd(), 'feeds-data.json')
+
+function readFeedsFromFile() {
+  try {
+    if (fs.existsSync(FEEDS_FILE)) {
+      const fileData = fs.readFileSync(FEEDS_FILE, 'utf8')
+      return JSON.parse(fileData)
+    }
+  } catch (error) {
+    console.error('Error reading feeds file:', error)
+  }
+  return []
+}
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
-      let feeds = await getFeedConfigs()
-      
+      // First try to read from file (most reliable)
+      let feeds = readFeedsFromFile()
+
+      // If file has feeds, use them
+      if (feeds.length > 0) {
+        console.log(`✅ Loaded ${feeds.length} feeds from file system`)
+        return res.status(200).json(feeds)
+      }
+
+      // Otherwise use the feed manager
+      feeds = await getFeedConfigs()
+
       // If no feeds exist, initialize with working defaults
       if (feeds.length === 0) {
         console.log('No feeds found, initializing with defaults...')
@@ -26,11 +52,11 @@ export default async function handler(req, res) {
             maxArticles: 50
           }
         ]
-        
+
         await saveFeedConfigs(defaultFeeds)
         feeds = defaultFeeds
       }
-      
+
       return res.status(200).json(feeds)
     } catch (error) {
       console.error('Error fetching feeds:', error)
@@ -62,11 +88,24 @@ export default async function handler(req, res) {
         })
       }
 
-      await saveFeedConfigs(feeds)
-      
-      return res.status(200).json({ 
-        success: true, 
-        message: `${feeds.length} feeds updated` 
+      // Save to file system first (most reliable)
+      try {
+        fs.writeFileSync(FEEDS_FILE, JSON.stringify(feeds, null, 2))
+        console.log(`✅ Saved ${feeds.length} feeds to file system`)
+      } catch (fileError) {
+        console.error('Error saving to file:', fileError)
+      }
+
+      // Also save via feed manager (backup method)
+      try {
+        await saveFeedConfigs(feeds)
+      } catch (error) {
+        console.warn('Feed manager save failed:', error)
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: `${feeds.length} feeds updated`
       })
     } catch (error) {
       console.error('Error saving feeds:', error)

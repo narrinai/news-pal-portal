@@ -116,7 +116,28 @@ export default function SettingsPage() {
         'paid advertising', 'google ads', 'facebook ads', 'linkedin ads', 'instagram marketing',
         'video marketing', 'podcast marketing', 'webinar marketing', 'event marketing', 'trade show',
         'public relations', 'pr tool', 'media monitoring', 'reputation management', 'crisis communication',
-        'marketing saas', 'marketing startup', 'marketing agency', 'freelance marketing', 'marketing consultant'
+        'marketing saas', 'marketing startup', 'marketing agency', 'freelance marketing', 'marketing consultant',
+        // Landing Page & Website Builders
+        'instapage', 'unbounce', 'mutiny', 'leadpages', 'swipe pages', 'squarespace', 'clickfunnels', 'shogun', 'wix', 'weebly',
+        // Email Marketing & Automation
+        'hubspot', 'drip', 'omnisend', 'klaviyo', 'salesforce', 'success.ai', 'mailchimp', 'sendlane', 'stripo', 'convertkit',
+        'activecampaign', 'constant contact', 'aweber', 'mailerlite', 'moosend', 'campaigner', 'icontact',
+        // Documentation & Knowledge Management
+        'notion', 'confluence', 'slite', 'helpjuice', 'document360', 'superlist', 'intercom', 'guru', 'freshworks', 'zendesk',
+        // Project Management & Productivity
+        'asana', 'monday', 'trello', 'wrike', 'clickup', 'smartsheet', 'jira', 'todoist', 'zoho projects', 'airtable',
+        // CRM & Sales Tools
+        'pipelinepro', 'pipedrive', 'monday crm', 'salesflare', 'folk', 'close', 'insightly', 'capsule',
+        'cognism', 'lusha', 'zoominfo', 'kaspr', 'sanebox',
+        // AI Marketing & Content Tools
+        'vwo', 'copy.ai', 'writesonic', 'frase', 'quillbot', 'deepbrain ai', 'grammarly', 'brainvine', 'anyword',
+        'describely', 'owlywriter', 'jasper ai', 'murf ai', 'synthesia', 'sendbird', 'fastbots', 'botpenguin',
+        'liveagent', 'elephant.ai', 'semrush', 'scalenut', 'getgenie', 'aiseo', 'trakkr.ai', 'adcreative',
+        'pictory', 'descript', 'text.cortex', 'originality', 'ai detector pro', 'surfer', 'smodin',
+        // AI Marketing Specific Terms
+        'ai marketing', 'marketing ai', 'ai tech', 'ai business', 'ai social media', 'ai advertenties', 'ai wetgeving',
+        'artificial intelligence marketing', 'machine learning marketing', 'automated marketing', 'intelligent marketing',
+        'ai-powered marketing', 'marketing intelligence', 'predictive marketing', 'ai analytics', 'marketing algorithms'
       ]
     },
     rewriteInstructions: {

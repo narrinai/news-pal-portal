@@ -70,7 +70,19 @@ export default async function handler(req, res) {
               'paid advertising', 'google ads', 'facebook ads', 'linkedin ads', 'instagram marketing',
               'video marketing', 'podcast marketing', 'webinar marketing', 'event marketing', 'trade show',
               'public relations', 'pr tool', 'media monitoring', 'reputation management', 'crisis communication',
-              'marketing saas', 'marketing startup', 'marketing agency', 'freelance marketing', 'marketing consultant'
+              'marketing saas', 'marketing startup', 'marketing agency', 'freelance marketing', 'marketing consultant',
+              'instapage', 'unbounce', 'mutiny', 'leadpages', 'swipe pages', 'squarespace', 'clickfunnels', 'shogun', 'wix', 'weebly',
+              'hubspot', 'drip', 'omnisend', 'klaviyo', 'salesforce', 'success.ai', 'mailchimp', 'sendlane', 'stripo', 'convertkit',
+              'activecampaign', 'constant contact', 'aweber', 'mailerlite', 'moosend', 'campaigner', 'icontact',
+              'notion', 'confluence', 'slite', 'helpjuice', 'document360', 'superlist', 'intercom', 'guru', 'freshworks', 'zendesk',
+              'asana', 'monday', 'trello', 'wrike', 'clickup', 'smartsheet', 'jira', 'todoist', 'zoho projects', 'airtable',
+              'pipelinepro', 'pipedrive', 'monday crm', 'salesflare', 'folk', 'close', 'insightly', 'capsule',
+              'cognism', 'lusha', 'zoominfo', 'kaspr', 'sanebox', 'vwo', 'copy.ai', 'writesonic', 'frase', 'quillbot',
+              'deepbrain ai', 'grammarly', 'brainvine', 'anyword', 'describely', 'owlywriter', 'jasper ai', 'murf ai',
+              'synthesia', 'sendbird', 'fastbots', 'botpenguin', 'liveagent', 'elephant.ai', 'semrush', 'scalenut',
+              'getgenie', 'aiseo', 'trakkr.ai', 'adcreative', 'pictory', 'descript', 'text.cortex', 'originality',
+              'ai detector pro', 'surfer', 'smodin', 'ai marketing', 'marketing ai', 'ai tech', 'ai business',
+              'ai social media', 'ai advertenties', 'ai wetgeving', 'artificial intelligence marketing'
             ],
           },
         

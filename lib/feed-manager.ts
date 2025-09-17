@@ -249,7 +249,22 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
         }
       }
     } catch (apiError) {
-      console.warn('Could not load from API storage:', apiError.message)
+      console.warn('Could not load from API storage, trying fallback method:', apiError.message)
+
+      // Fallback: try to get feeds via direct store GET
+      try {
+        const storeResponse = await fetch('http://localhost:3000/api/feeds/store', { method: 'GET' })
+        if (storeResponse.ok) {
+          const storeData = await storeResponse.json()
+          if (storeData.success && storeData.feeds && storeData.feeds.length > 0) {
+            customFeeds = storeData.feeds
+            console.log(`✅ Fallback success: Using ${storeData.feeds.length} feeds from store`)
+            return storeData.feeds
+          }
+        }
+      } catch (fallbackError) {
+        console.warn('Fallback also failed:', fallbackError.message)
+      }
     }
     
     // PRIORITY 2: Check memory storage
@@ -322,7 +337,10 @@ export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
         body: JSON.stringify({ feeds })
       })
       if (response.ok) {
-        console.log('RSS feeds saved to persistent API storage')
+        const result = await response.json()
+        console.log(`RSS feeds saved to persistent API storage (${result.feeds?.length || feeds.length} feeds)`)
+      } else {
+        console.error('Failed to save to API storage, status:', response.status)
       }
     } catch (apiError) {
       console.warn('Could not save to API storage:', apiError.message)

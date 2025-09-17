@@ -12,7 +12,7 @@ export interface NewsArticle {
   source: string
   publishedAt: string
   status: 'pending' | 'selected' | 'rewritten' | 'published'
-  category: 'cybersecurity' | 'bouwcertificaten' | 'ai-companion' | 'ai-learning'
+  category: 'cybersecurity' | 'bouwcertificaten' | 'ai-companion' | 'ai-learning' | 'marketingtoolz'
   originalContent?: string
   rewrittenContent?: string
   wordpressHtml?: string

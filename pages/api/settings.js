@@ -5,7 +5,7 @@ export default async function handler(req, res) {
       const settings = {
         categories: process.env.NEWS_CATEGORIES ? 
           JSON.parse(process.env.NEWS_CATEGORIES) : 
-          ['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning'],
+          ['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning', 'marketingtoolz'],
         
         categoryKeywords: process.env.CATEGORY_KEYWORDS ?
           JSON.parse(process.env.CATEGORY_KEYWORDS) : {
@@ -57,6 +57,20 @@ export default async function handler(req, res) {
               'AI education', 'AI training', 'AI tutorial', 'AI course', 'AI certification', 'AI bootcamp',
               'learn AI', 'study AI', 'AI curriculum', 'AI pedagogy', 'educational AI', 'AI literacy',
               'data science', 'data analytics', 'big data', 'statistics', 'algorithms', 'programming'
+            ],
+            'marketingtoolz': [
+              'marketing tool', 'marketingtool', 'marketing software', 'marketing platform', 'marketing automation',
+              'email marketing', 'social media marketing', 'content marketing', 'digital marketing', 'online marketing',
+              'seo tool', 'analytics tool', 'conversion optimization', 'a/b testing', 'landing page',
+              'crm', 'customer relationship management', 'lead generation', 'sales funnel', 'marketing funnel',
+              'influencer marketing', 'affiliate marketing', 'performance marketing', 'growth hacking', 'growth marketing',
+              'marketing metrics', 'roi marketing', 'marketing dashboard', 'marketing analytics', 'campaign management',
+              'brand marketing', 'brand awareness', 'customer acquisition', 'customer retention', 'customer engagement',
+              'marketing strategy', 'marketing tactics', 'marketing trends', 'martech', 'marketing technology',
+              'paid advertising', 'google ads', 'facebook ads', 'linkedin ads', 'instagram marketing',
+              'video marketing', 'podcast marketing', 'webinar marketing', 'event marketing', 'trade show',
+              'public relations', 'pr tool', 'media monitoring', 'reputation management', 'crisis communication',
+              'marketing saas', 'marketing startup', 'marketing agency', 'freelance marketing', 'marketing consultant'
             ],
           },
         

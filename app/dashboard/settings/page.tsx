@@ -30,7 +30,7 @@ interface Settings {
 export default function SettingsPage() {
   const { showNotification, showConfirm, showPrompt } = useNotifications()
   const [settings, setSettings] = useState<Settings>({
-    categories: ['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning'],
+    categories: ['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning', 'marketingtoolz'],
     categoryKeywords: {
       'cybersecurity': [
         // Dutch Security Terms
@@ -103,6 +103,20 @@ export default function SettingsPage() {
         'coding bootcamp', 'online learning', 'mooc', 'coursera', 'udacity', 'edx', 'khan academy',
         'AI skills', 'AI career', 'AI job', 'AI developer', 'AI engineer', 'data scientist',
         'ml engineer', 'ai specialist', 'prompt engineering', 'fine-tuning', 'model training'
+      ],
+      'marketingtoolz': [
+        'marketing tool', 'marketingtool', 'marketing software', 'marketing platform', 'marketing automation',
+        'email marketing', 'social media marketing', 'content marketing', 'digital marketing', 'online marketing',
+        'seo tool', 'analytics tool', 'conversion optimization', 'a/b testing', 'landing page',
+        'crm', 'customer relationship management', 'lead generation', 'sales funnel', 'marketing funnel',
+        'influencer marketing', 'affiliate marketing', 'performance marketing', 'growth hacking', 'growth marketing',
+        'marketing metrics', 'roi marketing', 'marketing dashboard', 'marketing analytics', 'campaign management',
+        'brand marketing', 'brand awareness', 'customer acquisition', 'customer retention', 'customer engagement',
+        'marketing strategy', 'marketing tactics', 'marketing trends', 'martech', 'marketing technology',
+        'paid advertising', 'google ads', 'facebook ads', 'linkedin ads', 'instagram marketing',
+        'video marketing', 'podcast marketing', 'webinar marketing', 'event marketing', 'trade show',
+        'public relations', 'pr tool', 'media monitoring', 'reputation management', 'crisis communication',
+        'marketing saas', 'marketing startup', 'marketing agency', 'freelance marketing', 'marketing consultant'
       ]
     },
     rewriteInstructions: {

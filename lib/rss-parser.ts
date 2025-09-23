@@ -92,12 +92,12 @@ export async function parseArticlesFromFeed(
     } else {
       // Smart categorization: find the best matching category
       let maxMatches = 0
-      
+
       for (const [cat, keywords] of Object.entries(keywordMap)) {
-        const foundKeywords = keywords.filter(keyword => 
+        const foundKeywords = keywords.filter(keyword =>
           content.includes(keyword.toLowerCase())
         )
-        
+
         if (foundKeywords.length > maxMatches) {
           maxMatches = foundKeywords.length
           bestCategory = cat
@@ -105,7 +105,13 @@ export async function parseArticlesFromFeed(
           isRelevant = foundKeywords.length > 0
         }
       }
-      
+
+      // If keyword matching found a category, use the original feed category instead
+      // This ensures consistency with dashboard filtering
+      if (isRelevant && category) {
+        bestCategory = category
+      }
+
       // Additional logging for debugging
       if (isRelevant) {
         console.log(`Article matched "${bestCategory}" with keywords [${matchedKeywords.join(', ')}]: "${title.substring(0, 50)}..."`)
@@ -136,9 +142,6 @@ export async function parseArticlesFromFeed(
   return articles
 }
 
-function containsKeywords(content: string, keywords: string[]): boolean {
-  return keywords.some(keyword => content.includes(keyword.toLowerCase()))
-}
 
 function extractImageFromRSSItem(item: any): string | undefined {
   try {

@@ -204,7 +204,7 @@ export async function getLiveArticles(disableFiltering = false): Promise<{
     const publishedArticles = airtableArticles.filter(a => a.status === 'published')
 
     return {
-      pending: pendingArticles.slice(0, 50), // Limit for performance
+      pending: pendingArticles.slice(0, 200), // Increased limit for more articles
       selected: selectedArticles,
       rewritten: rewrittenArticles,
       published: publishedArticles

@@ -10,7 +10,7 @@ export async function fetchRSSFeed(feedUrl: string): Promise<any> {
     
     // Set a timeout for RSS parsing
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('RSS fetch timeout')), 7000)
+      setTimeout(() => reject(new Error('RSS fetch timeout')), 15000)
     )
     
     const fetchPromise = parser.parseURL(feedUrl)
@@ -214,9 +214,9 @@ export async function fetchAllFeeds(disableFiltering = false, categoryKeywords?:
   
   console.log(`Processing ${enabledFeeds.length} enabled RSS feeds`)
   
-  // Process feeds in smaller batches to avoid timeouts - limit to 20 feeds max
-  const feedsToProcess = enabledFeeds.slice(0, 20)
-  console.log(`Processing ${feedsToProcess.length} feeds (limited from ${enabledFeeds.length} to prevent timeouts)`)
+  // Process all enabled feeds - increased from 20 to process all
+  const feedsToProcess = enabledFeeds
+  console.log(`Processing all ${feedsToProcess.length} enabled feeds`)
   
   const batchSize = 3
   for (let i = 0; i < feedsToProcess.length; i += batchSize) {
@@ -258,5 +258,5 @@ export async function fetchAllFeeds(disableFiltering = false, categoryKeywords?:
     new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
   )
   
-  return uniqueArticles.slice(0, 50) // Return top 50 most recent articles
+  return uniqueArticles.slice(0, 200) // Return top 200 most recent articles
 }

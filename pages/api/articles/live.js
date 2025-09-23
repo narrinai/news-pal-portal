@@ -46,6 +46,11 @@ export default async function handler(req, res) {
         published
       }
       
+      // Set cache-busting headers
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+      res.setHeader('Pragma', 'no-cache')
+      res.setHeader('Expires', '0')
+
       return res.status(200).json({
         articles,
         cache: cacheStatus,
@@ -55,7 +60,8 @@ export default async function handler(req, res) {
           rewritten: articles.rewritten.length,
           published: articles.published.length
         },
-        rssStatus: pending.length > 0 ? 'success' : 'failed'
+        rssStatus: pending.length > 0 ? 'success' : 'failed',
+        timestamp: new Date().toISOString() // Add timestamp for cache busting
       })
     } catch (error) {
       console.error('Error fetching live articles:', error)

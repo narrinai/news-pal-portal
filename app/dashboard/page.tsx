@@ -107,9 +107,16 @@ export default function DashboardPage() {
       const params = new URLSearchParams()
       if (forceRefresh) params.append('refresh', 'true')
       if (!keywordFiltering) params.append('nofilter', 'true')
-      
+      // Add timestamp for cache busting
+      params.append('t', Date.now().toString())
+
       console.log('Fetching live articles...', { forceRefresh, keywordFiltering })
-      const response = await fetch(`/api/articles/live?${params}`)
+      const response = await fetch(`/api/articles/live?${params}`, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       console.log('Live API response status:', response.status)
       
       if (response.ok) {
@@ -156,7 +163,15 @@ export default function DashboardPage() {
     setRefreshing(true)
     setHasLoadedOnce(true) // Mark as loaded for future filter changes
     try {
+      // Clear RSS cache first
+      console.log('Clearing RSS cache before refresh...')
+      await fetch('/api/cache/clear', {
+        method: 'POST',
+        cache: 'no-cache'
+      })
+
       await fetchArticles(true) // Force refresh RSS cache
+      console.log('Articles refreshed successfully')
       // Removed success notification - silent refresh
     } catch (error) {
       console.error('Error refreshing articles:', error)

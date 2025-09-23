@@ -122,7 +122,7 @@ const BOUWCERTIFICATEN_NL_FEEDS: RSSFeedConfig[] = [
     id: 'tweakers-bouw',
     url: 'https://feeds.feedburner.com/tweakers/mixed',
     name: 'Tweakers',
-    category: 'bouwcertificaten-nl',
+    category: 'bouwcertificaten',
     enabled: true,
     maxArticles: 50
   },
@@ -130,7 +130,7 @@ const BOUWCERTIFICATEN_NL_FEEDS: RSSFeedConfig[] = [
     id: 'computable',
     url: 'https://www.computable.nl/rss.xml',
     name: 'Computable',
-    category: 'tech-nl',
+    category: 'bouwcertificaten',
     enabled: true,
     maxArticles: 50
   },
@@ -138,7 +138,7 @@ const BOUWCERTIFICATEN_NL_FEEDS: RSSFeedConfig[] = [
     id: 'techzine',
     url: 'https://www.techzine.nl/feed/',
     name: 'Techzine',
-    category: 'tech-nl',
+    category: 'bouwcertificaten',
     enabled: true,
     maxArticles: 50
   },
@@ -146,63 +146,63 @@ const BOUWCERTIFICATEN_NL_FEEDS: RSSFeedConfig[] = [
     id: 'iculture',
     url: 'https://www.iculture.nl/feed/',
     name: 'iCulture',
-    category: 'tech-nl',
+    category: 'bouwcertificaten',
     enabled: true,
     maxArticles: 8
   }
 ]
 
-// 🌐 INTERNATIONALE TECH FEEDS
-const TECH_INTERNATIONAL_FEEDS: RSSFeedConfig[] = [
+// 🤖 AI COMPANION & LEARNING FEEDS
+const AI_FEEDS: RSSFeedConfig[] = [
   {
-    id: 'techcrunch',
+    id: 'techcrunch-ai',
     url: 'https://techcrunch.com/feed/',
     name: 'TechCrunch',
-    category: 'tech-international',
+    category: 'ai-companion',
     enabled: true,
     maxArticles: 50
   },
   {
-    id: 'ars-technica',
+    id: 'ars-technica-ai',
     url: 'https://feeds.arstechnica.com/arstechnica/index',
     name: 'Ars Technica',
-    category: 'tech-international',
+    category: 'ai-learning',
     enabled: true,
     maxArticles: 50
   },
   {
-    id: 'wired',
+    id: 'wired-ai',
     url: 'https://www.wired.com/feed/rss',
     name: 'Wired',
-    category: 'tech-international',
+    category: 'ai-companion',
     enabled: true,
     maxArticles: 8
   },
   {
-    id: 'theverge',
+    id: 'theverge-ai',
     url: 'https://www.theverge.com/rss/index.xml',
     name: 'The Verge',
-    category: 'tech-international',
+    category: 'ai-learning',
     enabled: true,
     maxArticles: 8
   }
 ]
 
-// 📰 OVERIGE FEEDS
-const OTHER_FEEDS: RSSFeedConfig[] = [
+// 📈 MARKETING FEEDS
+const MARKETING_FEEDS: RSSFeedConfig[] = [
   {
-    id: 'reuters-tech',
+    id: 'reuters-marketing',
     url: 'https://feeds.reuters.com/reuters/technologyNews',
     name: 'Reuters Technology',
-    category: 'other',
+    category: 'marketingtoolz',
     enabled: true,
     maxArticles: 8
   },
   {
-    id: 'bbc-tech',
+    id: 'bbc-marketing',
     url: 'https://feeds.bbci.co.uk/news/technology/rss.xml',
     name: 'BBC Technology',
-    category: 'other',
+    category: 'marketingtoolz',
     enabled: true,
     maxArticles: 8
   }
@@ -212,8 +212,8 @@ const OTHER_FEEDS: RSSFeedConfig[] = [
 export const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
   ...CYBERSECURITY_FEEDS,
   ...BOUWCERTIFICATEN_NL_FEEDS,
-  ...TECH_INTERNATIONAL_FEEDS,
-  ...OTHER_FEEDS
+  ...AI_FEEDS,
+  ...MARKETING_FEEDS
 ]
 
 // Global keywords for all feeds

@@ -41,36 +41,60 @@ export async function parseArticlesFromFeed(
   
   // Comprehensive default category keywords
   const defaultCategoryKeywords = {
-    'cybersecurity-nl': [
-      'beveiliging', 'cyberbeveiliging', 'cybersecurity', 'datalek', 'privacy', 'hack', 'hacker', 'malware', 
+    'cybersecurity': [
+      // Dutch Security Terms
+      'beveiliging', 'cyberbeveiliging', 'datalek', 'privacy', 'hack', 'hacker', 'malware',
       'ransomware', 'phishing', 'virus', 'trojan', 'spyware', 'adware', 'botnet', 'ddos', 'firewall',
-      'antivirus', 'encryptie', 'encryption', 'vpn', 'ssl', 'tls', 'certificaat', 'kwetsbaarheid',
-      'vulnerability', 'exploit', 'patch', 'update', 'beveiligingslek', 'cyberaanval', 'attack',
+      'antivirus', 'encryptie', 'vpn', 'ssl', 'tls', 'certificaat', 'kwetsbaarheid',
+      'vulnerability', 'exploit', 'patch', 'update', 'beveiligingslek', 'cyberaanval',
       'threat', 'dreging', 'risico', 'risk', 'incident', 'breach', 'inbreuk', 'lekken', 'leak',
-      'cybercrime', 'cybercriminaliteit', 'fraude', 'identiteitsdiefstal', 'social engineering'
+      'cybercrime', 'cybercriminaliteit', 'fraude', 'identiteitsdiefstal', 'social engineering',
+
+      // International Security Terms
+      'security', 'cybersecurity', 'cyber security', 'breach', 'data breach', 'spear phishing', 'zero-day', 'zero day',
+      'apt', 'advanced persistent threat', 'denial of service', 'encryption', 'virtual private network', 'certificate',
+      'cyber attack', 'cyberattack', 'attack', 'response', 'forensics', 'digital forensics',
+      'penetration testing', 'pentest', 'red team', 'blue team', 'soc', 'security operations center',
+      'siem', 'endpoint protection', 'network security', 'application security', 'web security',
+      'mobile security', 'cloud security', 'iot security', 'scada', 'industrial control'
     ],
-    'cybersecurity-international': [
-      'security', 'cybersecurity', 'cyber security', 'hack', 'hacker', 'breach', 'data breach', 'malware', 
-      'ransomware', 'phishing', 'spear phishing', 'vulnerability', 'exploit', 'zero-day', 'zero day',
-      'apt', 'advanced persistent threat', 'ddos', 'denial of service', 'firewall', 'antivirus',
-      'encryption', 'vpn', 'ssl', 'tls', 'certificate', 'threat', 'cyber attack', 'cyberattack',
-      'attack', 'incident', 'response', 'forensics', 'penetration testing', 'pentest', 'soc',
-      'siem', 'endpoint protection', 'network security', 'cloud security', 'iot security'
+    'bouwcertificaten': [
+      'bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'woning certificaat', 'energielabel',
+      'energie label', 'bouwvergunning', 'bouw vergunning', 'woningbouw', 'woning bouw', 'certificering',
+      'bouwtoezicht', 'bouw toezicht', 'bouwregelgeving', 'bouw regelgeving', 'bouwvoorschriften',
+      'bouw voorschriften', 'woningwet', 'woning wet', 'bouwbesluit', 'bouw besluit', 'nta', 'nen',
+      'keur', 'keuring', 'inspectie', 'bouwkundige', 'architect', 'constructeur', 'installateur',
+      'elektra', 'gas', 'water', 'cv', 'isolatie', 'ventilatie', 'riolering', 'dakbedekking',
+      'fundering', 'draagconstructie', 'brandveiligheid', 'brand veiligheid', 'toegankelijkheid'
     ],
-    'bouwcertificaten-nl': [
-      'bouwcertificaat', 'bouw certificaat', 'woningcertificaat', 'energielabel', 'bouwvergunning', 
-      'woningbouw', 'certificering', 'bouwtoezicht', 'keuring', 'inspectie', 'architect', 'constructeur'
+    'ai-companion': [
+      'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual assistant', 'virtual companion',
+      'chatbot', 'chat bot', 'conversational AI', 'character AI', 'personality AI', 'emotional AI',
+      'companion robot', 'social robot', 'humanoid', 'android', 'synthetic human', 'digital human',
+      'avatar', 'virtual character', 'AI friend', 'AI relationship', 'digital companion', 'virtual being',
+      'artificial companion', 'robot companion', 'AI chat', 'AI conversation', 'AI therapy',
+      'therapeutic AI', 'mental health AI', 'wellness AI', 'emotional support', 'loneliness',
+      'social isolation', 'human-AI interaction', 'anthropomorphic', 'empathy AI', 'emotional intelligence'
     ],
-    'ai-companion-international': [
-      'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual assistant', 'chatbot', 
-      'conversational AI', 'character AI', 'companion robot', 'social robot', 'digital human'
+    'ai-learning': [
+      'AI learning', 'artificial intelligence learning', 'machine learning', 'deep learning', 'neural networks',
+      'AI education', 'AI training', 'AI tutorial', 'AI course', 'AI certification', 'AI bootcamp',
+      'learn AI', 'study AI', 'AI curriculum', 'AI pedagogy', 'educational AI', 'AI literacy',
+      'data science', 'data analytics', 'big data', 'statistics', 'algorithms', 'programming',
+      'python AI', 'tensorflow', 'pytorch', 'keras', 'scikit-learn', 'pandas', 'numpy',
+      'computer vision', 'natural language processing', 'reinforcement learning', 'supervised learning',
+      'unsupervised learning', 'semi-supervised', 'transfer learning', 'federated learning'
     ],
-    'ai-learning-international': [
-      'AI learning', 'machine learning', 'deep learning', 'neural networks', 'AI education', 'AI training', 
-      'AI tutorial', 'AI course', 'data science', 'algorithms', 'programming', 'tensorflow', 'pytorch'
-    ],
-    'other': [
-      'news', 'nieuws', 'update', 'announcement', 'technology', 'innovation', 'business', 'startup'
+    'marketingtoolz': [
+      // Marketing Strategy & Concepts
+      'marketing', 'digital marketing', 'content marketing', 'inbound marketing', 'outbound marketing',
+      'growth marketing', 'performance marketing', 'affiliate marketing', 'influencer marketing',
+      'social media marketing', 'email marketing', 'seo', 'search engine optimization', 'sem',
+      'search engine marketing', 'ppc', 'pay per click', 'google ads', 'facebook ads',
+      'conversion optimization', 'cro', 'conversion rate optimization', 'a/b testing',
+      'landing page', 'sales funnel', 'marketing funnel', 'lead generation', 'lead nurturing',
+      'customer acquisition', 'customer retention', 'customer lifetime value', 'clv', 'churn',
+      'brand awareness', 'brand building', 'brand strategy', 'brand positioning', 'branding'
     ]
   }
   

@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       const cacheStatus = getCacheStatus()
       
       const articles = {
-        pending: pending.slice(0, 150), // High limit: 150 articles
+        pending: pending.slice(0, 400), // High limit: 400 articles for better feed coverage
         selected,
         rewritten,
         published

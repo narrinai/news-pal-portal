@@ -360,10 +360,10 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
       }
     ]
 
-    // Save defaults persistently
-    await saveFeedConfigs(workingDefaults)
-    console.log(`✅ Saved ${workingDefaults.length} default feeds persistently`)
-    return workingDefaults
+    // Save defaults persistently (including all feeds, not just working defaults)
+    await saveFeedConfigs(DEFAULT_RSS_FEEDS)
+    console.log(`✅ Saved ${DEFAULT_RSS_FEEDS.length} default feeds persistently`)
+    return DEFAULT_RSS_FEEDS
     
   } catch (error) {
     console.warn('Error loading feed configs:', error)

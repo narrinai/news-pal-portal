@@ -1,11 +1,99 @@
 [
   {
-    "id": "test-persistent",
-    "url": "https://feeds.feedburner.com/TheHackersNews",
-    "name": "Test Feed",
+    "id": "security-nl-default",
+    "url": "https://www.security.nl/rss/headlines.xml",
+    "name": "Security.NL",
     "category": "cybersecurity",
     "enabled": true,
-    "maxArticles": 50
+    "maxArticles": 100
+  },
+  {
+    "id": "tweakers",
+    "url": "https://feeds.feedburner.com/tweakers/mixed",
+    "name": "Tweakers",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "nos-tech",
+    "url": "https://feeds.nos.nl/nosnieuwsalgemeen",
+    "name": "NOS Tech",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "nu-tech",
+    "url": "https://www.nu.nl/rss/Tech",
+    "name": "NU.nl Tech",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "techzine",
+    "url": "https://www.techzine.nl/feed/",
+    "name": "Techzine",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "hackernews",
+    "url": "https://feeds.feedburner.com/TheHackersNews",
+    "name": "The Hacker News",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "krebs",
+    "url": "https://krebsonsecurity.com/feed/",
+    "name": "Krebs on Security",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "securityweek",
+    "url": "https://www.securityweek.com/feed/",
+    "name": "Security Week",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "threatpost",
+    "url": "https://threatpost.com/feed/",
+    "name": "Threatpost",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "darkreading",
+    "url": "https://www.darkreading.com/rss.xml",
+    "name": "Dark Reading",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "bleepingcomputer",
+    "url": "https://www.bleepingcomputer.com/feed/",
+    "name": "BleepingComputer",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "csoonline",
+    "url": "https://www.csoonline.com/feed/",
+    "name": "CSO Online",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
   },
   {
     "id": "rss-app-cybersecurity",
@@ -14,5 +102,85 @@
     "category": "cybersecurity",
     "enabled": true,
     "maxArticles": 100
+  },
+  {
+    "id": "tweakers-bouw",
+    "url": "https://feeds.feedburner.com/tweakers/mixed",
+    "name": "Tweakers",
+    "category": "bouwcertificaten",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "computable",
+    "url": "https://www.computable.nl/rss.xml",
+    "name": "Computable",
+    "category": "bouwcertificaten",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "techzine",
+    "url": "https://www.techzine.nl/feed/",
+    "name": "Techzine",
+    "category": "bouwcertificaten",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "iculture",
+    "url": "https://www.iculture.nl/feed/",
+    "name": "iCulture",
+    "category": "bouwcertificaten",
+    "enabled": true,
+    "maxArticles": 50
+  },
+  {
+    "id": "techcrunch-ai",
+    "url": "https://techcrunch.com/feed/",
+    "name": "TechCrunch",
+    "category": "ai-companion",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "ars-technica-ai",
+    "url": "https://feeds.arstechnica.com/arstechnica/index",
+    "name": "Ars Technica",
+    "category": "ai-learning",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
+    "id": "wired-ai",
+    "url": "https://www.wired.com/feed/rss",
+    "name": "Wired",
+    "category": "ai-companion",
+    "enabled": true,
+    "maxArticles": 50
+  },
+  {
+    "id": "theverge-ai",
+    "url": "https://www.theverge.com/rss/index.xml",
+    "name": "The Verge",
+    "category": "ai-learning",
+    "enabled": true,
+    "maxArticles": 50
+  },
+  {
+    "id": "reuters-marketing",
+    "url": "https://feeds.reuters.com/reuters/technologyNews",
+    "name": "Reuters Technology",
+    "category": "marketingtoolz",
+    "enabled": true,
+    "maxArticles": 50
+  },
+  {
+    "id": "bbc-marketing",
+    "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+    "name": "BBC Technology",
+    "category": "marketingtoolz",
+    "enabled": true,
+    "maxArticles": 50
   }
 ]

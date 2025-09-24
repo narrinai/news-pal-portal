@@ -58,6 +58,7 @@ export default function DashboardPage() {
       const dutchSources = [
         // Cybersecurity Dutch sources
         'Tweakers', 'Security.NL', 'SecurityNL', 'security.nl', 'NOS Tech', 'NU.nl Tech', 'Techzine', 'Computable',
+        'RSS App Cybersecurity Feed',
         // Marketing Dutch sources (exact feed names)
         'Marketing Tribune Nederland', 'Frank Watching', 'Marketing Facts', 'Emerce', 'Marketing Online',
         'B2B Marketing Nederland', 'Agentschap Nederland'

@@ -34,14 +34,6 @@ const CYBERSECURITY_FEEDS: RSSFeedConfig[] = [
     maxArticles: 100
   },
   {
-    id: 'nos-tech',
-    url: 'https://feeds.nos.nl/nosnieuwsalgemeen',
-    name: 'NOS Tech',
-    category: 'cybersecurity', 
-    enabled: true,
-    maxArticles: 100
-  },
-  {
     id: 'nu-tech',
     url: 'https://www.nu.nl/rss/Tech',
     name: 'NU.nl Tech',

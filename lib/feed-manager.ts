@@ -273,18 +273,33 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
       return customFeeds
     }
 
-    // PRIORITY 3: Try to load from file system (fallback)
+    // PRIORITY 3: Try to load from file system (multiple file locations)
     try {
       const fs = require('fs')
       const path = require('path')
-      const feedsFilePath = path.join(process.cwd(), 'feeds-data.json')
 
+      // Try the new persistent file first
+      const persistentFilePath = path.join(process.cwd(), 'feeds-persistent.json')
+      if (fs.existsSync(persistentFilePath)) {
+        const fileData = fs.readFileSync(persistentFilePath, 'utf8')
+        const fileFeeds = JSON.parse(fileData)
+        if (fileFeeds && fileFeeds.length > 0) {
+          customFeeds = fileFeeds
+          console.log(`✅ Loaded ${fileFeeds.length} feeds from persistent file`)
+          return fileFeeds
+        }
+      }
+
+      // Fallback to old file location
+      const feedsFilePath = path.join(process.cwd(), 'feeds-data.json')
       if (fs.existsSync(feedsFilePath)) {
         const fileData = fs.readFileSync(feedsFilePath, 'utf8')
         const fileFeeds = JSON.parse(fileData)
         if (fileFeeds && fileFeeds.length > 0) {
           customFeeds = fileFeeds
-          console.log(`✅ Loaded ${fileFeeds.length} feeds from file system fallback`)
+          console.log(`✅ Loaded ${fileFeeds.length} feeds from legacy file, migrating to persistent storage`)
+          // Migrate to new persistent file
+          await saveFeedConfigs(fileFeeds)
           return fileFeeds
         }
       }
@@ -365,15 +380,15 @@ export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
       console.warn('Could not save to API storage:', apiError.message)
     }
 
-    // Also save to file system as backup
+    // Also save to persistent file system as backup
     try {
       const fs = require('fs')
       const path = require('path')
-      const feedsFilePath = path.join(process.cwd(), 'feeds-data.json')
-      fs.writeFileSync(feedsFilePath, JSON.stringify(feeds, null, 2))
-      console.log(`✅ Feeds also saved to file system (${feeds.length} feeds)`)
+      const persistentFilePath = path.join(process.cwd(), 'feeds-persistent.json')
+      fs.writeFileSync(persistentFilePath, JSON.stringify(feeds, null, 2))
+      console.log(`✅ Feeds also saved to persistent file system (${feeds.length} feeds)`)
     } catch (fileError) {
-      console.warn('Could not save to file system:', fileError.message)
+      console.warn('Could not save to persistent file system:', fileError.message)
     }
 
     // Clear RSS cache to force refresh with new feeds

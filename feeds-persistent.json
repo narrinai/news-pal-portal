@@ -1,0 +1,10 @@
+[
+  {
+    "id": "test-persistent",
+    "url": "https://feeds.feedburner.com/TheHackersNews",
+    "name": "Test Feed",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 50
+  }
+]

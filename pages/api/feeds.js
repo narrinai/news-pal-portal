@@ -19,17 +19,8 @@ function readFeedsFromFile() {
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
-      // First try to read from file (most reliable)
-      let feeds = readFeedsFromFile()
-
-      // If file has feeds, use them
-      if (feeds.length > 0) {
-        console.log(`✅ Loaded ${feeds.length} feeds from file system`)
-        return res.status(200).json(feeds)
-      }
-
-      // Otherwise use the feed manager
-      feeds = await getFeedConfigs()
+      // Use centralized feed manager for consistent feed loading
+      let feeds = await getFeedConfigs()
 
       // If no feeds exist, initialize with working defaults
       if (feeds.length === 0) {

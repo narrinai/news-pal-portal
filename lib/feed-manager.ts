@@ -113,6 +113,14 @@ const CYBERSECURITY_FEEDS: RSSFeedConfig[] = [
     category: 'cybersecurity',
     enabled: true,
     maxArticles: 100
+  },
+  {
+    id: 'rss-app-cybersecurity',
+    url: 'https://rss.app/feeds/_8Sg3b109sUx8r8Y4.xml',
+    name: 'RSS App Cybersecurity Feed',
+    category: 'cybersecurity',
+    enabled: true,
+    maxArticles: 100
   }
 ]
 
@@ -338,6 +346,14 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
         id: 'krebs-persistent',
         url: 'https://krebsonsecurity.com/feed/',
         name: 'Krebs on Security',
+        category: 'cybersecurity',
+        enabled: true,
+        maxArticles: 100
+      },
+      {
+        id: 'rss-app-cybersecurity',
+        url: 'https://rss.app/feeds/_8Sg3b109sUx8r8Y4.xml',
+        name: 'RSS App Cybersecurity Feed',
         category: 'cybersecurity',
         enabled: true,
         maxArticles: 100

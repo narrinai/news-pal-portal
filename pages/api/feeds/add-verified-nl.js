@@ -27,14 +27,6 @@ export default async function handler(req, res) {
         maxArticles: 30
       },
       {
-        id: 'techzine-verified',
-        url: 'https://www.techzine.nl/feed/',
-        name: 'Techzine (Verified)',
-        category: 'cybersecurity-nl',
-        enabled: true,
-        maxArticles: 30
-      },
-      {
         id: 'computable-verified',
         url: 'https://www.computable.nl/rss.xml',
         name: 'Computable (Verified)',

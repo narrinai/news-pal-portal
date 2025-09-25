@@ -27,14 +27,6 @@ export default async function handler(req, res) {
         maxArticles: 30
       },
       {
-        id: 'nos-tech',
-        url: 'https://feeds.nos.nl/nosnieuwstech',
-        name: 'NOS Tech',
-        category: 'cybersecurity-nl',
-        enabled: true,
-        maxArticles: 30
-      },
-      {
         id: 'nu-tech',
         url: 'https://www.nu.nl/rss/Tech',
         name: 'NU.nl Tech',

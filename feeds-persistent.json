@@ -16,25 +16,9 @@
     "maxArticles": 100
   },
   {
-    "id": "nos-tech",
-    "url": "https://feeds.nos.nl/nosnieuwsalgemeen",
-    "name": "NOS Tech",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
     "id": "nu-tech",
     "url": "https://www.nu.nl/rss/Tech",
     "name": "NU.nl Tech",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "techzine",
-    "url": "https://www.techzine.nl/feed/",
-    "name": "Techzine",
     "category": "cybersecurity",
     "enabled": true,
     "maxArticles": 100
@@ -115,14 +99,6 @@
     "id": "computable",
     "url": "https://www.computable.nl/rss.xml",
     "name": "Computable",
-    "category": "bouwcertificaten",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "techzine",
-    "url": "https://www.techzine.nl/feed/",
-    "name": "Techzine",
     "category": "bouwcertificaten",
     "enabled": true,
     "maxArticles": 100

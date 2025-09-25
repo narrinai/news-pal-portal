@@ -41,14 +41,6 @@ const CYBERSECURITY_FEEDS: RSSFeedConfig[] = [
     enabled: true,
     maxArticles: 100
   },
-  {
-    id: 'techzine',
-    url: 'https://www.techzine.nl/feed/',
-    name: 'Techzine',
-    category: 'cybersecurity',
-    enabled: true,
-    maxArticles: 100
-  },
   // Internationale bronnen
   {
     id: 'hackernews',
@@ -130,14 +122,6 @@ const BOUWCERTIFICATEN_NL_FEEDS: RSSFeedConfig[] = [
     id: 'computable',
     url: 'https://www.computable.nl/rss.xml',
     name: 'Computable',
-    category: 'bouwcertificaten',
-    enabled: true,
-    maxArticles: 100
-  },
-  {
-    id: 'techzine',
-    url: 'https://www.techzine.nl/feed/',
-    name: 'Techzine',
     category: 'bouwcertificaten',
     enabled: true,
     maxArticles: 100

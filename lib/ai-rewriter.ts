@@ -151,9 +151,10 @@ STAP 2 - HERSCHRIJVEN:
 - Schrijf in het Nederlands als een nieuwsbericht/persbericht
 - Integreer informatie uit je online research natuurlijk in het verhaal
 - Behoud de kernboodschap maar verrijk met gevonden bronnen
-- Gebruik een nieuwsbericht structuur: wat, waarom, impact, vervolgstappen
+- ORIGINELE KOPPEN: Creëer unieke koppen op basis van de werkelijke inhoud - NOOIT standaard formules
+- QUOTES: Als er personen worden genoemd, genereer 1 relevante quote gebaseerd op de context
 - Vermijd corporate jargon zoals 'Executive Summary' of 'Business Impact'
-- Gebruik menselijke, toegankelijke koppen zoals 'Wat is er gebeurd?' 
+- Gebruik specifieke, contextgerelateerde koppen (bijv. "Microsoft patch lost Exchange kwetsbaarheid op")
 - Maak het informatief maar leesbaar voor een breed publiek
 - Voeg relevante context toe voor Nederlandse lezers
 

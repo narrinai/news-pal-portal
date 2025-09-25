@@ -172,34 +172,43 @@ KRITIEKE VEREISTEN - VOLG DEZE EXACT:
 
 1. DATUM: Gebruik standaard vandaag's datum (16 september 2025), tenzij het originele artikel een specifieke recente datum heeft die relevanter is
 2. LOCATIE: Gebruik de relevante locatie waar het incident plaatsvond
-3. KOPJES: Gebruik ALLEEN zakelijke kopjes, NOOIT vragen
-4. BRONLINKS: Verwerk subtiel in de tekst, niet met "Bron:" labels
-5. BRONNENLIJST: Gebruik gewoon de naam van de bron, geen extra labels
+3. ORIGINELE KOPPEN: Creëer unieke, originele koppen op basis van de inhoud. Gebruik NOOIT standaard formules
+4. QUOTES: Als er personen worden genoemd die iets zeggen, genereer 1 relevante quote gebaseerd op de context
+5. BRONLINKS: Verwerk subtiel in de tekst, niet met "Bron:" labels
+6. BRONNENLIJST: Gebruik gewoon de naam van de bron, geen extra labels
 
 VERBODEN KOPJES (gebruik deze NOOIT):
 ❌ "Wat is er gebeurd?"
 ❌ "Waarom is dit belangrijk?"
 ❌ "Wat betekent dit voor organisaties?"
 ❌ "Hoe kunnen bedrijven zich beschermen?"
+❌ "Details van de cyberaanval"
+❌ "Impact op bedrijfsvoering"
+❌ "Reactie van het bedrijf"
 
-TOEGESTANE ZAKELIJKE KOPJES (gebruik deze wel):
-✅ "Details van de cyberaanval"
-✅ "Impact op bedrijfsvoering"
-✅ "Reactie van het bedrijf"
-✅ "Gevolgen voor de sector"
-✅ "Herstelmaatregelen"
-✅ "Beveiligingsaanbevelingen"
-✅ "Financiële impact"
-✅ "Tijdlijn van gebeurtenissen"
+ORIGINELE KOPPEN VEREIST:
+✅ Bepaal koppen op basis van de werkelijke inhoud van het artikel
+✅ Gebruik specifieke bedrijfsnamen, technologieën, of gebeurtenissen
+✅ Maak koppen uniek en contextgerelateerd
+✅ Bijvoorbeeld: "Microsoft patch lost kritieke Exchange kwetsbaarheid op" i.p.v. "Beveiligingsupdate uitgebracht"
+
+QUOTE GENERATIE:
+- Als er een persoon wordt genoemd die iets zegt (CEO, woordvoerder, expert), genereer 1 relevante quote
+- Baseer de quote op de context en toon van het artikel
+- Formaat: "Volgens [naam/functie]: '[Quote die past bij de context en inhoud]'"
 
 VERPLICHTE STRUCTUUR:
 <p>[Relevante stad/land], 16 september 2025 - [Kernboodschap met subtiele <a href="[URL]" target="_blank">link naar originele bron</a> verwerkt in de tekst]</p>
 
-<p><strong>[Zakelijk kopje zonder vraag]</strong><br>
+<p><strong>[Originele kop gebaseerd op inhoud]</strong><br>
 [Paragraaf met details direct na het kopje zonder extra break]</p>
 
-<p><strong>[Volgend zakelijk kopje zonder vraag]</strong><br>
+<p><strong>[Volgende originele kop gebaseerd op inhoud]</strong><br>
 [Volgende paragraaf direct na het kopje zonder extra break]</p>
+
+[Als er personen worden genoemd:]
+<p><strong>[Relevante kop over reacties/quotes]</strong><br>
+[Introductie]. Volgens [naam/functie]: "[Gegenereerde quote die past bij de context]"</p>
 
 <p><strong>Bronnen en meer informatie</strong></p>
 <ul>
@@ -209,22 +218,18 @@ VERPLICHTE STRUCTUUR:
 <li><a href="[RESEARCH_URL_3]" target="_blank">[EXTRA_BRON_3]</a></li>
 </ul>
 
-VOORBEELD MET SUBTIELE LINKS:
-<p>Washington D.C., 16 september 2025 - Amerikaanse scholen blijven gesloten na een <a href="https://security.nl/posting/123" target="_blank">verwoestende ransomware-aanval</a> die hun digitale systemen platlegde.</p>
+VOORBEELD ORIGINELE KOPPEN:
+- "Ransomware groep Black Basta eist 50 miljoen dollar losgeld" (specifiek)
+- "Tesla's Autopilot systeem gehackt via Bluetooth kwetsbaarheid" (technisch specifiek)
+- "ASML fabriek in Veldhoven getroffen door supply chain aanval" (locatie/bedrijf specifiek)
 
-BRONNENLIJST VOORBEELD:
-<li><a href="https://security.nl/posting/123" target="_blank">Security.nl</a></li>
-<li><a href="https://cisa.gov/alert" target="_blank">CISA</a></li>
+VOORBEELD QUOTE:
+Volgens CISO John Smith van het getroffen bedrijf: "We hebben onmiddellijk alle systemen offline gehaald en werken rond de klok aan herstel van onze dienstverlening."
 
-VOORBEELD CORRECT FORMAT:
-"Detroit, 15 oktober 2023 - Ford Motor Company heeft de productie in drie fabrieken stopgezet..."
-
-VOORBEELD CORRECTE KOPJES:
-- "Omvang van de productiestoringen" (NIET: "Wat is er gebeurd?")
-- "Reactie van Ford-management" (NIET: "Hoe reageert Ford?")
-- "Impact op leveranciersketen" (NIET: "Wat betekent dit voor leveranciers?")
-
-LET OP: Controleer dubbel dat je GEEN vraag-kopjes gebruikt!`
+LET OP:
+- ALTIJD originele koppen maken op basis van daadwerkelijke inhoud
+- NOOIT standaard formules gebruiken
+- Bij personen: genereer 1 contextgerelateerde quote`
         }
       }
       

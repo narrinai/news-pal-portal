@@ -166,26 +166,21 @@ STAP 3 - BRONNEN:
 
 KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 
-1. DATUM: Gebruik standaard 16 september 2025 (vandaag)
+1. DATUM: Gebruik altijd de datum van vandaag
 2. LOCATIE: Gebruik de relevante locatie waar het incident plaatsvond
-3. KOPJES: Gebruik ALLEEN zakelijke stellingen, NOOIT vragen
-4. LINKS: Verwerk subtiel in de tekst, geen "Bron:" labels
-
-VERBODEN KOPJES:
-❌ "Wat is er gebeurd?" ❌ "Waarom is dit belangrijk?" ❌ "Wat betekent dit?"
-
-TOEGESTANE KOPJES:
-✅ "Details van de aanval" ✅ "Impact op bedrijfsvoering" ✅ "Reactie van het bedrijf"
+3. ORIGINELE KOPPEN: Creëer unieke koppen op basis van werkelijke inhoud
+4. QUOTES: Als er personen worden genoemd, genereer 1 relevante quote
+5. LINKS: Verwerk subtiel in de tekst, geen "Bron:" labels
 
 FORMAT JE ANTWOORD ALS VOLGT:
 [Krachtige Nederlandse titel ZONDER "TITEL:" ervoor]
 ---
-<p>[Relevante locatie], 16 september 2025 - [kernboodschap met subtiele <a href="${originalUrl || '[URL]'}" target="_blank">link verwerkt in tekst</a>]</p>
+<p>[Relevante locatie], [datum] - [kernboodschap met subtiele <a href="${originalUrl || '[URL]'}" target="_blank">link verwerkt in tekst</a>]</p>
 
-<p><strong>[Zakelijk kopje - GEEN vraag!]</strong><br>
+<p><strong>[Origineel kopje gebaseerd op inhoud]</strong><br>
 [Details direct na het kopje, geen extra regel ertussen]</p>
 
-<p><strong>[Volgend zakelijk kopje]</strong><br>
+<p><strong>[Volgend origineel kopje gebaseerd op inhoud]</strong><br>
 [Volgende paragraaf direct na het kopje]</p>
 
 <p><strong>Bronnen en meer informatie</strong></p>

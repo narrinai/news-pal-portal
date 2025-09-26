@@ -170,21 +170,12 @@ WORDPRESS HTML FORMAT - Technische stijl:
 
 KRITIEKE VEREISTEN - VOLG DEZE EXACT:
 
-1. DATUM: Gebruik standaard vandaag's datum (16 september 2025), tenzij het originele artikel een specifieke recente datum heeft die relevanter is
+1. DATUM: Gebruik altijd de datum van vandaag
 2. LOCATIE: Gebruik de relevante locatie waar het incident plaatsvond
 3. ORIGINELE KOPPEN: Creëer unieke, originele koppen op basis van de inhoud. Gebruik NOOIT standaard formules
 4. QUOTES: Als er personen worden genoemd die iets zeggen, genereer 1 relevante quote gebaseerd op de context
 5. BRONLINKS: Verwerk subtiel in de tekst, niet met "Bron:" labels
 6. BRONNENLIJST: Gebruik gewoon de naam van de bron, geen extra labels
-
-VERBODEN KOPJES (gebruik deze NOOIT):
-❌ "Wat is er gebeurd?"
-❌ "Waarom is dit belangrijk?"
-❌ "Wat betekent dit voor organisaties?"
-❌ "Hoe kunnen bedrijven zich beschermen?"
-❌ "Details van de cyberaanval"
-❌ "Impact op bedrijfsvoering"
-❌ "Reactie van het bedrijf"
 
 ORIGINELE KOPPEN VEREIST:
 ✅ Bepaal koppen op basis van de werkelijke inhoud van het artikel
@@ -198,7 +189,7 @@ QUOTE GENERATIE:
 - Formaat: "Volgens [naam/functie]: '[Quote die past bij de context en inhoud]'"
 
 VERPLICHTE STRUCTUUR:
-<p>[Relevante stad/land], 16 september 2025 - [Kernboodschap met subtiele <a href="[URL]" target="_blank">link naar originele bron</a> verwerkt in de tekst]</p>
+<p>[Relevante stad/land], [datum] - [Kernboodschap met subtiele <a href="[URL]" target="_blank">link naar originele bron</a> verwerkt in de tekst]</p>
 
 <p><strong>[Originele kop gebaseerd op inhoud]</strong><br>
 [Paragraaf met details direct na het kopje zonder extra break]</p>

@@ -220,7 +220,10 @@ Volgens CISO John Smith van het getroffen bedrijf: "We hebben onmiddellijk alle 
 LET OP:
 - ALTIJD originele koppen maken op basis van daadwerkelijke inhoud
 - NOOIT standaard formules gebruiken
-- Bij personen: genereer 1 contextgerelateerde quote`
+- Bij personen: genereer 1 contextgerelateerde quote
+- URL VALIDATIE: Test alle URLs voordat je ze toevoegt - gebruik ALLEEN werkende links
+- Als een URL 404 of fout geeft, zoek alternatieve bron of laat weg uit bronnenlijst
+- NOOIT broken links in de bronnenlijst plaatsen`
         }
       }
       

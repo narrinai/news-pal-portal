@@ -158,11 +158,14 @@ STAP 2 - HERSCHRIJVEN:
 - Maak het informatief maar leesbaar voor een breed publiek
 - Voeg relevante context toe voor Nederlandse lezers
 
-STAP 3 - BRONNEN:
-- Voeg aan het einde een complete bronnenlijst toe
+STAP 3 - BRONNEN EN URL VALIDATIE:
+- Test alle URLs voordat je ze toevoegt - gebruik ALLEEN werkende links
+- Als een URL een 404 of fout geeft, zoek een alternatieve bron of laat weg
+- Voeg aan het einde een complete bronnenlijst toe met ALLEEN geverifieerde werkende links
 - Include originele bron: ${originalUrl || '[Originele artikel URL]'}
 - Include alle online gevonden bronnen met werkende URLs
 - Format als clickbare HTML links
+- NOOIT broken of 404 links toevoegen aan de bronnenlijst
 
 KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 
@@ -190,7 +193,7 @@ FORMAT JE ANTWOORD ALS VOLGT:
 <li><a href="[RESEARCH_URL_2]" target="_blank">[EXTRA_BRON_2]</a></li>
 </ul>
 
-CONTROLEER: Vandaag's datum gebruikt? Subtiele link in intro? Clean bronnenlijst?
+CONTROLEER: Vandaag's datum gebruikt? Subtiele link in intro? Alle URLs getest en werkend? GEEN 404 links in bronnenlijst?
 
 Begin nu met het herschrijven:
 `

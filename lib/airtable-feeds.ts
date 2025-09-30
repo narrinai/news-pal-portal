@@ -144,9 +144,9 @@ export async function syncFeedsToAirtable(feeds: RSSFeedConfig[]): Promise<void>
   }
 
   try {
-    // Get existing records
+    // Get existing records from Airtable (source of truth)
     const existingRecords = await base(TABLE_NAME).select().all()
-    const existingIds = new Set(existingRecords.map(r => r.fields.id))
+    const existingById = new Map(existingRecords.map(r => [r.fields.id, r]))
     const newFeedIds = new Set(feeds.map(f => f.id))
 
     // Delete feeds that are not in the new list
@@ -158,20 +158,21 @@ export async function syncFeedsToAirtable(feeds: RSSFeedConfig[]): Promise<void>
 
     // Add or update feeds
     for (const feed of feeds) {
-      if (existingIds.has(feed.id)) {
-        // Update existing
-        const record = existingRecords.find(r => r.fields.id === feed.id)
-        if (record) {
-          await base(TABLE_NAME).update(record.id, {
-            name: feed.name,
-            url: feed.url,
-            category: feed.category,
-            enabled: feed.enabled,
-            maxarticles: feed.maxArticles || 25
-          })
+      const existingRecord = existingById.get(feed.id)
+
+      if (existingRecord) {
+        // Update existing - ONLY update enabled field, preserve other Airtable values
+        const updateFields: any = {}
+
+        // Only update enabled if it changed
+        if (existingRecord.fields.enabled !== feed.enabled) {
+          updateFields.enabled = feed.enabled
+          await base(TABLE_NAME).update(existingRecord.id, updateFields)
+          console.log(`✅ Updated ${feed.id}: enabled=${feed.enabled}`)
         }
+        // DO NOT update name, url, category, maxarticles - Airtable is source of truth!
       } else {
-        // Add new
+        // Add new feed
         await base(TABLE_NAME).create({
           id: feed.id,
           name: feed.name,
@@ -180,6 +181,7 @@ export async function syncFeedsToAirtable(feeds: RSSFeedConfig[]): Promise<void>
           enabled: feed.enabled,
           maxarticles: feed.maxArticles || 25
         })
+        console.log(`✅ Added new feed: ${feed.name}`)
       }
     }
 

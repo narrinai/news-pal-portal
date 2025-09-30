@@ -650,15 +650,15 @@ export default function SettingsPage() {
                 {tab.label}
               </button>
             ))}
-            <button
-              onClick={() => router.push('/dashboard/feeds')}
-              className="py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm flex items-center"
+            <a
+              href="/dashboard/feeds"
+              className="py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm flex items-center cursor-pointer"
             >
               RSS Feeds
               <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
-            </button>
+            </a>
           </nav>
         </div>
 

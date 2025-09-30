@@ -17,14 +17,6 @@ interface Settings {
     technical: string
     news: string
   }
-  rssFeeds: {
-    id: string
-    url: string
-    name: string
-    category: string
-    enabled: boolean
-    maxArticles?: number
-  }[]
 }
 
 export default function SettingsPage() {
@@ -146,8 +138,7 @@ export default function SettingsPage() {
       engaging: 'Write in an engaging way that captivates readers. Use examples and make it accessible.',
       technical: 'Use technical precision and detailed explanation. Add technical context where relevant.',
       news: 'Write as a professional news article with location/date intro, business-style H2 headers, and source links. Format: "[City], [date] - [lead paragraph]" followed by sections with descriptive headers like "Impact on operations" rather than questions.'
-    },
-    rssFeeds: []
+    }
   })
   
   const [saving, setSaving] = useState(false)

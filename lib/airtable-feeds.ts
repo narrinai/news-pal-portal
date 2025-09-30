@@ -146,19 +146,19 @@ export async function syncFeedsToAirtable(feeds: RSSFeedConfig[]): Promise<void>
   try {
     // Get existing records from Airtable (source of truth)
     const existingRecords = await base(TABLE_NAME).select().all()
-    const existingById = new Map(existingRecords.map(r => [r.fields.id, r]))
+    const existingById = new Map(existingRecords.map((r: any) => [r.fields.id, r]))
     const newFeedIds = new Set(feeds.map(f => f.id))
 
     // Delete feeds that are not in the new list
-    const recordsToDelete = existingRecords.filter(r => !newFeedIds.has(r.fields.id))
+    const recordsToDelete = existingRecords.filter((r: any) => !newFeedIds.has(r.fields.id))
     if (recordsToDelete.length > 0) {
-      await base(TABLE_NAME).destroy(recordsToDelete.map(r => r.id))
+      await base(TABLE_NAME).destroy(recordsToDelete.map((r: any) => r.id))
       console.log(`🗑️ Deleted ${recordsToDelete.length} feeds from Airtable`)
     }
 
     // Add or update feeds
     for (const feed of feeds) {
-      const existingRecord = existingById.get(feed.id)
+      const existingRecord: any = existingById.get(feed.id)
 
       if (existingRecord) {
         // Update existing - ONLY update enabled field, preserve other Airtable values

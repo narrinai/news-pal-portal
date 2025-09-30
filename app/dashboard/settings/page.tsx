@@ -349,34 +349,43 @@ export default function SettingsPage() {
   }
 
   const addKeyword = async (category: string) => {
-    const newKeyword = await showPrompt({
-      title: 'New keyword',
-      message: `Enter a new keyword for the "${category}" category:`,
-      promptPlaceholder: 'Keyword...',
+    const newKeywords = await showPrompt({
+      title: 'New keyword(s)',
+      message: `Enter keyword(s) for the "${category}" category (separate multiple keywords with commas):`,
+      promptPlaceholder: 'keyword1, keyword2, keyword3...',
       confirmText: 'Add',
       cancelText: 'Cancel'
     })
-    
+
+    if (!newKeywords) return
+
+    // Split by comma and trim whitespace
+    const keywordsArray = newKeywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k.length > 0)
+
     const categoryKeywords = settings.categoryKeywords[category] || []
-    if (newKeyword && !categoryKeywords.includes(newKeyword.toLowerCase())) {
+    const newUniqueKeywords = keywordsArray.filter(k => !categoryKeywords.includes(k))
+    const duplicates = keywordsArray.filter(k => categoryKeywords.includes(k))
+
+    if (newUniqueKeywords.length > 0) {
       setSettings(prev => ({
         ...prev,
         categoryKeywords: {
           ...prev.categoryKeywords,
-          [category]: [...categoryKeywords, newKeyword.toLowerCase()]
+          [category]: [...categoryKeywords, ...newUniqueKeywords]
         }
       }))
+
       showNotification({
         type: 'success',
-        title: 'Keyword added',
-        message: `"${newKeyword}" has been added to ${category}`,
-        duration: 3000
+        title: `${newUniqueKeywords.length} keyword${newUniqueKeywords.length > 1 ? 's' : ''} added`,
+        message: `Added: ${newUniqueKeywords.join(', ')}${duplicates.length > 0 ? ` (${duplicates.length} duplicate${duplicates.length > 1 ? 's' : ''} skipped)` : ''}`,
+        duration: 4000
       })
-    } else if (newKeyword && categoryKeywords.includes(newKeyword.toLowerCase())) {
+    } else if (duplicates.length > 0) {
       showNotification({
         type: 'warning',
-        title: 'Keyword exists',
-        message: `"${newKeyword}" already exists in this category`
+        title: 'All keywords exist',
+        message: `All entered keywords already exist in this category`
       })
     }
   }

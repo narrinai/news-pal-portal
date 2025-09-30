@@ -153,16 +153,29 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('cybersecurity')
   const router = useRouter()
-  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
-  const activeTab = (searchParams.get('tab') as 'categories' | 'keywords' | 'instructions') || 'categories'
+
+  // Get active tab from URL
+  const getActiveTab = (): 'categories' | 'keywords' | 'instructions' => {
+    if (typeof window === 'undefined') return 'categories'
+    const params = new URLSearchParams(window.location.search)
+    const tab = params.get('tab')
+    if (tab === 'keywords' || tab === 'instructions') return tab
+    return 'categories'
+  }
+
+  const [activeTab, setActiveTab] = useState<'categories' | 'keywords' | 'instructions'>(getActiveTab())
 
   useEffect(() => {
     loadSettings()
-  }, [])
 
-  const setActiveTab = (tab: 'categories' | 'keywords' | 'instructions') => {
-    router.push(`/dashboard/settings?tab=${tab}`)
-  }
+    // Update active tab when URL changes (for browser back/forward)
+    const handleUrlChange = () => {
+      setActiveTab(getActiveTab())
+    }
+
+    window.addEventListener('popstate', handleUrlChange)
+    return () => window.removeEventListener('popstate', handleUrlChange)
+  }, [])
 
   const loadSettings = async () => {
     try {

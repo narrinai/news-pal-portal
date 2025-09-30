@@ -1,0 +1,22 @@
+id,name,url,category,enabled,maxarticles
+security-nl-default,"Security.NL",https://www.security.nl/rss/headlines.xml,cybersecurity,true,100
+tweakers,"Tweakers",https://feeds.feedburner.com/tweakers/mixed,cybersecurity,true,100
+nu-tech,"NU.nl Tech",https://www.nu.nl/rss/Tech,cybersecurity,true,100
+hackernews,"The Hacker News",https://feeds.feedburner.com/TheHackersNews,cybersecurity,true,100
+krebs,"Krebs on Security",https://krebsonsecurity.com/feed/,cybersecurity,true,100
+securityweek,"Security Week",https://www.securityweek.com/feed/,cybersecurity,true,100
+threatpost,"Threatpost",https://threatpost.com/feed/,cybersecurity,true,100
+darkreading,"Dark Reading",https://www.darkreading.com/rss.xml,cybersecurity,true,100
+bleepingcomputer,"BleepingComputer",https://www.bleepingcomputer.com/feed/,cybersecurity,true,100
+csoonline,"CSO Online",https://www.csoonline.com/feed/,cybersecurity,true,100
+rss-app-cybersecurity,"RSS App Cybersecurity Feed",https://rss.app/feeds/_8Sg3b109sUx8r8Y4.xml,cybersecurity,true,100
+rss-app-new-cybersecurity,"RSS App New Cybersecurity Feed",https://rss.app/feeds/_NgLaShZokHh9UbEF.xml,cybersecurity,true,100
+tweakers-bouw,"Tweakers",https://feeds.feedburner.com/tweakers/mixed,bouwcertificaten,true,100
+computable,"Computable",https://www.computable.nl/rss.xml,bouwcertificaten,true,100
+iculture,"iCulture",https://www.iculture.nl/feed/,bouwcertificaten,true,50
+techcrunch-ai,"TechCrunch",https://techcrunch.com/feed/,ai-companion,true,100
+ars-technica-ai,"Ars Technica",https://feeds.arstechnica.com/arstechnica/index,ai-learning,true,100
+wired-ai,"Wired",https://www.wired.com/feed/rss,ai-companion,true,50
+theverge-ai,"The Verge",https://www.theverge.com/rss/index.xml,ai-learning,true,50
+reuters-marketing,"Reuters Technology",https://feeds.reuters.com/reuters/technologyNews,marketingtoolz,true,50
+bbc-marketing,"BBC Technology",https://feeds.bbci.co.uk/news/technology/rss.xml,marketingtoolz,true,50

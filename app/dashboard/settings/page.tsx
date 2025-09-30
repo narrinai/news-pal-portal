@@ -150,22 +150,13 @@ export default function SettingsPage() {
     rssFeeds: []
   })
   
-  const [showAddFeed, setShowAddFeed] = useState(false)
-  const [newFeed, setNewFeed] = useState({
-    url: '',
-    name: '',
-    category: 'cybersecurity',
-    maxArticles: 25
-  })
-  
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'categories' | 'keywords' | 'instructions' | 'feeds'>('categories')
+  const [activeTab, setActiveTab] = useState<'categories' | 'keywords' | 'instructions'>('categories')
   const [selectedCategory, setSelectedCategory] = useState('cybersecurity')
   const router = useRouter()
 
   useEffect(() => {
     loadSettings()
-    loadFeeds()
   }, [])
 
   const loadSettings = async () => {
@@ -640,8 +631,7 @@ export default function SettingsPage() {
             {[
               { id: 'categories', label: 'Categories' },
               { id: 'keywords', label: 'Keywords' },
-              { id: 'instructions', label: 'AI Instructions' },
-              { id: 'feeds', label: 'RSS Feeds' }
+              { id: 'instructions', label: 'AI Instructions' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -655,6 +645,15 @@ export default function SettingsPage() {
                 {tab.label}
               </button>
             ))}
+            <button
+              onClick={() => router.push('/dashboard/feeds')}
+              className="py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm flex items-center"
+            >
+              RSS Feeds
+              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </button>
           </nav>
         </div>
 
@@ -824,195 +823,6 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* RSS Feeds Tab */}
-        {activeTab === 'feeds' && (
-          <div className="space-y-6">
-            {/* Add Website Form */}
-            {showAddFeed && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">Add New Website Source</h3>
-                    <p className="text-sm text-gray-600 mt-1">We'll automatically detect and use the RSS feed</p>
-                  </div>
-                  <button
-                    onClick={() => setShowAddFeed(false)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Website Name
-                    </label>
-                    <input
-                      type="text"
-                      value={newFeed.name}
-                      onChange={(e) => setNewFeed(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      placeholder="e.g. TechCrunch Security"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Website URL
-                    </label>
-                    <input
-                      type="url"
-                      value={newFeed.url}
-                      onChange={(e) => setNewFeed(prev => ({ ...prev, url: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      placeholder="https://example.com (we'll find the RSS feed)"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Category
-                      </label>
-                      <select
-                        value={newFeed.category}
-                        onChange={(e) => setNewFeed(prev => ({ ...prev, category: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      >
-                        {settings.categories.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Max Articles
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="50"
-                        value={newFeed.maxArticles}
-                        onChange={(e) => setNewFeed(prev => ({ ...prev, maxArticles: parseInt(e.target.value) }))}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      onClick={() => setShowAddFeed(false)}
-                      className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={addFeed}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-200"
-                    >
-                      Add Website
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Active Feeds */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold">RSS Feed Sources</h2>
-                  <p className="text-sm text-gray-600 mt-1">Manage your RSS feed sources for article collection</p>
-                </div>
-                <button
-                  onClick={() => {
-                    console.log('Add Website button clicked')
-                    setShowAddFeed(true)
-                  }}
-                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
-                >
-                  + Add RSS Feed
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {settings.rssFeeds.map((feed) => (
-                  <div key={feed.id} className="border rounded-lg p-4 flex items-center justify-between hover:border-gray-300 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <div>
-                          <div className="font-medium text-gray-900">{feed.name}</div>
-                          <div className="text-sm text-gray-500">{feed.url}</div>
-                          <div className="text-xs text-gray-400 mt-1">
-                            {feed.category} • Max {feed.maxArticles || 25} articles
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-4">
-                      {/* Toggle Switch */}
-                      <button
-                        onClick={() => toggleFeed(feed.id)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                          feed.enabled
-                            ? 'bg-green-500 focus:ring-green-500'
-                            : 'bg-gray-300 focus:ring-gray-400'
-                        }`}
-                        role="switch"
-                        aria-checked={feed.enabled}
-                        aria-label={`Toggle ${feed.name}`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            feed.enabled ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-
-                      <button
-                        onClick={() => removeFeed(feed.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-colors"
-                        aria-label={`Delete ${feed.name}`}
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {settings.rssFeeds.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No website sources configured. Add one to get started!
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* How It Works */}
-            <div className="bg-blue-50 rounded-lg p-6">
-              <h3 className="font-semibold text-blue-900 mb-3">🔍 How the article discovery works:</h3>
-              <div className="text-sm text-blue-800 space-y-2">
-                <div><strong>1. Website Sources:</strong> Only active sources are processed</div>
-                <div><strong>2. RSS Detection:</strong> We automatically find RSS feeds from website URLs</div>
-                <div><strong>3. Keyword Filtering:</strong> Articles are filtered using your custom keywords</div>
-                <div><strong>4. Duplicate Prevention:</strong> URL-based filtering to avoid duplicates</div>
-                <div><strong>5. Manual Review:</strong> Articles start as "pending" for your selection</div>
-              </div>
-              
-              <div className="mt-4 p-3 bg-blue-100 rounded-md">
-                <div className="font-medium text-blue-900 mb-1">💡 Tip:</div>
-                <div className="text-sm text-blue-700">
-                  Add website homepages (like https://techcrunch.com) - we'll automatically find their RSS feeds!
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

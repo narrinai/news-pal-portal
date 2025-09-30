@@ -178,7 +178,7 @@ KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 FORMAT JE ANTWOORD ALS VOLGT:
 [Krachtige Nederlandse titel ZONDER "TITEL:" ervoor]
 ---
-<p>[Relevante locatie], [datum] - [kernboodschap met subtiele <a href="${originalUrl || '[URL]'}" target="_blank">link verwerkt in tekst</a>]</p>
+<p>[Relevante locatie], [datum] - [kernboodschap]</p>
 
 <p><strong>[Origineel kopje gebaseerd op inhoud]</strong><br>
 [Details direct na het kopje, geen extra regel ertussen]</p>

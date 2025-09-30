@@ -88,6 +88,14 @@
     "maxArticles": 100
   },
   {
+    "id": "rss-app-new-cybersecurity",
+    "url": "https://rss.app/feeds/_NgLaShZokHh9UbEF.xml",
+    "name": "RSS App New Cybersecurity Feed",
+    "category": "cybersecurity",
+    "enabled": true,
+    "maxArticles": 100
+  },
+  {
     "id": "tweakers-bouw",
     "url": "https://feeds.feedburner.com/tweakers/mixed",
     "name": "Tweakers",

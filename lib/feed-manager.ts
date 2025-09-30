@@ -105,6 +105,14 @@ const CYBERSECURITY_FEEDS: RSSFeedConfig[] = [
     category: 'cybersecurity',
     enabled: true,
     maxArticles: 100
+  },
+  {
+    id: 'rss-app-new-cybersecurity',
+    url: 'https://rss.app/feeds/_NgLaShZokHh9UbEF.xml',
+    name: 'RSS App New Cybersecurity Feed',
+    category: 'cybersecurity',
+    enabled: true,
+    maxArticles: 100
   }
 ]
 
@@ -291,52 +299,25 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
       console.warn('Could not load feeds from file:', fileError.message)
     }
 
-    // PRIORITY 4: Initialize with defaults and save them persistently
-    console.log('🔧 No feeds found - initializing with working defaults and saving persistently...')
-    const workingDefaults = [
-      {
-        id: 'hackernews-persistent',
-        url: 'https://feeds.feedburner.com/TheHackersNews',
-        name: 'The Hacker News',
-        category: 'cybersecurity',
-        enabled: true,
-        maxArticles: 100
-      },
-      {
-        id: 'tweakers-persistent',
-        url: 'https://feeds.feedburner.com/tweakers/mixed',
-        name: 'Tweakers',
-        category: 'cybersecurity',
-        enabled: true,
-        maxArticles: 100
-      },
-      {
-        id: 'security-nl-persistent',
-        url: 'https://www.security.nl/rss/headlines.xml',
-        name: 'Security.NL',
-        category: 'cybersecurity',
-        enabled: true,
-        maxArticles: 100
-      },
-      {
-        id: 'krebs-persistent',
-        url: 'https://krebsonsecurity.com/feed/',
-        name: 'Krebs on Security',
-        category: 'cybersecurity',
-        enabled: true,
-        maxArticles: 100
-      },
-      {
-        id: 'rss-app-cybersecurity',
-        url: 'https://rss.app/feeds/_8Sg3b109sUx8r8Y4.xml',
-        name: 'RSS App Cybersecurity Feed',
-        category: 'cybersecurity',
-        enabled: true,
-        maxArticles: 100
-      }
-    ]
+    // PRIORITY 4: Only use defaults if NO persistent file exists
+    // Check if persistent file exists to avoid overwriting manual changes
+    try {
+      const fs = require('fs')
+      const path = require('path')
+      const persistentFilePath = path.join(process.cwd(), 'feeds-persistent.json')
 
-    // Save defaults persistently (including all feeds, not just working defaults)
+      if (fs.existsSync(persistentFilePath)) {
+        // File exists but couldn't be read earlier - return defaults WITHOUT saving
+        console.log('⚠️ Persistent file exists but is empty or unreadable - using defaults WITHOUT overwriting file')
+        customFeeds = DEFAULT_RSS_FEEDS
+        return DEFAULT_RSS_FEEDS
+      }
+    } catch (error) {
+      console.warn('Could not check for persistent file:', error.message)
+    }
+
+    // Only initialize with defaults if no persistent file exists at all
+    console.log('🔧 No persistent file found - initializing with defaults and saving...')
     await saveFeedConfigs(DEFAULT_RSS_FEEDS)
     console.log(`✅ Saved ${DEFAULT_RSS_FEEDS.length} default feeds persistently`)
     return DEFAULT_RSS_FEEDS

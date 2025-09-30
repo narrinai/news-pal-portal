@@ -115,9 +115,7 @@ Voorbeeld gewenste output structuur:
 
           professional: process.env.AI_INSTRUCTION_PROFESSIONAL || `Gebruik een zakelijke, professionele toon. Focus op de business impact en relevantie.
 
-RESEARCH FIRST: Zoek online naar 2-3 gerelateerde bronnen over dit cybersecurity onderwerp. Controleer vendor advisories, NIST, CISA, en andere betrouwbare bronnen voor aanvullende context of updates.
-
-Noem de bronnen en voeg onderaan het artikel een lijst met bronnen op. Voeg extra bronnen toe die je via research hebt gevonden met de url eronder. Voeg de url toe aan de bronnen van de originele bron (het originele artikel).
+Voeg onderaan het artikel een lijst met bronnen op, inclusief de originele bron.
 
 WORDPRESS HTML FORMAT - Nieuwsbericht stijl:
 <h2>Wat is er gebeurd?</h2>
@@ -135,7 +133,6 @@ WORDPRESS HTML FORMAT - Nieuwsbericht stijl:
 <h2>Bronnen en meer informatie</h2>
 <ul>
 <li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">Origineel artikel</a></li>
-<li><a href="https://example.com/extra-bron" target="_blank">Aanvullende bronnen</a></li>
 </ul>`,
 
           engaging: process.env.AI_INSTRUCTION_ENGAGING || `Schrijf op een boeiende manier die lezers betrekt. Gebruik voorbeelden en maak het toegankelijk.
@@ -169,9 +166,7 @@ WORDPRESS HTML FORMAT - Technische stijl:
 <h2>Mitigatie en Patches</h2>
 <p>Technische oplossingen en configuraties...</p>`,
 
-          news: process.env.AI_INSTRUCTION_NEWS || `RESEARCH FIRST: Zoek online naar 3-4 gerelateerde bronnen over dit onderwerp. Controleer betrouwbare bronnen voor aanvullende context of updates.
-
-KRITIEKE VEREISTEN - VOLG DEZE EXACT:
+          news: process.env.AI_INSTRUCTION_NEWS || `KRITIEKE VEREISTEN - VOLG DEZE EXACT:
 
 1. DATUM: Gebruik altijd de datum van vandaag
 2. LOCATIE: Gebruik de relevante locatie waar het incident plaatsvond
@@ -207,9 +202,6 @@ VERPLICHTE STRUCTUUR:
 <p><strong>Bronnen en meer informatie</strong></p>
 <ul>
 <li><a href="[ORIGINELE_ARTIKEL_URL]" target="_blank">[PLATFORM_NAAM]</a></li>
-<li><a href="[RESEARCH_URL_1]" target="_blank">[EXTRA_BRON_1]</a></li>
-<li><a href="[RESEARCH_URL_2]" target="_blank">[EXTRA_BRON_2]</a></li>
-<li><a href="[RESEARCH_URL_3]" target="_blank">[EXTRA_BRON_3]</a></li>
 </ul>
 
 VOORBEELD ORIGINELE KOPPEN:
@@ -224,9 +216,7 @@ LET OP:
 - ALTIJD originele koppen maken op basis van daadwerkelijke inhoud
 - NOOIT standaard formules gebruiken
 - Bij personen: genereer 1 contextgerelateerde quote
-- URL VALIDATIE: Test alle URLs voordat je ze toevoegt - gebruik ALLEEN werkende links
-- Als een URL 404 of fout geeft, zoek alternatieve bron of laat weg uit bronnenlijst
-- NOOIT broken links in de bronnenlijst plaatsen`
+- Voeg de originele artikel URL toe in de bronnenlijst`
         }
       }
       

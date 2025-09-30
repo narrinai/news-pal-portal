@@ -27,19 +27,15 @@ export async function rewriteArticle(
     const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
     
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',  // Updated to model with web browsing capability
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',
-          content: customInstructions || `Je bent een professionele Nederlandse tech journalist gespecialiseerd in cybersecurity. 
+          content: customInstructions || `Je bent een professionele Nederlandse tech journalist gespecialiseerd in cybersecurity.
 
-Je hebt web browsing capability. Voordat je het artikel herschrijft:
-1. Zoek online naar 2-3 gerelateerde bronnen over hetzelfde onderwerp
-2. Gebruik betrouwbare cybersecurity bronnen (NIST, CISA, vendor advisories)
-3. Controleer of er recente updates of aanvullende informatie beschikbaar is
-4. Integreer deze extra informatie in je herschrijving
+Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, waarbij je de kernboodschap behoudt.
 
-Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, waarbij je de kernboodschap behoudt maar verrijkt met aanvullende bronnen en context.`
+BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk alleen met de informatie die je krijgt.`
         },
         {
           role: 'user',
@@ -47,7 +43,8 @@ Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, wa
         }
       ],
       temperature: 0.7,
-      max_tokens: 1500
+      max_tokens: 2000,
+      timeout: 90000  // 90 second timeout
     })
 
     const response = completion.choices[0]?.message?.content || ''

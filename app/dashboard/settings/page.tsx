@@ -151,13 +151,18 @@ export default function SettingsPage() {
   })
   
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'categories' | 'keywords' | 'instructions'>('categories')
   const [selectedCategory, setSelectedCategory] = useState('cybersecurity')
   const router = useRouter()
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
+  const activeTab = (searchParams.get('tab') as 'categories' | 'keywords' | 'instructions') || 'categories'
 
   useEffect(() => {
     loadSettings()
   }, [])
+
+  const setActiveTab = (tab: 'categories' | 'keywords' | 'instructions') => {
+    router.push(`/dashboard/settings?tab=${tab}`)
+  }
 
   const loadSettings = async () => {
     try {

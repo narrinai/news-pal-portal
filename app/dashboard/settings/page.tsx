@@ -634,21 +634,21 @@ export default function SettingsPage() {
         <div className="border-b border-gray-200 mb-8">
           <nav className="-mb-px flex space-x-8">
             {[
-              { id: 'categories', label: 'Categories' },
-              { id: 'keywords', label: 'Keywords' },
-              { id: 'instructions', label: 'AI Instructions' }
+              { id: 'categories', label: 'Categories', href: '/dashboard/settings' },
+              { id: 'keywords', label: 'Keywords', href: '/dashboard/settings?tab=keywords' },
+              { id: 'instructions', label: 'AI Instructions', href: '/dashboard/settings?tab=instructions' }
             ].map((tab) => (
-              <button
+              <a
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                href={tab.href}
+                className={`py-2 px-1 border-b-2 font-medium text-sm cursor-pointer ${
                   activeTab === tab.id
                     ? 'border-primary-500 text-primary-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 {tab.label}
-              </button>
+              </a>
             ))}
             <a
               href="/dashboard/feeds"

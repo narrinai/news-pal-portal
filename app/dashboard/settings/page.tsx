@@ -146,6 +146,13 @@ export default function SettingsPage() {
   const [feeds, setFeeds] = useState<any[]>([])
   const [feedsLoading, setFeedsLoading] = useState(false)
   const [feedsLoaded, setFeedsLoaded] = useState(false)
+  const [showAddFeed, setShowAddFeed] = useState(false)
+  const [newFeed, setNewFeed] = useState({
+    url: '',
+    name: '',
+    category: 'cybersecurity',
+    maxArticles: 25
+  })
   const router = useRouter()
 
   // Get active tab from URL
@@ -208,16 +215,125 @@ export default function SettingsPage() {
         body: JSON.stringify({ feeds: updatedFeeds })
       })
 
-      if (!response.ok) {
+      if (response.ok) {
+        const toggledFeed = updatedFeeds.find(f => f.id === feedId)
+        showNotification({
+          type: 'success',
+          title: toggledFeed?.enabled ? 'Feed enabled' : 'Feed disabled',
+          message: `${toggledFeed?.name} is now ${toggledFeed?.enabled ? 'enabled' : 'disabled'}`,
+          duration: 3000
+        })
+      } else {
         // Revert on error
         setFeeds(feeds)
         showNotification({
+          type: 'error',
+          title: 'Save failed',
+          message: 'Could not save feed status'
+        })
+      }
+    } catch (error) {
+      console.error('Error toggling feed:', error)
+      setFeeds(feeds)
+      showNotification({
         type: 'error',
-        title: 'Error loading feeds',
-        message: 'Could not load RSS feeds'
+        title: 'Network error',
+        message: 'Could not connect to server'
       })
-    } finally {
-      setFeedsLoading(false)
+    }
+  }
+
+  const addFeed = async () => {
+    if (!newFeed.url || !newFeed.name) {
+      showNotification({
+        type: 'warning',
+        title: 'Fields required',
+        message: 'URL and name are required to add an RSS feed'
+      })
+      return
+    }
+
+    try {
+      const response = await fetch('/api/feeds', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newFeed,
+          enabled: true
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        // Add new feed to top of the list immediately
+        setFeeds(prev => [result.feed, ...prev])
+        setNewFeed({ url: '', name: '', category: 'cybersecurity', maxArticles: 25 })
+        setShowAddFeed(false)
+        showNotification({
+          type: 'success',
+          title: 'RSS feed added',
+          message: `${newFeed.name} has been successfully added`,
+          duration: 4000
+        })
+      } else {
+        showNotification({
+          type: 'error',
+          title: 'Add failed',
+          message: 'Could not add RSS feed'
+        })
+      }
+    } catch (error) {
+      console.error('Error adding feed:', error)
+      showNotification({
+        type: 'error',
+        title: 'Network error',
+        message: 'Could not add RSS feed'
+      })
+    }
+  }
+
+  const removeFeed = async (feedId: string) => {
+    const feedToRemove = feeds.find(f => f.id === feedId)
+    const confirmed = await showConfirm({
+      title: 'Remove RSS feed',
+      message: `Are you sure you want to remove "${feedToRemove?.name}"? This action cannot be undone.`,
+      confirmText: 'Remove',
+      cancelText: 'Cancel'
+    })
+
+    if (!confirmed) return
+
+    const updatedFeeds = feeds.filter(feed => feed.id !== feedId)
+
+    try {
+      const response = await fetch('/api/feeds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feeds: updatedFeeds })
+      })
+
+      if (response.ok) {
+        setFeeds(updatedFeeds)
+        showNotification({
+          type: 'success',
+          title: 'Feed removed',
+          message: `${feedToRemove?.name} has been successfully removed`,
+          duration: 4000
+        })
+      } else {
+        showNotification({
+          type: 'error',
+          title: 'Remove failed',
+          message: 'Could not remove RSS feed'
+        })
+      }
+    } catch (error) {
+      console.error('Error removing feed:', error)
+      showNotification({
+        type: 'error',
+        title: 'Network error',
+        message: 'Could not connect to server'
+      })
     }
   }
 
@@ -456,6 +572,15 @@ export default function SettingsPage() {
               <a
                 key={tab.id}
                 href={tab.href}
+                onClick={(e) => {
+                  e.preventDefault()
+                  setActiveTab(tab.id as 'categories' | 'keywords' | 'instructions' | 'feeds')
+                  window.history.pushState({}, '', tab.href)
+                  // Load feeds when switching to feeds tab
+                  if (tab.id === 'feeds' && !feedsLoaded) {
+                    loadFeeds()
+                  }
+                }}
                 className={`py-2 px-1 border-b-2 font-medium text-sm cursor-pointer ${
                   activeTab === tab.id
                     ? 'border-primary-500 text-primary-600'
@@ -636,68 +761,208 @@ export default function SettingsPage() {
 
         {/* RSS Feeds Tab */}
         {activeTab === 'feeds' && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-xl font-semibold">RSS Feed Sources</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  {feedsLoading ? 'Loading feeds...' : `${feeds.length} feeds configured • ${feeds.filter(f => f.enabled).length} active`}
-                </p>
-              </div>
-              <a
-                href="/dashboard/feeds"
-                className="inline-flex items-center px-4 py-2 bg-gray-900 text-white hover:bg-gray-800 rounded-lg text-sm font-medium transition-colors duration-200"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                Manage Feeds
-              </a>
-            </div>
+          <>
+            {/* Add Feed Form */}
+            {showAddFeed && (
+              <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">Add New RSS Feed</h3>
+                    <p className="text-sm text-gray-600 mt-1">We'll automatically detect and use the RSS feed</p>
+                  </div>
+                  <button
+                    onClick={() => setShowAddFeed(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-            {feedsLoading ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                <p className="mt-2 text-gray-600">Loading feeds...</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {feeds.map((feed) => (
-                  <div key={feed.id} className="border rounded-lg p-4 flex items-center justify-between hover:border-gray-300 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-2 h-2 rounded-full ${feed.enabled ? 'bg-green-500' : 'bg-gray-400'}`} />
-                        <div>
-                          <div className="font-medium text-gray-900">{feed.name}</div>
-                          <div className="text-sm text-gray-500">{feed.url}</div>
-                          <div className="text-xs text-gray-400 mt-1">
-                            {feed.category} • Max {feed.maxArticles || 25} articles • {feed.enabled ? 'Active' : 'Inactive'}
-                          </div>
-                        </div>
-                      </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Feed Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newFeed.name}
+                      onChange={(e) => setNewFeed(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      placeholder="e.g. TechCrunch Security"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Feed URL
+                    </label>
+                    <input
+                      type="url"
+                      value={newFeed.url}
+                      onChange={(e) => setNewFeed(prev => ({ ...prev, url: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      placeholder="https://example.com/feed"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Category
+                      </label>
+                      <select
+                        value={newFeed.category}
+                        onChange={(e) => setNewFeed(prev => ({ ...prev, category: e.target.value }))}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      >
+                        {settings.categories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Max Articles
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="200"
+                        value={newFeed.maxArticles}
+                        onChange={(e) => setNewFeed(prev => ({ ...prev, maxArticles: parseInt(e.target.value) }))}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      />
                     </div>
                   </div>
-                ))}
 
-                {feeds.length === 0 && !feedsLoading && (
-                  <div className="text-center py-12 text-gray-500">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7m-6 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                    </svg>
-                    <p className="mt-4 text-lg font-medium">No RSS feeds configured</p>
-                    <p className="mt-2 text-sm">Click "Manage Feeds" to add your first feed</p>
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => setShowAddFeed(false)}
+                      className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={addFeed}
+                      className="px-4 py-2 bg-gray-900 text-white hover:bg-gray-800 rounded-md transition-colors duration-200"
+                    >
+                      Add Feed
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
-            <div className="mt-6 bg-blue-50 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">ℹ️ RSS Feed Management</h3>
-              <p className="text-sm text-blue-800">
-                This is a read-only view. To add, edit, or remove feeds, click the <strong>"Manage Feeds"</strong> button above to go to the full feed management page.
-              </p>
+            {/* Feeds List */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold">RSS Feed Sources</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {feedsLoading ? 'Loading feeds...' : `${feeds.length} feeds configured • ${feeds.filter(f => f.enabled).length} active`}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAddFeed(true)}
+                  className="bg-gray-900 text-white hover:bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                >
+                  + Add RSS Feed
+                </button>
+              </div>
+
+              {feedsLoading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                  <p className="mt-2 text-gray-600">Loading feeds...</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {feeds.map((feed) => (
+                    <div key={feed.id} className="border rounded-lg p-4 flex items-center justify-between hover:border-gray-300 transition-colors">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
+                          <div>
+                            <div className="font-medium text-gray-900">{feed.name}</div>
+                            <div className="text-sm text-gray-500">{feed.url}</div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {feed.category} • Max {feed.maxArticles || 25} articles
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-4">
+                        {/* Toggle Switch */}
+                        <button
+                          onClick={() => toggleFeed(feed.id)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                            feed.enabled
+                              ? 'bg-green-500 focus:ring-green-500'
+                              : 'bg-gray-300 focus:ring-gray-400'
+                          }`}
+                          role="switch"
+                          aria-checked={feed.enabled}
+                          aria-label={`Toggle ${feed.name}`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              feed.enabled ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+
+                        <button
+                          onClick={() => removeFeed(feed.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-colors"
+                          aria-label={`Delete ${feed.name}`}
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {feeds.length === 0 && !feedsLoading && (
+                    <div className="text-center py-12 text-gray-500">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7m-6 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                      </svg>
+                      <p className="mt-4 text-lg font-medium">No RSS feeds configured</p>
+                      <p className="mt-2 text-sm">Add your first feed to start collecting articles</p>
+                      <button
+                        onClick={() => setShowAddFeed(true)}
+                        className="mt-4 bg-gray-900 text-white hover:bg-gray-800 px-6 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                      >
+                        + Add Your First Feed
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
+
+            {/* Info Card */}
+            <div className="mt-6 bg-blue-50 rounded-lg p-6">
+              <h3 className="font-semibold text-blue-900 mb-3">🔍 How RSS feed management works:</h3>
+              <div className="text-sm text-blue-800 space-y-2">
+                <div><strong>1. Centralized in Airtable:</strong> All feed configurations are stored in Airtable</div>
+                <div><strong>2. Instant Sync:</strong> Changes here sync immediately to Airtable</div>
+                <div><strong>3. Manual Control:</strong> Edit maxArticles and other settings directly in Airtable</div>
+                <div><strong>4. Active Feeds Only:</strong> Only enabled feeds are processed during article collection</div>
+                <div><strong>5. No Code Deployments:</strong> Add or remove feeds without touching code</div>
+              </div>
+
+              <div className="mt-4 p-3 bg-blue-100 rounded-md">
+                <div className="font-medium text-blue-900 mb-1">💡 Pro Tip:</div>
+                <div className="text-sm text-blue-700">
+                  You can edit feed names, URLs, categories, and maxArticles directly in Airtable. Changes are reflected immediately!
+                </div>
+              </div>
+            </div>
+          </>
         )}
 
       </div>

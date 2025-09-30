@@ -939,10 +939,9 @@ export default function SettingsPage() {
 
               <div className="space-y-4">
                 {settings.rssFeeds.map((feed) => (
-                  <div key={feed.id} className="border rounded-lg p-4 flex items-center justify-between">
+                  <div key={feed.id} className="border rounded-lg p-4 flex items-center justify-between hover:border-gray-300 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${feed.enabled ? 'bg-green-500' : 'bg-gray-400'}`} />
                         <div>
                           <div className="font-medium text-gray-900">{feed.name}</div>
                           <div className="text-sm text-gray-500">{feed.url}</div>
@@ -952,24 +951,35 @@ export default function SettingsPage() {
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center space-x-2">
+
+                    <div className="flex items-center space-x-4">
+                      {/* Toggle Switch */}
                       <button
                         onClick={() => toggleFeed(feed.id)}
-                        className={`px-3 py-1 rounded text-sm font-medium ${
-                          feed.enabled 
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                          feed.enabled
+                            ? 'bg-green-500 focus:ring-green-500'
+                            : 'bg-gray-300 focus:ring-gray-400'
                         }`}
+                        role="switch"
+                        aria-checked={feed.enabled}
+                        aria-label={`Toggle ${feed.name}`}
                       >
-                        {feed.enabled ? 'Active' : 'Inactive'}
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            feed.enabled ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
                       </button>
-                      
+
                       <button
                         onClick={() => removeFeed(feed.id)}
-                        className="text-red-600 hover:text-red-700 text-sm font-medium px-2"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-colors"
+                        aria-label={`Delete ${feed.name}`}
                       >
-                        🗑️
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
                     </div>
                   </div>

@@ -48,9 +48,12 @@ export default async function handler(req, res) {
             ],
             'ai-companion': [
               'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual assistant', 'virtual companion',
-              'chatbot', 'chat bot', 'conversational AI', 'character AI', 'personality AI', 'emotional AI',
-              'companion robot', 'social robot', 'humanoid', 'android', 'synthetic human', 'digital human',
-              'avatar', 'virtual character', 'AI friend', 'AI relationship', 'digital companion', 'virtual being'
+              'conversational AI', 'character AI', 'personality AI', 'emotional AI',
+              'companion robot', 'social robot', 'humanoid robot', 'synthetic human', 'digital human',
+              'virtual character', 'AI friend', 'AI relationship', 'digital companion', 'virtual being',
+              'artificial companion', 'robot companion', 'AI chat companion', 'emotional support AI',
+              'therapeutic AI', 'mental health AI', 'loneliness AI', 'AI therapy companion',
+              'replika', 'character.ai', 'xiaoice', 'romantic AI', 'dating AI', 'intimacy AI'
             ],
             'ai-learning': [
               'AI learning', 'artificial intelligence learning', 'machine learning', 'deep learning', 'neural networks',

@@ -91,15 +91,12 @@ export async function getLiveArticles(disableFiltering = false): Promise<{
           ],
           'ai-companion': [
             'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual assistant', 'virtual companion',
-            'chatbot', 'chat bot', 'conversational AI', 'character AI', 'personality AI', 'emotional AI',
-            'companion robot', 'social robot', 'humanoid', 'android', 'synthetic human', 'digital human',
-            'avatar', 'virtual character', 'AI friend', 'AI relationship', 'digital companion', 'virtual being',
-            'artificial companion', 'robot companion', 'AI chat', 'AI conversation', 'AI therapy',
-            'therapeutic AI', 'mental health AI', 'wellness AI', 'emotional support', 'loneliness',
-            'social isolation', 'human-AI interaction', 'anthropomorphic', 'empathy AI', 'emotional intelligence',
-            'natural language processing', 'nlp', 'speech recognition', 'voice synthesis', 'text to speech',
-            'voice assistant', 'alexa', 'siri', 'google assistant', 'cortana', 'replika', 'xiaoice',
-            'romantic AI', 'dating AI', 'relationship AI', 'intimacy AI', 'companionship technology'
+            'conversational AI', 'character AI', 'personality AI', 'emotional AI',
+            'companion robot', 'social robot', 'humanoid robot', 'synthetic human', 'digital human',
+            'virtual character', 'AI friend', 'AI relationship', 'digital companion', 'virtual being',
+            'artificial companion', 'robot companion', 'AI chat companion', 'emotional support AI',
+            'therapeutic AI', 'mental health AI', 'loneliness AI', 'AI therapy companion',
+            'replika', 'character.ai', 'xiaoice', 'romantic AI', 'dating AI', 'intimacy AI'
           ],
           'ai-learning': [
             'AI learning', 'artificial intelligence learning', 'machine learning', 'deep learning', 'neural networks',

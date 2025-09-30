@@ -229,7 +229,22 @@ let customFeeds: RSSFeedConfig[] = []
 // Feed configuration storage/retrieval functions
 export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
   try {
-    // PRIORITY 1: Try to load from persistent API storage
+    // PRIORITY 1: Try to load from Airtable (server-side only)
+    if (typeof window === 'undefined') {
+      try {
+        const { loadFeedsFromAirtable } = require('./airtable-feeds')
+        const airtableFeeds = await loadFeedsFromAirtable()
+        if (airtableFeeds.length > 0) {
+          customFeeds = airtableFeeds
+          console.log(`✅ Using ${airtableFeeds.length} feeds from Airtable`)
+          return airtableFeeds
+        }
+      } catch (airtableError) {
+        console.warn('Could not load from Airtable, trying fallback methods:', airtableError.message)
+      }
+    }
+
+    // PRIORITY 2: Try to load from persistent API storage
     try {
       const response = await fetch('http://localhost:3000/api/feeds/store')
       if (response.ok) {
@@ -332,28 +347,22 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
 export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
   try {
     console.log('Saving RSS feed configs:', feeds.length, 'feeds')
-    
+
     // Store in memory (immediate availability)
     customFeeds = [...feeds]
-    
-    // Store via API for persistence
-    try {
-      const response = await fetch('http://localhost:3000/api/feeds/store', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feeds })
-      })
-      if (response.ok) {
-        const result = await response.json()
-        console.log(`RSS feeds saved to persistent API storage (${result.feeds?.length || feeds.length} feeds)`)
-      } else {
-        console.error('Failed to save to API storage, status:', response.status)
+
+    // PRIORITY 1: Save to Airtable (server-side only)
+    if (typeof window === 'undefined') {
+      try {
+        const { syncFeedsToAirtable } = require('./airtable-feeds')
+        await syncFeedsToAirtable(feeds)
+        console.log(`✅ Feeds synced to Airtable (${feeds.length} feeds)`)
+      } catch (airtableError) {
+        console.warn('Could not sync to Airtable:', airtableError.message)
       }
-    } catch (apiError) {
-      console.warn('Could not save to API storage:', apiError.message)
     }
 
-    // Also save to persistent file system as backup
+    // PRIORITY 2: Save to persistent file system as backup
     try {
       const fs = require('fs')
       const path = require('path')
@@ -365,10 +374,14 @@ export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
     }
 
     // Clear RSS cache to force refresh with new feeds
-    const { refreshRSSCache } = require('./article-manager')
-    refreshRSSCache()
-    console.log('RSS cache cleared - new feeds will be used immediately')
-    
+    try {
+      const { refreshRSSCache } = require('./article-manager')
+      refreshRSSCache()
+      console.log('RSS cache cleared - new feeds will be used immediately')
+    } catch (cacheError) {
+      console.warn('Could not clear RSS cache:', cacheError.message)
+    }
+
     // Log the current configuration
     feeds.forEach(feed => {
       console.log(`- ${feed.name}: ${feed.enabled ? 'enabled' : 'disabled'} (${feed.url})`)

@@ -1,4 +1,6 @@
 import { getFeedConfigs, saveFeedConfigs, validateFeedConfig, generateFeedId, DEFAULT_RSS_FEEDS } from '../../lib/feed-manager'
+import { loadFeedsFromAirtable, addFeedToAirtable, updateFeedInAirtable, deleteFeedFromAirtable, syncFeedsToAirtable } from '../../lib/airtable-feeds'
+
 const fs = require('fs')
 const path = require('path')
 
@@ -19,12 +21,19 @@ function readFeedsFromFile() {
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
-      // Use centralized feed manager for consistent feed loading
-      let feeds = await getFeedConfigs()
+      // PRIORITY 1: Try loading from Airtable first
+      console.log('📡 Attempting to load feeds from Airtable...')
+      const airtableFeeds = await loadFeedsFromAirtable()
 
-      // NEVER initialize/overwrite if persistent file exists - just return what we have
-      // This prevents accidentally clearing manually added feeds
-      console.log(`✅ Returning ${feeds.length} feeds from persistent storage`)
+      if (airtableFeeds.length > 0) {
+        console.log(`✅ Returning ${airtableFeeds.length} feeds from Airtable`)
+        return res.status(200).json(airtableFeeds)
+      }
+
+      // PRIORITY 2: Fallback to local feed manager
+      console.log('⚠️ No Airtable feeds found, falling back to local storage')
+      let feeds = await getFeedConfigs()
+      console.log(`✅ Returning ${feeds.length} feeds from local storage`)
 
       return res.status(200).json(feeds)
     } catch (error) {
@@ -36,7 +45,7 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       const { feeds } = req.body
-      
+
       if (!Array.isArray(feeds)) {
         return res.status(400).json({ error: 'Feeds must be an array' })
       }
@@ -51,25 +60,26 @@ export default async function handler(req, res) {
       })
 
       if (validationErrors.length > 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Validation errors',
           details: validationErrors
         })
       }
 
-      // Save to file system first (most reliable)
+      // PRIORITY 1: Sync to Airtable
       try {
-        fs.writeFileSync(FEEDS_FILE, JSON.stringify(feeds, null, 2))
-        console.log(`✅ Saved ${feeds.length} feeds to file system`)
-      } catch (fileError) {
-        console.error('Error saving to file:', fileError)
+        await syncFeedsToAirtable(feeds)
+        console.log(`✅ Synced ${feeds.length} feeds to Airtable`)
+      } catch (airtableError) {
+        console.warn('⚠️ Airtable sync failed, saving to local storage:', airtableError.message)
       }
 
-      // Also save via feed manager (backup method)
+      // PRIORITY 2: Also save to local storage as backup
       try {
         await saveFeedConfigs(feeds)
+        console.log(`✅ Saved ${feeds.length} feeds to local storage`)
       } catch (error) {
-        console.warn('Feed manager save failed:', error)
+        console.warn('Local storage save failed:', error)
       }
 
       return res.status(200).json({
@@ -88,20 +98,24 @@ export default async function handler(req, res) {
       console.log('PUT /api/feeds - Adding new feed')
       const newFeed = req.body
       console.log('New feed data:', newFeed)
-      
+
       const errors = validateFeedConfig(newFeed)
       console.log('Validation errors:', errors)
-      
+
       if (errors.length > 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Validation errors',
           details: errors
         })
       }
 
-      const currentFeeds = await getFeedConfigs()
+      // Load current feeds from Airtable first, fallback to local
+      let currentFeeds = await loadFeedsFromAirtable()
+      if (currentFeeds.length === 0) {
+        currentFeeds = await getFeedConfigs()
+      }
       console.log('Current feeds count:', currentFeeds.length)
-      
+
       // Generate ID if not provided
       if (!newFeed.id) {
         newFeed.id = generateFeedId(newFeed.name)
@@ -111,8 +125,8 @@ export default async function handler(req, res) {
       // Check for duplicate IDs
       if (currentFeeds.some(f => f.id === newFeed.id)) {
         console.log('Duplicate ID found:', newFeed.id)
-        return res.status(400).json({ 
-          error: 'Feed with this ID already exists' 
+        return res.status(400).json({
+          error: 'Feed with this ID already exists'
         })
       }
 
@@ -124,20 +138,67 @@ export default async function handler(req, res) {
       }
       console.log('Feed with defaults:', feedWithDefaults)
 
+      // PRIORITY 1: Add to Airtable
+      try {
+        await addFeedToAirtable(feedWithDefaults)
+        console.log('✅ Feed added to Airtable')
+      } catch (airtableError) {
+        console.warn('⚠️ Airtable add failed:', airtableError.message)
+      }
+
+      // PRIORITY 2: Also save to local storage
       const updatedFeeds = [...currentFeeds, feedWithDefaults]
       await saveFeedConfigs(updatedFeeds)
-      console.log('Feed saved successfully')
+      console.log('✅ Feed saved to local storage')
 
-      return res.status(201).json({ 
+      return res.status(201).json({
         success: true,
         feed: feedWithDefaults,
         message: 'Feed added successfully'
       })
     } catch (error) {
       console.error('Error adding feed:', error)
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Failed to add feed',
-        details: error.message 
+        details: error.message
+      })
+    }
+  }
+
+  if (req.method === 'DELETE') {
+    // Delete feed
+    try {
+      const { feedId } = req.query
+
+      if (!feedId) {
+        return res.status(400).json({ error: 'Feed ID is required' })
+      }
+
+      console.log('DELETE /api/feeds - Deleting feed:', feedId)
+
+      // PRIORITY 1: Delete from Airtable
+      try {
+        await deleteFeedFromAirtable(feedId)
+        console.log('✅ Feed deleted from Airtable')
+      } catch (airtableError) {
+        console.warn('⚠️ Airtable delete failed:', airtableError.message)
+      }
+
+      // PRIORITY 2: Also delete from local storage
+      let currentFeeds = await getFeedConfigs()
+      const updatedFeeds = currentFeeds.filter(f => f.id !== feedId)
+      await saveFeedConfigs(updatedFeeds)
+      console.log('✅ Feed deleted from local storage')
+
+      return res.status(200).json({
+        success: true,
+        message: 'Feed deleted successfully'
+      })
+    } catch (error) {
+      console.error('Error deleting feed:', error)
+      return res.status(500).json({
+        error: 'Failed to delete feed',
+        details: error.message
       })
     }
   }

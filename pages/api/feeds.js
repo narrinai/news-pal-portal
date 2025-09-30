@@ -22,31 +22,9 @@ export default async function handler(req, res) {
       // Use centralized feed manager for consistent feed loading
       let feeds = await getFeedConfigs()
 
-      // If no feeds exist, initialize with working defaults
-      if (feeds.length === 0) {
-        console.log('No feeds found, initializing with defaults...')
-        const defaultFeeds = [
-          {
-            id: 'hackernews-init',
-            url: 'https://feeds.feedburner.com/TheHackersNews',
-            name: 'The Hacker News',
-            category: 'cybersecurity',
-            enabled: true,
-            maxArticles: 50
-          },
-          {
-            id: 'tweakers-init',
-            url: 'https://feeds.feedburner.com/tweakers/mixed',
-            name: 'Tweakers',
-            category: 'cybersecurity',
-            enabled: true,
-            maxArticles: 50
-          }
-        ]
-
-        await saveFeedConfigs(defaultFeeds)
-        feeds = defaultFeeds
-      }
+      // NEVER initialize/overwrite if persistent file exists - just return what we have
+      // This prevents accidentally clearing manually added feeds
+      console.log(`✅ Returning ${feeds.length} feeds from persistent storage`)
 
       return res.status(200).json(feeds)
     } catch (error) {

@@ -326,8 +326,7 @@ export default function DashboardPage() {
                 { value: 'all', label: 'All statuses', icon: '📋' },
                 { value: 'pending', label: 'Pending', icon: '⏳', count: filteredArticles.filter(a => a.status === 'pending').length },
                 { value: 'selected', label: 'Selected', icon: '✓', count: filteredArticles.filter(a => a.status === 'selected').length },
-                { value: 'rewritten', label: 'Rewritten', icon: '✨', count: filteredArticles.filter(a => a.status === 'rewritten').length },
-                { value: 'published', label: 'Published', icon: '📢', count: filteredArticles.filter(a => a.status === 'published').length }
+                { value: 'rewritten', label: 'Rewritten', icon: '✨', count: filteredArticles.filter(a => a.status === 'rewritten').length }
               ].map((status) => (
                 <button
                   key={status.value}

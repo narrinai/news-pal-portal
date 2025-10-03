@@ -43,7 +43,8 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
         }
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: 2000
+    }, {
       timeout: 90000  // 90 second timeout
     })
 
@@ -108,23 +109,95 @@ function createRewritePrompt(
   customInstructions?: string,
   originalUrl?: string
 ): string {
+  const isEnglish = options.language === 'en'
+
   const lengthInstructions = {
-    short: 'Houd de tekst kort en bondig (200-300 woorden)',
-    medium: 'Schrijf een artikel van gemiddelde lengte (400-600 woorden)',
-    long: 'Schrijf een uitgebreid artikel (700-1000 woorden)'
+    short: isEnglish ? 'Keep the text short and concise (200-300 words)' : 'Houd de tekst kort en bondig (200-300 woorden)',
+    medium: isEnglish ? 'Write a medium-length article (400-600 words)' : 'Schrijf een artikel van gemiddelde lengte (400-600 woorden)',
+    long: isEnglish ? 'Write an extensive article (700-1000 words)' : 'Schrijf een uitgebreid artikel (700-1000 woorden)'
   }
 
   const styleInstructions = {
-    professional: 'Schrijf als een nieuwsbericht voor een professioneel publiek - helder, informatief en menselijk',
-    engaging: 'Schrijf als een toegankelijk nieuwsbericht dat lezers betrekt met verhaal en context',
-    technical: 'Schrijf als een technisch nieuwsbericht met diepgaande analyse maar begrijpelijke uitleg',
-    news: 'Schrijf als een helder nieuwsbericht in journalistieke stijl - direct, informatief en gestructureerd zoals traditionele nieuwsartikelen'
+    professional: isEnglish ? 'Write as a news article for a professional audience - clear, informative and human' : 'Schrijf als een nieuwsbericht voor een professioneel publiek - helder, informatief en menselijk',
+    engaging: isEnglish ? 'Write as an accessible news article that engages readers with story and context' : 'Schrijf als een toegankelijk nieuwsbericht dat lezers betrekt met verhaal en context',
+    technical: isEnglish ? 'Write as a technical news article with in-depth analysis but understandable explanation' : 'Schrijf als een technisch nieuwsbericht met diepgaande analyse maar begrijpelijke uitleg',
+    news: isEnglish ? 'Write as a clear news article in journalistic style - direct, informative and structured like traditional news articles' : 'Schrijf als een helder nieuwsbericht in journalistieke stijl - direct, informatief en gestructureerd zoals traditionele nieuwsartikelen'
   }
 
   const toneInstructions = {
-    neutral: 'Houd een neutrale, objectieve toon aan',
-    warning: 'Benadruk de urgentie en potentiële gevaren',
-    informative: 'Focus op het verstrekken van nuttige informatie en context'
+    neutral: isEnglish ? 'Maintain a neutral, objective tone' : 'Houd een neutrale, objectieve toon aan',
+    warning: isEnglish ? 'Emphasize the urgency and potential dangers' : 'Benadruk de urgentie en potentiële gevaren',
+    informative: isEnglish ? 'Focus on providing useful information and context' : 'Focus op het verstrekken van nuttige informatie en context'
+  }
+
+  if (isEnglish) {
+    return `
+Rewrite the following cybersecurity news article for an English-speaking audience:
+
+ORIGINAL TITLE: ${title}
+ORIGINAL CONTENT: ${content}
+${originalUrl ? `ORIGINAL URL: ${originalUrl}` : ''}
+
+INSTRUCTIONS:
+STEP 1 - RESEARCH:
+- First search online for 2-3 related sources on this topic
+- Check vendor websites, security advisories, NIST, CISA for updates
+- Look for additional context, impact, or solutions
+- Verify and update information from the original article if needed
+
+STEP 2 - REWRITING:
+- ${styleInstructions[options.style]}
+- ${lengthInstructions[options.length]}
+- ${toneInstructions[options.tone]}
+- Write in English as a news article/press release
+- Integrate information from your online research naturally into the story
+- Maintain the core message but enrich with found sources
+- ORIGINAL HEADINGS: Create unique headings based on actual content - NEVER standard formulas
+- QUOTES: If people are mentioned, generate 1 relevant quote based on context
+- Avoid corporate jargon like 'Executive Summary' or 'Business Impact'
+- Use specific, context-related headings (e.g., "Microsoft patch fixes Exchange vulnerability")
+- Make it informative but readable for a broad audience
+- Add relevant context for English readers
+
+STEP 3 - SOURCES AND URL VALIDATION:
+- Test all URLs before adding them - use ONLY working links
+- If a URL returns 404 or error, find an alternative source or omit
+- Add a complete source list at the end with ONLY verified working links
+- Include original source: ${originalUrl || '[Original article URL]'}
+- Include all online sources found with working URLs
+- Format as clickable HTML links
+- NEVER add broken or 404 links to the source list
+
+CRITICAL INSTRUCTIONS - READ CAREFULLY:
+
+1. DATE: Always use today's date
+2. LOCATION: Use the relevant location where the incident occurred
+3. ORIGINAL HEADINGS: Create unique headings based on actual content
+4. QUOTES: If people are mentioned, generate 1 relevant quote
+5. LINKS: Integrate subtly in the text, no "Source:" labels
+
+FORMAT YOUR ANSWER AS FOLLOWS:
+[Powerful English title WITHOUT "TITLE:" before it]
+---
+<p>[Relevant location], [date] - [core message]</p>
+
+<p><strong>[Original heading based on content]</strong><br>
+[Details right after the heading, no extra line in between]</p>
+
+<p><strong>[Next original heading based on content]</strong><br>
+[Next paragraph right after the heading]</p>
+
+<p><strong>Sources and more information</strong></p>
+<ul>
+<li><a href="${originalUrl || '[URL]'}" target="_blank">[Platform name]</a></li>
+<li><a href="[RESEARCH_URL_1]" target="_blank">[EXTRA_SOURCE_1]</a></li>
+<li><a href="[RESEARCH_URL_2]" target="_blank">[EXTRA_SOURCE_2]</a></li>
+</ul>
+
+CHECK: Today's date used? Subtle link in intro? All URLs tested and working? NO 404 links in source list?
+
+Start rewriting now:
+`
   }
 
   return `

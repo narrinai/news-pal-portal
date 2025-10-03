@@ -385,8 +385,8 @@ export default function RewritePage({ params }: RewritePageProps) {
                     onChange={(e) => setOptions({...options, language: e.target.value as any})}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   >
-                    <option value="nl">Dutch</option>
-                    <option value="en">English</option>
+                    <option value="nl">Nederlands</option>
+                    <option value="en">Engels</option>
                   </select>
                 </div>
               </div>

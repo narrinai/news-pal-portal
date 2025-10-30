@@ -144,7 +144,7 @@ const BOUWCERTIFICATEN_NL_FEEDS: RSSFeedConfig[] = [
   }
 ]
 
-// 🤖 AI COMPANION & LEARNING FEEDS
+// 🤖 AI COMPANION FEEDS
 const AI_FEEDS: RSSFeedConfig[] = [
   {
     id: 'techcrunch-ai',
@@ -158,7 +158,7 @@ const AI_FEEDS: RSSFeedConfig[] = [
     id: 'ars-technica-ai',
     url: 'https://feeds.arstechnica.com/arstechnica/index',
     name: 'Ars Technica',
-    category: 'ai-learning',
+    category: 'ai-companion',
     enabled: true,
     maxArticles: 100
   },
@@ -174,7 +174,7 @@ const AI_FEEDS: RSSFeedConfig[] = [
     id: 'theverge-ai',
     url: 'https://www.theverge.com/rss/index.xml',
     name: 'The Verge',
-    category: 'ai-learning',
+    category: 'ai-companion',
     enabled: true,
     maxArticles: 50
   }

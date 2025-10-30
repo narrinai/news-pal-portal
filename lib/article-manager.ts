@@ -98,20 +98,6 @@ export async function getLiveArticles(disableFiltering = false): Promise<{
             'therapeutic AI', 'mental health AI', 'loneliness AI', 'AI therapy companion',
             'replika', 'character.ai', 'xiaoice', 'romantic AI', 'dating AI', 'intimacy AI'
           ],
-          'ai-learning': [
-            'AI learning', 'artificial intelligence learning', 'machine learning', 'deep learning', 'neural networks',
-            'AI education', 'AI training', 'AI tutorial', 'AI course', 'AI certification', 'AI bootcamp',
-            'learn AI', 'study AI', 'AI curriculum', 'AI pedagogy', 'educational AI', 'AI literacy',
-            'data science', 'data analytics', 'big data', 'statistics', 'algorithms', 'programming',
-            'python AI', 'tensorflow', 'pytorch', 'keras', 'scikit-learn', 'pandas', 'numpy',
-            'computer vision', 'natural language processing', 'reinforcement learning', 'supervised learning',
-            'unsupervised learning', 'semi-supervised', 'transfer learning', 'federated learning',
-            'AI research', 'AI paper', 'AI publication', 'AI conference', 'AI workshop', 'AI seminar',
-            'AI university', 'AI degree', 'AI masters', 'AI phd', 'AI professor', 'AI student',
-            'coding bootcamp', 'online learning', 'mooc', 'coursera', 'udacity', 'edx', 'khan academy',
-            'AI skills', 'AI career', 'AI job', 'AI developer', 'AI engineer', 'data scientist',
-            'ml engineer', 'ai specialist', 'prompt engineering', 'fine-tuning', 'model training'
-          ],
           'marketingtoolz': [
             // Marketing Strategy & Concepts
             'marketing', 'digital marketing', 'content marketing', 'inbound marketing', 'outbound marketing',

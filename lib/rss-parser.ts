@@ -76,15 +76,6 @@ export async function parseArticlesFromFeed(
       'therapeutic AI', 'mental health AI', 'wellness AI', 'emotional support', 'loneliness',
       'social isolation', 'human-AI interaction', 'anthropomorphic', 'empathy AI', 'emotional intelligence'
     ],
-    'ai-learning': [
-      'AI learning', 'artificial intelligence learning', 'machine learning', 'deep learning', 'neural networks',
-      'AI education', 'AI training', 'AI tutorial', 'AI course', 'AI certification', 'AI bootcamp',
-      'learn AI', 'study AI', 'AI curriculum', 'AI pedagogy', 'educational AI', 'AI literacy',
-      'data science', 'data analytics', 'big data', 'statistics', 'algorithms', 'programming',
-      'python AI', 'tensorflow', 'pytorch', 'keras', 'scikit-learn', 'pandas', 'numpy',
-      'computer vision', 'natural language processing', 'reinforcement learning', 'supervised learning',
-      'unsupervised learning', 'semi-supervised', 'transfer learning', 'federated learning'
-    ],
     'marketingtoolz': [
       // Marketing Strategy & Concepts
       'marketing', 'digital marketing', 'content marketing', 'inbound marketing', 'outbound marketing',
@@ -114,7 +105,7 @@ export async function parseArticlesFromFeed(
       bestCategory = category // Use feed's default category
       matchedKeywords = [] // Empty for disabled filtering
     } else {
-      // Smart categorization: find the best matching category
+      // Smart categorization: find the best matching category based on keyword matches
       let maxMatches = 0
 
       for (const [cat, keywords] of Object.entries(keywordMap)) {
@@ -130,11 +121,8 @@ export async function parseArticlesFromFeed(
         }
       }
 
-      // If keyword matching found a category, use the original feed category instead
-      // This ensures consistency with dashboard filtering
-      if (isRelevant && category) {
-        bestCategory = category
-      }
+      // Trust the keyword-based categorization result
+      // This ensures articles are categorized by their actual content, not by the feed source
 
       // Additional logging for debugging
       if (isRelevant) {

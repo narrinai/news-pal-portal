@@ -357,7 +357,7 @@ export default function DashboardPage() {
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">Categories</label>
             <div className="flex flex-wrap gap-3">
-              {['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning', 'marketingtoolz'].map((category) => (
+              {['cybersecurity', 'bouwcertificaten', 'ai-companion', 'marketingtoolz'].map((category) => (
                 <button
                   key={category}
                   onClick={() => toggleCategory(category)}
@@ -374,7 +374,6 @@ export default function DashboardPage() {
                     {category === 'cybersecurity' && '🔒 Cybersecurity'}
                     {category === 'bouwcertificaten' && '🏗️ Bouwcertificaten'}
                     {category === 'ai-companion' && '🤖 AI Companion'}
-                    {category === 'ai-learning' && '🎓 AI Learning'}
                     {category === 'marketingtoolz' && '📈 Marketingtoolz'}
                   </span>
                 </button>

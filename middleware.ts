@@ -3,7 +3,12 @@ import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  
+
+  // Skip authentication in development mode
+  if (process.env.NODE_ENV === 'development') {
+    return NextResponse.next()
+  }
+
   // Skip middleware for API routes, static files, and login page
   if (
     pathname.startsWith('/api/') ||
@@ -17,7 +22,7 @@ export function middleware(request: NextRequest) {
 
   // Check for authentication cookie
   const authenticated = request.cookies.get('authenticated')
-  
+
   if (!authenticated || authenticated.value !== 'true') {
     // Redirect to login if not authenticated
     return NextResponse.redirect(new URL('/login', request.url))

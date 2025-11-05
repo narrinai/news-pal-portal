@@ -35,6 +35,7 @@ export interface NewsArticle {
   imageUrl?: string
   wordpressUrl?: string
   wordpressPostId?: string
+  matchedKeywords?: string[]
   createdAt?: string
 }
 
@@ -60,6 +61,7 @@ export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt
           rewrittenContent: article.rewrittenContent || '',
           wordpressHtml: article.wordpressHtml || '',
           imageUrl: article.imageUrl || '',
+          matchedKeywords: article.matchedKeywords ? article.matchedKeywords.join(', ') : '',
         }
       }
     ])
@@ -131,6 +133,9 @@ export async function getArticles(status?: string, categories?: string | string[
       rewrittenContent: record.fields.rewrittenContent as string,
       wordpressHtml: record.fields.wordpressHtml as string,
       imageUrl: record.fields.imageUrl as string,
+      matchedKeywords: record.fields.matchedKeywords
+        ? (record.fields.matchedKeywords as string).split(', ').filter(k => k.trim())
+        : [],
       createdAt: record.fields.createdAt as string,
     }))
     console.log(`✅ Retrieved ${articles.length} articles from Airtable`)

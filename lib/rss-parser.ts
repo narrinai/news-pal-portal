@@ -110,33 +110,29 @@ export async function parseArticlesFromFeed(
     const description = item.contentSnippet || item.description || ''
     const content = (title + ' ' + description).toLowerCase()
     
-    let bestCategory = 'other' // Default fallback
+    let bestCategory = category // ALWAYS use feed's intended category
     let isRelevant = false
     let matchedKeywords: string[] = [] // Declare outside if/else
-    
+
     if (disableFiltering) {
       isRelevant = true
-      bestCategory = category // Use feed's default category
       matchedKeywords = [] // Empty for disabled filtering
     } else {
-      // Smart categorization: find the best matching category based on keyword matches
-      let maxMatches = 0
+      // Check if article is relevant for the feed's category
+      // Use keywords only for filtering, NOT for categorization
+      const categoryKeywords = keywordMap[category] || []
 
-      for (const [cat, keywords] of Object.entries(keywordMap)) {
-        const foundKeywords = keywords.filter(keyword =>
+      if (categoryKeywords.length === 0) {
+        // No keywords defined for this category - accept all articles
+        isRelevant = true
+        matchedKeywords = []
+      } else {
+        // Filter by checking if article matches ANY keyword for this category
+        matchedKeywords = categoryKeywords.filter(keyword =>
           content.includes(keyword.toLowerCase())
         )
-
-        if (foundKeywords.length > maxMatches) {
-          maxMatches = foundKeywords.length
-          bestCategory = cat
-          matchedKeywords = foundKeywords
-          isRelevant = foundKeywords.length > 0
-        }
+        isRelevant = matchedKeywords.length > 0
       }
-
-      // Trust the keyword-based categorization result
-      // This ensures articles are categorized by their actual content, not by the feed source
 
       // Additional logging for debugging
       if (isRelevant) {

@@ -172,7 +172,7 @@ const AI_FEEDS: RSSFeedConfig[] = [
   },
   {
     id: 'wired-ai-specific',
-    url: 'https://www.wired.com/feed/category/artificial-intelligence/latest/rss',
+    url: 'https://www.wired.com/feed/tag/ai/latest/rss',
     name: 'Wired - Artificial Intelligence',
     category: 'ai-companion',
     enabled: true,
@@ -199,7 +199,7 @@ const AI_FEEDS: RSSFeedConfig[] = [
     url: 'https://openai.com/blog/rss/',
     name: 'OpenAI Blog',
     category: 'ai-companion',
-    enabled: true,
+    enabled: false,
     maxArticles: 25
   },
   {
@@ -223,7 +223,7 @@ const AI_FEEDS: RSSFeedConfig[] = [
     url: 'https://www.artificial-intelligence.blog/ai-news?format=rss',
     name: 'Artificial Intelligence Blog & News',
     category: 'ai-companion',
-    enabled: true,
+    enabled: false,
     maxArticles: 50
   },
   {
@@ -231,7 +231,7 @@ const AI_FEEDS: RSSFeedConfig[] = [
     url: 'https://libguides.ashland.edu/GEN-AI/feed',
     name: 'Ashland University - GenAI Resources',
     category: 'ai-companion',
-    enabled: true,
+    enabled: false,
     maxArticles: 25
   }
 ]

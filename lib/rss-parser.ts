@@ -68,13 +68,27 @@ export async function parseArticlesFromFeed(
       'fundering', 'draagconstructie', 'brandveiligheid', 'brand veiligheid', 'toegankelijkheid'
     ],
     'ai-companion': [
-      'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual assistant', 'virtual companion',
-      'chatbot', 'chat bot', 'conversational AI', 'character AI', 'personality AI', 'emotional AI',
-      'companion robot', 'social robot', 'humanoid', 'android', 'synthetic human', 'digital human',
-      'avatar', 'virtual character', 'AI friend', 'AI relationship', 'digital companion', 'virtual being',
-      'artificial companion', 'robot companion', 'AI chat', 'AI conversation', 'AI therapy',
-      'therapeutic AI', 'mental health AI', 'wellness AI', 'emotional support', 'loneliness',
-      'social isolation', 'human-AI interaction', 'anthropomorphic', 'empathy AI', 'emotional intelligence'
+      // Core AI terms - VERY broad to catch all AI news
+      'AI', 'artificial intelligence', 'machine learning', 'deep learning', 'neural network',
+      'chatbot', 'virtual assistant', 'natural language', 'NLP', 'computer vision',
+      'generative AI', 'GPT', 'transformer', 'language model', 'LLM',
+
+      // AI companies and products
+      'OpenAI', 'ChatGPT', 'Claude', 'Anthropic', 'Google AI', 'Gemini', 'Bard',
+      'Microsoft Copilot', 'GitHub Copilot', 'Midjourney', 'DALL-E', 'Stable Diffusion',
+
+      // AI concepts
+      'AI model', 'training', 'inference', 'prompt', 'fine-tuning', 'AGI',
+      'conversational AI', 'AI agent', 'autonomous', 'intelligent system',
+
+      // AI companion specific
+      'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual companion',
+      'character AI', 'personality AI', 'emotional AI', 'companion robot', 'social robot',
+
+      // Broad tech terms that often include AI
+      'automation', 'robot', 'algorithm', 'neural', 'cognitive', 'intelligent',
+      'smart technology', 'voice assistant', 'Alexa', 'Siri', 'recommendation',
+      'personalization', 'prediction', 'analytics', 'data science'
     ],
     'marketingtoolz': [
       // Marketing Strategy & Concepts

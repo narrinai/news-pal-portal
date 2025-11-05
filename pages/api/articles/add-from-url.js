@@ -1,6 +1,11 @@
 import { createArticle } from '../../../lib/airtable'
 import * as cheerio from 'cheerio'
 
+// Configure for Vercel serverless
+export const config = {
+  maxDuration: 10, // Maximum 10 seconds
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -19,12 +24,16 @@ export default async function handler(req, res) {
 
     console.log(`Fetching article from URL: ${url}`)
 
-    // Fetch the webpage
+    // Fetch the webpage with timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
+
     const response = await fetch(url, {
+      signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       }
-    })
+    }).finally(() => clearTimeout(timeoutId))
 
     if (!response.ok) {
       throw new Error(`Failed to fetch URL: ${response.statusText}`)
@@ -94,6 +103,15 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Error adding article from URL:', error)
+
+    // Handle specific error types
+    if (error.name === 'AbortError') {
+      return res.status(408).json({
+        error: 'Request timeout',
+        details: 'The website took too long to respond. Please try again.'
+      })
+    }
+
     return res.status(500).json({
       error: 'Failed to add article',
       details: error.message

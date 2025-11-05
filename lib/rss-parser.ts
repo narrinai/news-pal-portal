@@ -88,7 +88,24 @@ export async function parseArticlesFromFeed(
       // Broad tech terms that often include AI
       'automation', 'robot', 'algorithm', 'neural', 'cognitive', 'intelligent',
       'smart technology', 'voice assistant', 'Alexa', 'Siri', 'recommendation',
-      'personalization', 'prediction', 'analytics', 'data science'
+      'personalization', 'prediction', 'analytics', 'data science',
+
+      // Major AI Companions & Platforms
+      'Replika', 'Character.AI', 'Chai', 'Anima', 'EVA AI', 'Nomi', 'Paradot',
+      'Kuki', 'Mitsuku', 'Xiaoice', 'Crushon.AI', 'Janitor AI', 'Candy.ai', 'DreamGF',
+      'Botify', 'Kajiwoto', 'SimSimi', 'Cleverbot', 'Pi', 'Inflection', 'Poe',
+
+      // Voice Assistants
+      'Cortana', 'Bixby', 'Clova', 'Mycroft',
+
+      // Mental Health AI
+      'Woebot', 'Wysa', 'Youper', 'Tess',
+
+      // Romantic/Dating AI
+      'Kupid', 'Caryn AI', 'MyAnima', 'Soulmate AI', 'Luka',
+
+      // Virtual Influencers
+      'Lil Miquela', 'virtual influencer', 'digital avatar'
     ],
     'marketingtoolz': [
       // Marketing Strategy & Concepts

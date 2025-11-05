@@ -47,13 +47,63 @@ export default async function handler(req, res) {
               'keur', 'keuring', 'inspectie', 'bouwkundige', 'architect', 'constructeur', 'installateur'
             ],
             'ai-companion': [
+              // Core AI Companion Terms
               'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual assistant', 'virtual companion',
-              'conversational AI', 'character AI', 'personality AI', 'emotional AI',
-              'companion robot', 'social robot', 'humanoid robot', 'synthetic human', 'digital human',
-              'virtual character', 'AI friend', 'AI relationship', 'digital companion', 'virtual being',
-              'artificial companion', 'robot companion', 'AI chat companion', 'emotional support AI',
-              'therapeutic AI', 'mental health AI', 'loneliness AI', 'AI therapy companion',
-              'replika', 'character.ai', 'xiaoice', 'romantic AI', 'dating AI', 'intimacy AI'
+              'conversational AI', 'character AI', 'personality AI', 'emotional AI', 'companion robot', 'social robot',
+              'humanoid robot', 'synthetic human', 'digital human', 'virtual character', 'AI friend', 'AI relationship',
+              'digital companion', 'virtual being', 'artificial companion', 'robot companion', 'AI chat companion',
+              'emotional support AI', 'therapeutic AI', 'mental health AI', 'loneliness AI', 'AI therapy companion',
+              'romantic AI', 'dating AI', 'intimacy AI',
+
+              // Major AI Companions & Platforms
+              'Replika', 'Character.AI', 'Chai', 'Anima AI', 'Romantic AI', 'EVA AI', 'Nomi AI', 'Paradot',
+              'Kuki AI', 'Mitsuku', 'Xiaoice', 'Zo', 'Tay', 'Crushon.AI', 'Janitor AI', 'Candy.ai', 'DreamGF',
+              'Botify AI', 'Kajiwoto', 'AI Dungeon', 'Novel AI', 'Rose AI', 'Earkick', 'SimSimi', 'Cleverbot',
+              'Jabberwacky', 'ALICE', 'ELIZA', 'Pi', 'Inflection AI', 'Poe', 'Snapchat My AI',
+
+              // Voice Assistants
+              'Cortana', 'Siri', 'Google Assistant', 'Alexa', 'Bixby', 'Clova', 'Mycroft', 'Almond',
+
+              // Mental Health AI
+              'Woebot', 'Wysa', 'Youper', 'Tess', 'Joy', 'Mindbloom', 'Sanvello', 'Moodfit', 'Happify',
+
+              // Romantic/Dating AI
+              'Kupid AI', 'Intimate AI', 'Virtual Mate', 'Caryn AI', 'Forever Voices', 'MyAnima', 'Soulmate AI',
+              'Luka', 'Virtualgirlfriend.ai', 'AI Waifu',
+
+              // Social & Chat AI
+              'Talkie AI', 'Kindroid', 'Inworld AI', 'Convai',
+
+              // Virtual Influencers & Digital Humans
+              'Lil Miquela', 'Imma', 'Shudu', 'Noonoouri', 'FN Meka', 'Ayayi', 'Rozy', 'Ion Gottlich',
+              'Bermuda', 'Blawko', 'Lu do Magalu', 'Knox Frost', 'Qai Qai', 'Guggimon', 'Apoki',
+
+              // Business AI Assistants
+              'Microsoft Copilot', 'Google Duet AI', 'Notion AI', 'Slack AI', 'Zoom AI Companion',
+              'Salesforce Einstein', 'HubSpot ChatSpot', 'Intercom Fin', 'Drift', 'Ada', 'ManyChat',
+              'MobileMonkey', 'Chatfuel', 'Landbot', 'Tidio',
+
+              // Voice AI
+              'Viv', 'Hound', 'Braina', 'Dragon', 'Nina', 'Amy', 'Robin', 'Eva', 'Samantha',
+
+              // New/Emerging AI
+              'Grok', 'Gemini', 'Bard', 'LaMDA', 'PaLM', 'Llama', 'Vicuna', 'Alpaca', 'Dolly',
+              'StableLM', 'Falcon', 'MPT', 'Koala', 'OpenAssistant', 'HuggingChat', 'Cohere', 'AI21 Labs',
+
+              // Asian Market AI
+              'WeChat Xiaowei', 'LINE Clova', 'Kakao i', 'Naver Clova', 'Baidu DuerOS',
+
+              // Gaming & Entertainment AI
+              'Replica Studios', 'Synthesia', 'Hour One',
+
+              // Mental Wellness Apps
+              '7 Cups', 'Calm', 'Headspace', 'Shine', 'Talkspace', 'BetterHelp', 'Calmerry',
+
+              // Dating/Social Apps with AI
+              'Invisible Girlfriend', 'Invisible Boyfriend', 'My Virtual Girlfriend', 'My Virtual Boyfriend',
+
+              // General Terms
+              'virtual influencer', 'digital avatar', 'AI persona', 'synthetic companion', 'chatbot companion'
             ],
             'ai-learning': [
               'AI learning', 'artificial intelligence learning', 'machine learning', 'deep learning', 'neural networks',

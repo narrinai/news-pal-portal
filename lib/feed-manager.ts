@@ -8,6 +8,7 @@ export interface RSSFeedConfig {
   keywords?: string[] // Custom keywords for this feed
   maxArticles?: number // Max articles to fetch per run
   lastFetched?: string
+  disableFiltering?: boolean // If true, accept all articles from this feed without keyword filtering
 }
 
 // ======================================

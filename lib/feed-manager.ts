@@ -233,6 +233,70 @@ const AI_FEEDS: RSSFeedConfig[] = [
     category: 'ai-companion',
     enabled: false,
     maxArticles: 25
+  },
+  {
+    id: 'venturebeat-ai',
+    url: 'https://venturebeat.com/category/ai/feed/',
+    name: 'VentureBeat AI',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'aiweekly',
+    url: 'https://aiweekly.co/feed/',
+    name: 'AI Weekly',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 30
+  },
+  {
+    id: 'deepmind-blog',
+    url: 'https://deepmind.google/blog/rss.xml',
+    name: 'Google DeepMind Blog',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 25
+  },
+  {
+    id: 'openai-research',
+    url: 'https://openai.com/research/rss.xml',
+    name: 'OpenAI Research',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 25
+  },
+  {
+    id: 'anthropic-news',
+    url: 'https://www.anthropic.com/news/rss.xml',
+    name: 'Anthropic News',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 25
+  },
+  {
+    id: 'ai-news-mit',
+    url: 'https://news.mit.edu/topic/artificial-intelligence2-rss.xml',
+    name: 'MIT AI News',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 30
+  },
+  {
+    id: 'machinelearningmastery',
+    url: 'https://machinelearningmastery.com/feed/',
+    name: 'Machine Learning Mastery',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 30
+  },
+  {
+    id: 'towards-data-science',
+    url: 'https://towardsdatascience.com/feed',
+    name: 'Towards Data Science',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 50
   }
 ]
 

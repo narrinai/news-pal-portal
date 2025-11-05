@@ -297,6 +297,70 @@ const AI_FEEDS: RSSFeedConfig[] = [
     category: 'ai-companion',
     enabled: true,
     maxArticles: 50
+  },
+  {
+    id: 'futurism-ai',
+    url: 'https://futurism.com/artificial-intelligence/feed',
+    name: 'Futurism - AI',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'sciencedaily-ai',
+    url: 'https://www.sciencedaily.com/rss/computers_math/artificial_intelligence.xml',
+    name: 'ScienceDaily - AI',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 30
+  },
+  {
+    id: 'zdnet-ai',
+    url: 'https://www.zdnet.com/topic/artificial-intelligence/rss.xml',
+    name: 'ZDNet - AI',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'forbes-ai',
+    url: 'https://www.forbes.com/ai/feed/',
+    name: 'Forbes - AI',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'aitrends',
+    url: 'https://www.aitrends.com/feed/',
+    name: 'AI Trends',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'artificialintelligence-news',
+    url: 'https://www.artificialintelligence-news.com/feed/',
+    name: 'AI News',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'marktechpost',
+    url: 'https://www.marktechpost.com/feed/',
+    name: 'MarkTechPost',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'unite-ai',
+    url: 'https://www.unite.ai/feed/',
+    name: 'Unite.AI',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 40
   }
 ]
 

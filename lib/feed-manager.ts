@@ -171,12 +171,52 @@ const AI_FEEDS: RSSFeedConfig[] = [
     maxArticles: 50
   },
   {
+    id: 'wired-ai-specific',
+    url: 'https://www.wired.com/feed/category/artificial-intelligence/latest/rss',
+    name: 'Wired - Artificial Intelligence',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
     id: 'theverge-ai',
     url: 'https://www.theverge.com/rss/index.xml',
     name: 'The Verge',
     category: 'ai-companion',
     enabled: true,
     maxArticles: 50
+  },
+  {
+    id: 'mit-tech-review',
+    url: 'https://www.technologyreview.com/feed/',
+    name: 'MIT Technology Review',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'openai-blog',
+    url: 'https://openai.com/blog/rss/',
+    name: 'OpenAI Blog',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 25
+  },
+  {
+    id: 'google-ai-blog',
+    url: 'https://ai.googleblog.com/feeds/posts/default',
+    name: 'Google AI Blog',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 25
+  },
+  {
+    id: 'koreai-blog',
+    url: 'https://blog.kore.ai/rss.xml',
+    name: 'Kore.ai Blog',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 25
   }
 ]
 

@@ -28,7 +28,7 @@ const NEW_AI_FEEDS = [
   },
   {
     id: 'google-ai-blog',
-    url: 'https://ai.googleblog.com/feeds/posts/default',
+    url: 'https://blog.google/technology/ai/rss/',
     name: 'Google AI Blog',
     category: 'ai-companion',
     enabled: true,
@@ -49,6 +49,14 @@ const NEW_AI_FEEDS = [
     category: 'ai-companion',
     enabled: true,
     maxArticles: 50
+  },
+  {
+    id: 'ashland-genai',
+    url: 'https://libguides.ashland.edu/GEN-AI/feed',
+    name: 'Ashland University - GenAI Resources',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 25
   }
 ]
 

@@ -204,7 +204,7 @@ const AI_FEEDS: RSSFeedConfig[] = [
   },
   {
     id: 'google-ai-blog',
-    url: 'https://ai.googleblog.com/feeds/posts/default',
+    url: 'https://blog.google/technology/ai/rss/',
     name: 'Google AI Blog',
     category: 'ai-companion',
     enabled: true,
@@ -214,6 +214,22 @@ const AI_FEEDS: RSSFeedConfig[] = [
     id: 'koreai-blog',
     url: 'https://blog.kore.ai/rss.xml',
     name: 'Kore.ai Blog',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 25
+  },
+  {
+    id: 'ai-blog-news',
+    url: 'https://www.artificial-intelligence.blog/ai-news?format=rss',
+    name: 'Artificial Intelligence Blog & News',
+    category: 'ai-companion',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'ashland-genai',
+    url: 'https://libguides.ashland.edu/GEN-AI/feed',
+    name: 'Ashland University - GenAI Resources',
     category: 'ai-companion',
     enabled: true,
     maxArticles: 25

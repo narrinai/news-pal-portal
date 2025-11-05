@@ -22,25 +22,39 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Category is required' })
     }
 
-    console.log(`Fetching article from URL: ${url}`)
+    console.log(`[ADD-ARTICLE] Starting fetch for URL: ${url}`)
 
     // Fetch the webpage with timeout
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
+    const timeoutId = setTimeout(() => {
+      console.log('[ADD-ARTICLE] Fetch timeout triggered')
+      controller.abort()
+    }, 5000) // 5 second timeout
 
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    }).finally(() => clearTimeout(timeoutId))
+    let response
+    try {
+      response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      })
+      clearTimeout(timeoutId)
+      console.log(`[ADD-ARTICLE] Fetch successful, status: ${response.status}`)
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      console.error('[ADD-ARTICLE] Fetch failed:', fetchError.message)
+      throw fetchError
+    }
 
     if (!response.ok) {
       throw new Error(`Failed to fetch URL: ${response.statusText}`)
     }
 
     const html = await response.text()
+    console.log(`[ADD-ARTICLE] HTML received, length: ${html.length}`)
     const $ = cheerio.load(html)
+    console.log('[ADD-ARTICLE] Cheerio loaded successfully')
 
     // Extract title
     let title = $('meta[property="og:title"]').attr('content') ||
@@ -59,20 +73,21 @@ export default async function handler(req, res) {
                    $('meta[name="twitter:image"]').attr('content') ||
                    undefined
 
-    // Extract main content (try various selectors)
-    let originalContent = $('article').html() ||
-                         $('.article-content').html() ||
-                         $('.post-content').html() ||
-                         $('main').html() ||
-                         $('body').html() ||
-                         ''
-
-    // Clean up the content - remove scripts, styles, etc.
-    const contentCleaner = cheerio.load(originalContent)
-    contentCleaner('script').remove()
-    contentCleaner('style').remove()
-    contentCleaner('iframe').remove()
-    originalContent = contentCleaner.html()
+    // Extract main content (simplified - just get text)
+    let originalContent = ''
+    try {
+      const article = $('article').first()
+      if (article.length) {
+        originalContent = article.text()
+      } else {
+        originalContent = $('body').text()
+      }
+      // Clean up whitespace
+      originalContent = originalContent.replace(/\s+/g, ' ').trim()
+    } catch (e) {
+      console.error('Error extracting content:', e)
+      originalContent = description
+    }
 
     // Determine source from URL if not provided
     const sourceName = source || new URL(url).hostname.replace('www.', '')
@@ -90,10 +105,12 @@ export default async function handler(req, res) {
       matchedKeywords: []
     }
 
-    console.log(`Adding article: ${article.title}`)
+    console.log(`[ADD-ARTICLE] Adding article to Airtable: ${article.title}`)
 
     // Save to Airtable
     const savedArticle = await createArticle(article)
+
+    console.log(`[ADD-ARTICLE] Article saved successfully with ID: ${savedArticle.id}`)
 
     return res.status(200).json({
       success: true,

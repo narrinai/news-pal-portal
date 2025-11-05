@@ -23,6 +23,10 @@ export default function DashboardPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [keywordFiltering, setKeywordFiltering] = useState<boolean>(true)
   const [cacheStatus, setCacheStatus] = useState<any>(null)
+  const [showAddArticleModal, setShowAddArticleModal] = useState(false)
+  const [newArticleUrl, setNewArticleUrl] = useState('')
+  const [newArticleCategory, setNewArticleCategory] = useState('ai-companion')
+  const [isAddingArticle, setIsAddingArticle] = useState(false)
 
   // Get all articles for display
   const allArticles = [
@@ -235,14 +239,14 @@ export default function DashboardPage() {
   const deselectArticle = async (articleId: string) => {
     try {
       console.log('Deselecting article:', articleId)
-      
+
       const response = await fetch(`/api/articles/${articleId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' }
       })
-      
+
       console.log('Deselect response:', response.status)
-      
+
       if (response.ok) {
         console.log('Article deselected and removed from Airtable')
         fetchArticles() // Refresh to show updated state
@@ -265,6 +269,56 @@ export default function DashboardPage() {
     }
   }
 
+  const addArticleFromUrl = async () => {
+    if (!newArticleUrl.trim()) {
+      showNotification({
+        type: 'error',
+        title: 'URL required',
+        message: 'Please enter a URL'
+      })
+      return
+    }
+
+    setIsAddingArticle(true)
+    try {
+      const response = await fetch('/api/articles/add-from-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: newArticleUrl,
+          category: newArticleCategory
+        })
+      })
+
+      if (response.ok) {
+        showNotification({
+          type: 'success',
+          title: 'Article added',
+          message: 'Article successfully added to pending'
+        })
+        setShowAddArticleModal(false)
+        setNewArticleUrl('')
+        fetchArticles() // Refresh to show new article
+      } else {
+        const error = await response.json()
+        showNotification({
+          type: 'error',
+          title: 'Failed to add article',
+          message: error.details || error.error
+        })
+      }
+    } catch (error) {
+      console.error('Error adding article:', error)
+      showNotification({
+        type: 'error',
+        title: 'Network error',
+        message: 'Failed to add article'
+      })
+    } finally {
+      setIsAddingArticle(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -275,6 +329,15 @@ export default function DashboardPage() {
               <Logo size="lg" className="mr-4" clickable={true} href="/dashboard" />
             </div>
             <div className="flex space-x-3">
+              <button
+                onClick={() => setShowAddArticleModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-green-300 rounded-lg text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Article
+              </button>
               <a
                 href="/dashboard/settings"
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
@@ -642,6 +705,68 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Add Article Modal */}
+      {showAddArticleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">Add Article from URL</h2>
+              <button
+                onClick={() => setShowAddArticleModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Article URL</label>
+                <input
+                  type="url"
+                  value={newArticleUrl}
+                  onChange={(e) => setNewArticleUrl(e.target.value)}
+                  placeholder="https://example.com/article"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select
+                  value={newArticleCategory}
+                  onChange={(e) => setNewArticleCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="cybersecurity">Cybersecurity</option>
+                  <option value="bouwcertificaten">Bouwcertificaten</option>
+                  <option value="ai-companion">AI Companion</option>
+                  <option value="marketingtoolz">Marketingtoolz</option>
+                </select>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={() => setShowAddArticleModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addArticleFromUrl}
+                  disabled={isAddingArticle}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isAddingArticle ? 'Adding...' : 'Add Article'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

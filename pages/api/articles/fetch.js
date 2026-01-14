@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     
     // Store new articles in Airtable
     const createdArticles = []
-    for (const article of newArticles.slice(0, 20)) { // Limit to 20 new articles at a time
+    for (const article of newArticles.slice(0, 200)) { // Limit to 200 new articles at a time
       try {
         const created = await createArticle(article)
         createdArticles.push(created)

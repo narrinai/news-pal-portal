@@ -90,13 +90,23 @@ export async function getLiveArticles(disableFiltering = false): Promise<{
             'isolatieglas', 'kierdichting', 'thermische', 'prestatie', 'epc', 'woningwaardering'
           ],
           'ai-companion': [
+            // Core AI terms - Broad to catch all AI news
+            ' AI ', ' AI,', ' AI.', 'AI-', 'artificial intelligence', 'machine learning', 'deep learning', 'neural network',
+            'generative AI', 'language model', 'LLM', 'large language model', 'foundation model',
+            'AI model', 'AI system', 'AI tool', 'AI startup', 'AI company', 'AI industry',
+            'AI boom', 'AI revolution', 'AI race', 'AI regulation', 'AI safety', 'AI ethics',
+            // AI Companies & Products
+            'OpenAI', 'ChatGPT', 'GPT-4', 'GPT-5', 'Claude', 'Anthropic', 'Google AI', 'Gemini', 'Bard',
+            'Microsoft Copilot', 'GitHub Copilot', 'Midjourney', 'DALL-E', 'Stable Diffusion',
+            'DeepSeek', 'Grok', 'xAI', 'Mistral', 'Llama', 'Meta AI', 'Perplexity', 'Cohere',
+            // Robots & Humanoids
+            'robot', 'humanoid', 'robotics', 'Boston Dynamics', 'Figure', 'Tesla Bot', 'Optimus',
+            // AI Companion specific
             'AI companion', 'AI assistant', 'AI girlfriend', 'AI boyfriend', 'virtual assistant', 'virtual companion',
-            'conversational AI', 'character AI', 'personality AI', 'emotional AI',
-            'companion robot', 'social robot', 'humanoid robot', 'synthetic human', 'digital human',
-            'virtual character', 'AI friend', 'AI relationship', 'digital companion', 'virtual being',
-            'artificial companion', 'robot companion', 'AI chat companion', 'emotional support AI',
-            'therapeutic AI', 'mental health AI', 'loneliness AI', 'AI therapy companion',
-            'replika', 'character.ai', 'xiaoice', 'romantic AI', 'dating AI', 'intimacy AI'
+            'conversational AI', 'AI agent', 'chatbot', 'character AI', 'personality AI', 'emotional AI',
+            'companion robot', 'social robot', 'synthetic human', 'digital human', 'digital companion',
+            'AI friend', 'AI relationship', 'virtual being', 'emotional support AI',
+            'therapeutic AI', 'mental health AI', 'replika', 'character.ai', 'romantic AI', 'dating AI'
           ],
           'marketingtoolz': [
             // Marketing Strategy & Concepts

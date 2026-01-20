@@ -68,16 +68,23 @@ export async function parseArticlesFromFeed(
       'fundering', 'draagconstructie', 'brandveiligheid', 'brand veiligheid', 'toegankelijkheid'
     ],
     'ai-companion': [
-      // Core AI terms - Broad but still relevant
-      'artificial intelligence', 'machine learning', 'deep learning', 'neural network',
-      'generative AI', 'language model', 'LLM', 'large language model',
+      // Core AI terms - Broad to catch all AI news
+      ' AI ', ' AI,', ' AI.', 'AI-', 'artificial intelligence', 'machine learning', 'deep learning', 'neural network',
+      'generative AI', 'language model', 'LLM', 'large language model', 'foundation model',
+      'AI model', 'AI system', 'AI tool', 'AI startup', 'AI company', 'AI industry',
+      'AI boom', 'AI revolution', 'AI race', 'AI regulation', 'AI safety', 'AI ethics',
 
-      // AI Companies & Products - Well-known names
-      'OpenAI', 'ChatGPT', 'Claude', 'Anthropic', 'Google AI', 'Gemini', 'Bard',
+      // AI Companies & Products - Well-known names (expanded)
+      'OpenAI', 'ChatGPT', 'GPT-4', 'GPT-5', 'Claude', 'Anthropic', 'Google AI', 'Gemini', 'Bard',
       'Microsoft Copilot', 'GitHub Copilot', 'Midjourney', 'DALL-E', 'Stable Diffusion',
+      'DeepSeek', 'Grok', 'xAI', 'Mistral', 'Llama', 'Meta AI', 'Perplexity', 'Cohere',
+      'Hugging Face', 'Nvidia AI', 'Amazon AI', 'AWS AI', 'Azure AI',
+
+      // Robots & Humanoids
+      'robot', 'humanoid', 'robotics', 'Boston Dynamics', 'Figure', 'Tesla Bot', 'Optimus',
 
       // AI Concepts - Relevant to AI companion space
-      'conversational AI', 'AI agent', 'chatbot', 'virtual assistant',
+      'conversational AI', 'AI agent', 'chatbot', 'virtual assistant', 'AI assistant',
 
       // AI Companion Specific Terms
       'AI companion', 'AI girlfriend', 'AI boyfriend', 'virtual companion',

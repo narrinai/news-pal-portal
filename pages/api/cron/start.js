@@ -3,7 +3,8 @@ import { cronService } from '../../../lib/cron-service'
 // Auto-start cron jobs in production or when explicitly enabled
 if (process.env.NODE_ENV === 'production' || process.env.ENABLE_CRON === 'true') {
   cronService.startDailyNewsFetch()
-  console.log('[AUTO-START] Daily news fetch cron job auto-started')
+  cronService.startAutoPipeline()
+  console.log('[AUTO-START] Daily news fetch + auto-pipeline cron jobs auto-started')
 }
 
 export default async function handler(req, res) {
@@ -12,14 +13,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const success = cronService.startDailyNewsFetch()
-    const status = cronService.getJobStatus('daily-news-fetch')
-    
+    const fetchSuccess = cronService.startDailyNewsFetch()
+    const pipelineSuccess = cronService.startAutoPipeline()
+
     return res.status(200).json({
-      success,
-      message: 'Daily news fetch cron job started',
-      status,
-      schedule: '6:00 AM daily (Europe/Amsterdam timezone)'
+      success: fetchSuccess && pipelineSuccess,
+      message: 'Daily news fetch + auto-pipeline cron jobs started',
+      jobs: {
+        'daily-news-fetch': { ...cronService.getJobStatus('daily-news-fetch'), schedule: '6:00 AM' },
+        'auto-pipeline': { ...cronService.getJobStatus('auto-pipeline'), schedule: '7:00 AM' },
+      },
+      timezone: 'Europe/Amsterdam',
     })
   } catch (error) {
     console.error('[CRON API] Error starting cron job:', error)

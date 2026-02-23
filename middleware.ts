@@ -4,8 +4,8 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Skip authentication in development mode
-  if (process.env.NODE_ENV === 'development') {
+  // Skip authentication in development mode or on localhost
+  if (process.env.NODE_ENV === 'development' || request.nextUrl.hostname === 'localhost') {
     return NextResponse.next()
   }
 

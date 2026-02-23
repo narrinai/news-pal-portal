@@ -2,6 +2,7 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react'
 
 interface Notification {
   id: string
@@ -54,40 +55,24 @@ function NotificationItem({ notification, onRemove }: { notification: Notificati
   }, [notification.id, notification.duration, onRemove])
 
   const typeStyles = {
-    success: 'bg-success-50 border-success-200 text-success-800',
-    error: 'bg-red-50 border-red-200 text-red-800',
-    warning: 'bg-warning-50 border-warning-200 text-warning-800',
-    info: 'bg-brand-50 border-brand-200 text-brand-800'
+    success: 'border-emerald-200 bg-emerald-50',
+    error: 'border-red-200 bg-red-50',
+    warning: 'border-amber-200 bg-amber-50',
+    info: 'border-indigo-200 bg-indigo-50'
   }
 
-  const iconStyles = {
-    success: 'text-success-400',
-    error: 'text-red-400',
-    warning: 'text-warning-400',
-    info: 'text-brand-400'
+  const textStyles = {
+    success: 'text-emerald-800',
+    error: 'text-red-800',
+    warning: 'text-amber-800',
+    info: 'text-indigo-800'
   }
 
   const icons = {
-    success: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-      </svg>
-    ),
-    error: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-      </svg>
-    ),
-    warning: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-      </svg>
-    ),
-    info: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-      </svg>
-    )
+    success: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+    error: <XCircle className="w-5 h-5 text-red-500" />,
+    warning: <AlertTriangle className="w-5 h-5 text-amber-500" />,
+    info: <Info className="w-5 h-5 text-indigo-500" />
   }
 
   return (
@@ -95,31 +80,29 @@ function NotificationItem({ notification, onRemove }: { notification: Notificati
       className={`
         transform transition-all duration-300 ease-in-out
         ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}
-        max-w-sm w-full bg-white border-l-4 rounded-lg shadow-lg p-4 pointer-events-auto
+        max-w-sm w-full bg-white border rounded-lg shadow-sm p-4 pointer-events-auto
         ${typeStyles[notification.type]}
       `}
     >
       <div className="flex">
-        <div className={`flex-shrink-0 ${iconStyles[notification.type]}`}>
+        <div className="flex-shrink-0">
           {icons[notification.type]}
         </div>
         <div className="ml-3 w-0 flex-1">
-          <p className="text-sm font-medium">{notification.title}</p>
+          <p className={`text-sm font-medium ${textStyles[notification.type]}`}>{notification.title}</p>
           {notification.message && (
-            <p className="mt-1 text-sm opacity-90">{notification.message}</p>
+            <p className={`mt-1 text-sm opacity-80 ${textStyles[notification.type]}`}>{notification.message}</p>
           )}
         </div>
         <div className="ml-4 flex-shrink-0 flex">
           <button
-            className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition ease-in-out duration-150"
+            className="inline-flex text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
             onClick={() => {
               setIsVisible(false)
               setTimeout(() => onRemove(notification.id), 300)
             }}
           >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -134,9 +117,7 @@ function Modal({ modal, onClose }: { modal: ModalProps, onClose: () => void }) {
   useEffect(() => {
     setIsVisible(true)
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleCancel()
-      }
+      if (e.key === 'Escape') handleCancel()
     }
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
@@ -165,56 +146,45 @@ function Modal({ modal, onClose }: { modal: ModalProps, onClose: () => void }) {
       className={`
         fixed inset-0 z-50 flex items-center justify-center p-4
         transition-all duration-300 ease-in-out
-        ${isVisible ? 'bg-black bg-opacity-50' : 'bg-transparent'}
+        ${isVisible ? 'bg-black/50' : 'bg-transparent'}
       `}
     >
       <div
         className={`
-          bg-white rounded-xl shadow-2xl max-w-md w-full mx-auto
+          bg-white rounded-xl border border-slate-200 shadow-lg max-w-md w-full mx-auto
           transform transition-all duration-300 ease-in-out
           ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
         `}
       >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 font-brand">
-            {modal.title}
-          </h3>
+        <div className="px-6 py-4 border-b border-slate-100">
+          <h3 className="text-base font-semibold text-slate-900">{modal.title}</h3>
         </div>
 
-        {/* Content */}
         <div className="px-6 py-4">
-          <p className="text-gray-600 mb-4">{modal.message}</p>
-          
+          <p className="text-slate-600 text-sm mb-4">{modal.message}</p>
           {modal.type === 'prompt' && (
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={modal.promptPlaceholder || 'Voer waarde in...'}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleConfirm()
-                }
-              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleConfirm() } }}
             />
           )}
         </div>
 
-        {/* Actions */}
-        <div className="px-6 py-4 bg-gray-50 rounded-b-xl flex space-x-3 justify-end">
+        <div className="px-6 py-4 bg-slate-50 rounded-b-xl flex space-x-3 justify-end border-t border-slate-100">
           <button
             onClick={handleCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
           >
             {modal.cancelText || 'Annuleren'}
           </button>
           <button
             onClick={handleConfirm}
-            className="px-4 py-2 text-sm font-medium text-white bg-gradient-brand rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all"
+            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
           >
             {modal.confirmText || 'Bevestigen'}
           </button>
@@ -269,8 +239,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   return (
     <NotificationContext.Provider value={{ showNotification, showConfirm, showPrompt }}>
       {children}
-      
-      {/* Notifications - Centered for landscape */}
+
       <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 space-y-3 pointer-events-none w-full max-w-md">
         {notifications.map(notification => (
           <NotificationItem
@@ -281,7 +250,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         ))}
       </div>
 
-      {/* Modal */}
       {modal && <Modal modal={modal} onClose={closeModal} />}
     </NotificationContext.Provider>
   )

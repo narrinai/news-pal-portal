@@ -4,8 +4,8 @@ export default async function handler(req, res) {
     try {
       const settings = {
         categories: process.env.NEWS_CATEGORIES ? 
-          JSON.parse(process.env.NEWS_CATEGORIES) : 
-          ['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning', 'marketingtoolz'],
+          JSON.parse(process.env.NEWS_CATEGORIES) :
+          ['cybersecurity', 'bouwcertificaten', 'ai-companion', 'ai-learning', 'marketingtoolz', 'europeanpurpose'],
         
         categoryKeywords: process.env.CATEGORY_KEYWORDS ?
           JSON.parse(process.env.CATEGORY_KEYWORDS) : {
@@ -136,6 +136,71 @@ export default async function handler(req, res) {
               'getgenie', 'aiseo', 'trakkr.ai', 'adcreative', 'pictory', 'descript', 'text.cortex', 'originality',
               'ai detector pro', 'surfer', 'smodin', 'ai marketing', 'marketing ai', 'ai tech', 'ai business',
               'ai social media', 'ai advertenties', 'ai wetgeving', 'artificial intelligence marketing'
+            ],
+            'europeanpurpose': [
+              // Core Concepts
+              'european alternative', 'european alternatives', 'eu alternative', 'eu alternatives',
+              'european tech', 'european technology', 'eu tech', 'eu technology',
+              'digital sovereignty', 'tech sovereignty', 'technological sovereignty', 'digitale soevereiniteit',
+              'data sovereignty', 'data soevereiniteit', 'european digital', 'european cloud',
+              'european software', 'eu software', 'made in europe', 'built in europe',
+              'european startup', 'european startups', 'eu startup', 'eu startups',
+              'european innovation', 'eu innovation', 'european saas', 'eu saas',
+
+              // Anti Big Tech / Switching
+              'big tech alternative', 'big tech alternatives', 'replace google', 'replace amazon',
+              'replace microsoft', 'replace apple', 'replace meta', 'replace facebook',
+              'degoogle', 'de-google', 'leave big tech', 'quit big tech', 'ditch big tech',
+              'big tech dependency', 'big tech monopoly', 'tech giant alternative', 'tech giants europe',
+              'us tech dependency', 'american tech alternative', 'non-us alternative',
+              'switch from google', 'switch from aws', 'switch from azure',
+              'vendor lock-in', 'vendor lock in',
+
+              // EU Regulations & Policy
+              'digital markets act', 'dma', 'digital services act', 'dsa', 'eu ai act', 'ai act',
+              'gdpr', 'avg', 'data protection', 'gegevensbescherming', 'eu regulation', 'eu regulering',
+              'european commission tech', 'european parliament tech', 'eu antitrust', 'eu competition',
+              'gaia-x', 'gaia x', 'eu cloud', 'european data space', 'eu data strategy',
+              'cyber resilience act', 'data act', 'eidas', 'nis2', 'dora regulation',
+
+              // European Cloud & Infrastructure
+              'ovhcloud', 'ovh', 'scaleway', 'hetzner', 'ionos', 'infomaniak', 'exoscale',
+              'upcloud', 'fuga cloud', 'leaseweb', 'transip', 'tilaa', 'combell',
+              'european hosting', 'eu hosting', 'european cloud provider', 'eu cloud provider',
+              'sovereign cloud', 'european data center', 'eu data center',
+              'stackit', 'open telekom cloud', 'plusserver', 'cleura',
+
+              // European Software & Apps
+              'nextcloud', 'protonmail', 'proton mail', 'proton', 'tutanota', 'tuta mail',
+              'tresorit', 'cryptpad', 'element', 'matrix protocol',
+              'vivaldi', 'ecosia', 'qwant', 'startpage', 'mullvad', 'surfshark',
+              'bitwarden', 'keepass', 'standard notes', 'joplin',
+              'wire', 'threema', 'signal', 'briar',
+              'odoo', 'erpnext', 'openproject', 'taiga', 'wekan',
+              'mastodon', 'pixelfed', 'peertube', 'fediverse', 'lemmy',
+              'collabora', 'onlyoffice', 'libreoffice', 'thunderbird',
+              'fairphone', 'shift phone', '/e/ os', 'lineageos', 'murena',
+              'penpot', 'krita', 'blender', 'gimp', 'inkscape',
+              'matomo', 'plausible', 'fathom analytics', 'umami analytics',
+              'mautic', 'listmonk', 'sendinblue', 'brevo', 'mailjet',
+
+              // European AI
+              'mistral ai', 'mistral', 'aleph alpha', 'deepl', 'luminous',
+              'european ai', 'eu ai', 'ai made in europe', 'european llm',
+
+              // Open Source / Privacy
+              'open source alternative', 'open source alternatives', 'foss', 'free software',
+              'privacy-first', 'privacy first', 'privacy-friendly', 'privacy friendly',
+              'self-hosted', 'self hosted', 'on-premise', 'on premise',
+              'end-to-end encryption', 'zero knowledge', 'zero-knowledge',
+              'open source european', 'european open source',
+
+              // Dutch/German terms
+              'europees alternatief', 'europese alternatieven', 'europese technologie',
+              'europese software', 'europese cloud', 'digitale onafhankelijkheid',
+              'technologische onafhankelijkheid', 'europese startup', 'europese innovatie',
+              'weg van big tech', 'onafhankelijk van amerika', 'europese oplossing',
+              'europäische alternative', 'europäische technologie', 'digitale souveränität'
             ],
           },
         

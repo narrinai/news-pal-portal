@@ -6,9 +6,9 @@ export default async function handler(req, res) {
 
   try {
     console.log('WordPress publish with category API called')
-    const { articleId, wordpressHtml, title, wordPressSite } = req.body
+    const { articleId, content_html, title, wordPressSite } = req.body
 
-    if (!articleId || !wordpressHtml || !title) {
+    if (!articleId || !content_html || !title) {
       return res.status(400).json({ 
         error: 'Missing required fields'
       })
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         title: title,
-        content: wordpressHtml,
+        content: content_html,
         status: 'draft',
         slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
         // Initialize with minimal working ACF structure for News posts

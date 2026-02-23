@@ -22,7 +22,7 @@ export async function rewriteArticle(
   },
   customInstructions?: string,
   originalUrl?: string
-): Promise<{ title: string; content: string; wordpressHtml: string }> {
+): Promise<{ title: string; content: string; content_html: string }> {
   try {
     const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
     
@@ -67,11 +67,11 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
 
     // If the content already contains HTML tags, use it as-is for WordPress
     // Otherwise, generate HTML from plain text
-    let wordpressHtml: string
+    let content_html: string
 
     if (content.includes('<p>') || content.includes('<h2>')) {
       // Content is already HTML formatted
-      wordpressHtml = content
+      content_html = content
       // Convert HTML to plain text for the content field
       content = content
         .replace(/<h[1-6][^>]*>/g, '\n\n')
@@ -88,13 +88,13 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
         .trim()
     } else {
       // Content is plain text, generate HTML
-      wordpressHtml = generateWordPressHTML(title, content)
+      content_html = generateWordPressHTML(title, content)
     }
     
     return {
       title,
       content,
-      wordpressHtml
+      content_html
     }
   } catch (error) {
     console.error('Error rewriting article:', error)

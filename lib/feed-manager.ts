@@ -385,12 +385,113 @@ const MARKETING_FEEDS: RSSFeedConfig[] = [
   }
 ]
 
+// 🇪🇺 EUROPEAN PURPOSE FEEDS (European alternatives to US big tech)
+const EUROPEAN_PURPOSE_FEEDS: RSSFeedConfig[] = [
+  {
+    id: 'techeu',
+    url: 'https://tech.eu/feed/',
+    name: 'Tech.eu',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'sifted-eu',
+    url: 'https://sifted.eu/feed',
+    name: 'Sifted (European Startups)',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'tnw-european',
+    url: 'https://thenextweb.com/feed',
+    name: 'The Next Web',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'euractiv-digital',
+    url: 'https://www.euractiv.com/sections/digital/feed/',
+    name: 'Euractiv Digital',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'techcrunch-europe',
+    url: 'https://techcrunch.com/feed/',
+    name: 'TechCrunch (EU filtered)',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'ars-technica-eu',
+    url: 'https://feeds.arstechnica.com/arstechnica/index',
+    name: 'Ars Technica (EU filtered)',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'wired-eu',
+    url: 'https://www.wired.com/feed/rss',
+    name: 'Wired (EU filtered)',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'zdnet-eu',
+    url: 'https://www.zdnet.com/topic/enterprise-software/rss.xml',
+    name: 'ZDNet Enterprise (EU filtered)',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'opensource-eu',
+    url: 'https://opensource.com/feed',
+    name: 'Opensource.com',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'nextcloud-blog',
+    url: 'https://nextcloud.com/blog/feed/',
+    name: 'Nextcloud Blog',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 25
+  },
+  {
+    id: 'proton-blog',
+    url: 'https://proton.me/blog/feed',
+    name: 'Proton Blog',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 25
+  },
+  {
+    id: 'tweakers-eu',
+    url: 'https://feeds.feedburner.com/tweakers/mixed',
+    name: 'Tweakers (EU filtered)',
+    category: 'europeanpurpose',
+    enabled: true,
+    maxArticles: 50
+  }
+]
+
 // GECOMBINEERDE FEED LIJST
 export const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
   ...CYBERSECURITY_FEEDS,
   ...BOUWCERTIFICATEN_NL_FEEDS,
   ...AI_FEEDS,
-  ...MARKETING_FEEDS
+  ...MARKETING_FEEDS,
+  ...EUROPEAN_PURPOSE_FEEDS
 ]
 
 // Global keywords for all feeds

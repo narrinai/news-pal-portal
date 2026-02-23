@@ -28,15 +28,29 @@ export interface NewsArticle {
   source: string
   publishedAt: string
   status: 'pending' | 'selected' | 'rewritten' | 'published'
-  category: 'cybersecurity' | 'bouwcertificaten' | 'ai-companion' | 'ai-learning' | 'marketingtoolz'
+  category: 'cybersecurity' | 'bouwcertificaten' | 'ai-companion' | 'ai-learning' | 'marketingtoolz' | 'europeanpurpose'
   originalContent?: string
-  rewrittenContent?: string
-  wordpressHtml?: string
+  content_rewritten?: string
+  content_html?: string
   imageUrl?: string
   wordpressUrl?: string
   wordpressPostId?: string
   matchedKeywords?: string[]
+  automation_id?: string
   createdAt?: string
+}
+
+export interface Automation {
+  id?: string
+  name: string
+  enabled: boolean
+  articles_per_day: number
+  categories: string
+  style: string
+  length: string
+  language: string
+  keywords?: string
+  feeds?: string
 }
 
 export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt'>) {
@@ -58,10 +72,11 @@ export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt
           status: article.status,
           category: article.category,
           originalContent: article.originalContent || '',
-          rewrittenContent: article.rewrittenContent || '',
-          wordpressHtml: article.wordpressHtml || '',
+          content_rewritten: article.content_rewritten || '',
+          content_html: article.content_html || '',
           imageUrl: article.imageUrl || '',
           matchedKeywords: article.matchedKeywords ? article.matchedKeywords.join(', ') : '',
+          ...(article.automation_id ? { automation_id: article.automation_id } : {}),
         }
       }
     ])
@@ -130,12 +145,13 @@ export async function getArticles(status?: string, categories?: string | string[
       status: record.fields.status as NewsArticle['status'],
       category: record.fields.category as NewsArticle['category'],
       originalContent: record.fields.originalContent as string,
-      rewrittenContent: record.fields.rewrittenContent as string,
-      wordpressHtml: record.fields.wordpressHtml as string,
+      content_rewritten: record.fields.content_rewritten as string,
+      content_html: record.fields.content_html as string,
       imageUrl: record.fields.imageUrl as string,
       matchedKeywords: record.fields.matchedKeywords
         ? (record.fields.matchedKeywords as string).split(', ').filter(k => k.trim())
         : [],
+      automation_id: record.fields.automation_id as string | undefined,
       createdAt: record.fields.createdAt as string,
     }))
     console.log(`✅ Retrieved ${articles.length} articles from Airtable`)
@@ -181,4 +197,143 @@ export async function deleteArticle(id: string): Promise<void> {
     console.error(`❌ Error deleting article ${id} from Airtable, falling back to mock:`, error)
     return await mockAirtable.deleteArticle(id)
   }
+}
+
+// ── Automations (multi-pipeline) ─────────────────────────────────────
+
+const defaultAutomation: Omit<Automation, 'id'> = {
+  name: 'Default Automation',
+  enabled: false,
+  articles_per_day: 2,
+  categories: 'cybersecurity,ai-companion',
+  style: 'news',
+  length: 'medium',
+  language: 'nl',
+}
+
+function recordToAutomation(record: any): Automation {
+  const f = record.fields
+  return {
+    id: record.id,
+    name: (f.name as string) || 'Unnamed',
+    enabled: !!f.enabled,
+    articles_per_day: (f.articles_per_day as number) || 2,
+    categories: (f.categories as string) || '',
+    style: (f.style as string) || 'news',
+    length: (f.length as string) || 'medium',
+    language: (f.language as string) || 'nl',
+    keywords: (f.keywords as string) || '',
+    feeds: (f.feeds as string) || '',
+  }
+}
+
+export async function getAutomations(): Promise<Automation[]> {
+  if (!base) {
+    return mockAirtable.getAutomations()
+  }
+
+  try {
+    const records = await base('automation_settings').select({}).all()
+    console.log(`[AUTOMATIONS] Found ${records.length} records in automation_settings`)
+    return records.map(recordToAutomation)
+  } catch (error: any) {
+    console.error('[AUTOMATIONS] Error fetching from automation_settings:', error?.message || error, error?.statusCode)
+    return mockAirtable.getAutomations()
+  }
+}
+
+export async function getAutomation(id: string): Promise<Automation | null> {
+  if (!base) {
+    return mockAirtable.getAutomation(id)
+  }
+
+  try {
+    const record = await base('automation_settings').find(id)
+    return recordToAutomation(record)
+  } catch (error) {
+    console.error(`Error fetching automation ${id}:`, error)
+    return null
+  }
+}
+
+export async function createAutomation(data: Omit<Automation, 'id'>): Promise<Automation> {
+  if (!base) {
+    return mockAirtable.createAutomation(data)
+  }
+
+  try {
+    const records = await base('automation_settings').create([{ fields: data }])
+    return recordToAutomation(records[0])
+  } catch (error) {
+    console.error('Error creating automation:', error)
+    return mockAirtable.createAutomation(data)
+  }
+}
+
+export async function updateAutomation(id: string, data: Partial<Automation>): Promise<Automation> {
+  if (!base) {
+    return mockAirtable.updateAutomation(id, data)
+  }
+
+  try {
+    const { id: _id, ...fields } = data
+    const record = await base('automation_settings').update(id, fields)
+    return recordToAutomation(record)
+  } catch (error) {
+    console.error(`Error updating automation ${id}:`, error)
+    return mockAirtable.updateAutomation(id, data)
+  }
+}
+
+export async function deleteAutomation(id: string): Promise<void> {
+  if (!base) {
+    return mockAirtable.deleteAutomation(id)
+  }
+
+  try {
+    await base('automation_settings').destroy(id)
+  } catch (error) {
+    console.error(`Error deleting automation ${id}:`, error)
+    return mockAirtable.deleteAutomation(id)
+  }
+}
+
+// ── Backward-compat: old AutomationSettings API ─────────────────────
+
+export interface AutomationSettings {
+  enabled: boolean
+  articles_per_day: number
+  categories: string
+  style: string
+  length: string
+  language: string
+  tone: string
+}
+
+export async function getAutomationSettings(): Promise<AutomationSettings> {
+  const automations = await getAutomations()
+  const first = automations[0]
+  if (!first) {
+    return { ...defaultAutomation, tone: 'informative' } as AutomationSettings
+  }
+  return {
+    enabled: first.enabled,
+    articles_per_day: first.articles_per_day,
+    categories: first.categories,
+    style: first.style,
+    length: first.length,
+    language: first.language,
+    tone: 'informative',
+  }
+}
+
+export async function saveAutomationSettings(settings: AutomationSettings): Promise<AutomationSettings> {
+  const automations = await getAutomations()
+  const { tone, ...rest } = settings
+  if (automations.length === 0) {
+    await createAutomation({ name: 'Default Automation', ...rest })
+  } else {
+    await updateAutomation(automations[0].id!, rest)
+  }
+  return settings
 }

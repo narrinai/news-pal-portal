@@ -129,6 +129,24 @@ export async function parseArticlesFromFeed(
       'landing page', 'sales funnel', 'marketing funnel', 'lead generation', 'lead nurturing',
       'customer acquisition', 'customer retention', 'customer lifetime value', 'clv', 'churn',
       'brand awareness', 'brand building', 'brand strategy', 'brand positioning', 'branding'
+    ],
+    'europeanpurpose': [
+      'european alternative', 'european alternatives', 'eu alternative', 'eu alternatives',
+      'european tech', 'eu tech', 'digital sovereignty', 'tech sovereignty', 'data sovereignty',
+      'european cloud', 'european software', 'eu software', 'made in europe',
+      'big tech alternative', 'big tech alternatives', 'degoogle', 'de-google',
+      'digital markets act', 'dma', 'digital services act', 'dsa', 'eu ai act', 'ai act',
+      'gdpr', 'gaia-x', 'sovereign cloud', 'european data center',
+      'ovhcloud', 'scaleway', 'hetzner', 'ionos', 'infomaniak',
+      'nextcloud', 'protonmail', 'proton', 'tutanota', 'tresorit', 'cryptpad',
+      'vivaldi', 'ecosia', 'qwant', 'startpage', 'mullvad',
+      'mastodon', 'fediverse', 'peertube', 'pixelfed',
+      'collabora', 'onlyoffice', 'libreoffice',
+      'mistral ai', 'mistral', 'aleph alpha', 'deepl', 'european ai',
+      'matomo', 'plausible', 'fathom analytics',
+      'open source alternative', 'privacy-first', 'privacy first', 'self-hosted',
+      'europees alternatief', 'europese alternatieven', 'europese technologie',
+      'fairphone', 'element', 'threema', 'wire', 'odoo', 'penpot'
     ]
   }
   

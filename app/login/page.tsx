@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
 import Logo from '../../components/Logo'
+import { Lock } from 'lucide-react'
 
 export default function LoginPage() {
   const [password, setPassword] = useState('')
@@ -26,16 +27,10 @@ export default function LoginPage() {
       })
 
       if (response.ok) {
-        // Cookie wordt gezet door server response
         router.push('/dashboard')
       } else {
         const result = await response.json()
         setError(result.error || 'Incorrect password')
-        
-        // Debug info tonen
-        if (result.debug) {
-          console.log('Debug info:', result.debug)
-        }
       }
     } catch (err) {
       setError('Login failed')
@@ -45,47 +40,49 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-brand-subtle py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-sm w-full space-y-8">
         <div className="text-center animate-fade-in">
           <div className="flex justify-center mb-6">
             <Logo size="xl" />
           </div>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Je slimme assistent voor nieuws management
-          </p>
-          <p className="mt-1 text-center text-xs text-gray-500">
-            Voer je wachtwoord in om toegang te krijgen
+          <p className="mt-2 text-sm text-slate-500">
+            Your smart assistant for news management
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="password" className="sr-only">
-              Wachtwoord
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              className="appearance-none rounded-xl relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:z-10 sm:text-sm transition-all duration-200 bg-white/80 backdrop-blur-sm"
-              placeholder="Wachtwoord"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+        <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+          <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-slate-500 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-4 w-4 text-slate-400" />
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
 
-          {error && (
-            <div className="text-red-600 text-sm text-center">{error}</div>
-          )}
+            {error && (
+              <div className="text-red-500 text-sm text-center bg-red-50 rounded-lg py-2 border border-red-100">{error}</div>
+            )}
 
-          <div>
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-brand hover:shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 transition-all duration-200 transform"
+              className="w-full flex justify-center py-2.5 px-4 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Inloggen...' : 'Inloggen'}
+              {loading ? 'Logging in...' : 'Log in'}
             </button>
           </div>
         </form>

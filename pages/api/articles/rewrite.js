@@ -30,8 +30,8 @@ export default async function handler(req, res) {
 
     // Update the article in Airtable
     const updatedArticle = await updateArticle(id, {
-      rewrittenContent: rewritten.content,
-      wordpressHtml: rewritten.wordpressHtml,
+      content_rewritten: rewritten.content,
+      content_html: rewritten.content_html,
       title: rewritten.title, // Update title with rewritten version
       status: 'rewritten'
     })
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       rewritten: {
         title: rewritten.title,
         content: rewritten.content,
-        wordpressHtml: rewritten.wordpressHtml
+        content_html: rewritten.content_html
       }
     })
   } catch (error) {

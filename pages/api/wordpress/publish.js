@@ -6,12 +6,12 @@ export default async function handler(req, res) {
 
   try {
     console.log('WordPress publish API called')
-    const { articleId, wordpressHtml, title } = req.body
+    const { articleId, content_html, title } = req.body
 
-    if (!articleId || !wordpressHtml || !title) {
+    if (!articleId || !content_html || !title) {
       return res.status(400).json({ 
         error: 'Missing required fields',
-        required: ['articleId', 'wordpressHtml', 'title']
+        required: ['articleId', 'content_html', 'title']
       })
     }
 
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     // Prepare WordPress post
     const wordpressPost = {
       title: title,
-      content: wordpressHtml,
+      content: content_html,
       status: 'draft',
       excerpt: `Gegenereerd door News Pal Portal - ${new Date().toLocaleDateString('nl-NL')}`,
     }

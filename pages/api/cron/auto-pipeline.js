@@ -174,10 +174,16 @@ export default async function handler(req, res) {
     const totalRewritten = automationResults.reduce((sum, r) => sum + r.rewritten, 0)
     const totalFailed = automationResults.reduce((sum, r) => sum + r.failed, 0)
 
-    // Trigger deploy webhooks for connected sites
+    // Trigger deploy webhooks only for automations that published new articles
     const webhookResults = []
     for (const automation of enabled) {
       if (automation.deploy_webhook_url) {
+        const result = automationResults.find(r => r.automation_id === automation.id)
+        const newArticles = result?.rewritten || 0
+        if (newArticles === 0) {
+          console.log(`[AUTO-PIPELINE] Skipping webhook for ${automation.name} (no new articles)`)
+          continue
+        }
         try {
           const webhookRes = await fetch(automation.deploy_webhook_url, { method: 'POST' })
           webhookResults.push({
@@ -185,8 +191,9 @@ export default async function handler(req, res) {
             automation_name: automation.name,
             webhook_status: webhookRes.status,
             triggered: true,
+            new_articles: newArticles,
           })
-          console.log(`[AUTO-PIPELINE] Triggered deploy webhook for ${automation.name}: ${webhookRes.status}`)
+          console.log(`[AUTO-PIPELINE] Triggered deploy webhook for ${automation.name} (${newArticles} new articles): ${webhookRes.status}`)
         } catch (webhookError) {
           webhookResults.push({
             automation_id: automation.id,

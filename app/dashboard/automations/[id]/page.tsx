@@ -285,6 +285,23 @@ export default function AutomationEditPage() {
     }
   }
 
+  const triggerDeploy = async () => {
+    if (!automation?.deploy_webhook_url) {
+      showNotification({ type: 'error', title: 'No webhook', message: 'Set a deploy webhook URL first' })
+      return
+    }
+    try {
+      const res = await fetch(automation.deploy_webhook_url, { method: 'POST' })
+      if (res.ok) {
+        showNotification({ type: 'success', title: 'Deploy triggered', message: 'Your site is rebuilding now. This usually takes 1-2 minutes.', duration: 5000 })
+      } else {
+        showNotification({ type: 'error', title: 'Deploy failed', message: `Webhook returned ${res.status}` })
+      }
+    } catch {
+      showNotification({ type: 'error', title: 'Error', message: 'Could not reach webhook URL' })
+    }
+  }
+
   if (loading) return <div className="p-6 lg:p-8"><div className="text-sm text-slate-500">Loading...</div></div>
   if (!automation) return null
 
@@ -858,14 +875,23 @@ const { articles } = await res.json();
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1">Deploy webhook URL</label>
-                    <input
-                      type="url"
-                      placeholder="https://api.netlify.com/build_hooks/..."
-                      value={automation.deploy_webhook_url}
-                      onChange={(e) => update('deploy_webhook_url', e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                    <p className="text-xs text-slate-400 mt-1">News Pal will trigger a rebuild of your site after publishing new articles</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        placeholder="https://api.netlify.com/build_hooks/..."
+                        value={automation.deploy_webhook_url}
+                        onChange={(e) => update('deploy_webhook_url', e.target.value)}
+                        className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                      <button
+                        onClick={triggerDeploy}
+                        disabled={!automation.deploy_webhook_url}
+                        className="inline-flex items-center px-3 py-1.5 border border-emerald-200 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-30 shrink-0"
+                      >
+                        Deploy now
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">Auto-deploys only when new articles are published. Use the button to deploy manually.</p>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1">Example article URL</label>

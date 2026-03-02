@@ -3,17 +3,20 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNotifications } from '../../../components/NotificationSystem'
-import { Plus, Zap, ZapOff } from 'lucide-react'
+import { Plus, Zap, ZapOff, Globe } from 'lucide-react'
 
 interface Automation {
   id: string
   name: string
   enabled: boolean
   articles_per_day: number
+  publish_frequency?: string
   categories: string
   style: string
   length: string
   language: string
+  site_name?: string
+  site_url?: string
 }
 
 export default function AutomationsPage() {
@@ -141,7 +144,7 @@ export default function AutomationsPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-slate-500">
-                      <span>{automation.articles_per_day} articles/day</span>
+                      <span>{automation.articles_per_day} articles/{(automation.publish_frequency || 'daily').replace('every-', '').replace('-days', 'd').replace('biweekly', '2wk').replace('monthly', 'mo').replace('weekly', 'wk').replace('daily', 'day')}</span>
                       <span>{automation.language === 'nl' ? 'Dutch' : 'English'}</span>
                       <span className="capitalize">{automation.length}</span>
                     </div>
@@ -152,6 +155,14 @@ export default function AutomationsPage() {
                             {cat}
                           </span>
                         ))}
+                      </div>
+                    )}
+                    {automation.site_name && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <Globe className="w-3 h-3" />
+                          {automation.site_name}
+                        </span>
                       </div>
                     )}
                   </div>

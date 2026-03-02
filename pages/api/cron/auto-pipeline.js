@@ -35,9 +35,42 @@ export default async function handler(req, res) {
     const existingArticles = await getArticles()
     const existingUrls = new Set(existingArticles.map(a => a.url))
 
+    // Frequency check: determine which automations should run today
+    function shouldRunToday(automation) {
+      const freq = automation.publish_frequency || 'daily'
+      if (freq === 'daily') return true
+
+      const today = new Date()
+      const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24))
+      const dayOfWeek = today.getDay() // 0=Sun
+      const dayOfMonth = today.getDate()
+
+      switch (freq) {
+        case 'every-2-days': return dayOfYear % 2 === 0
+        case 'every-3-days': return dayOfYear % 3 === 0
+        case 'weekly':       return dayOfWeek === 1 // Monday
+        case 'biweekly':     return dayOfWeek === 1 && Math.floor(dayOfYear / 7) % 2 === 0
+        case 'monthly':      return dayOfMonth === 1
+        default:             return true
+      }
+    }
+
     const automationResults = []
 
     for (const automation of enabled) {
+      if (!shouldRunToday(automation)) {
+        console.log(`[AUTO-PIPELINE] Skipping ${automation.name} (frequency: ${automation.publish_frequency || 'daily'}, not scheduled today)`)
+        automationResults.push({
+          automation_id: automation.id,
+          automation_name: automation.name,
+          selected: 0,
+          rewritten: 0,
+          failed: 0,
+          message: `Skipped (frequency: ${automation.publish_frequency || 'daily'})`,
+        })
+        continue
+      }
+
       console.log(`[AUTO-PIPELINE] Processing automation: ${automation.name} (${automation.id})`)
 
       const maxArticles = automation.articles_per_day || 2
@@ -141,10 +174,36 @@ export default async function handler(req, res) {
     const totalRewritten = automationResults.reduce((sum, r) => sum + r.rewritten, 0)
     const totalFailed = automationResults.reduce((sum, r) => sum + r.failed, 0)
 
+    // Trigger deploy webhooks for connected sites
+    const webhookResults = []
+    for (const automation of enabled) {
+      if (automation.deploy_webhook_url) {
+        try {
+          const webhookRes = await fetch(automation.deploy_webhook_url, { method: 'POST' })
+          webhookResults.push({
+            automation_id: automation.id,
+            automation_name: automation.name,
+            webhook_status: webhookRes.status,
+            triggered: true,
+          })
+          console.log(`[AUTO-PIPELINE] Triggered deploy webhook for ${automation.name}: ${webhookRes.status}`)
+        } catch (webhookError) {
+          webhookResults.push({
+            automation_id: automation.id,
+            automation_name: automation.name,
+            triggered: false,
+            error: webhookError.message,
+          })
+          console.error(`[AUTO-PIPELINE] Webhook failed for ${automation.name}:`, webhookError.message)
+        }
+      }
+    }
+
     const summary = {
       success: true,
       message: `Auto-pipeline completed: ${totalRewritten} published, ${totalFailed} failed across ${enabled.length} automations`,
       automations: automationResults,
+      webhooks: webhookResults.length > 0 ? webhookResults : undefined,
       timestamp: new Date().toISOString(),
     }
 

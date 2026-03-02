@@ -23,12 +23,20 @@ export interface Automation {
   name: string
   enabled: boolean
   articles_per_day: number
+  publish_frequency?: 'daily' | 'every-2-days' | 'every-3-days' | 'weekly' | 'biweekly' | 'monthly'
   categories: string
   style: string
   length: string
   language: string
   keywords?: string
   feeds?: string
+  site_name?: string
+  site_url?: string
+  site_example_url?: string
+  site_template?: string
+  site_detail_template?: string
+  integration_type?: 'script-tag' | 'fetch-api' | 'build-time' | 'netlify-function'
+  deploy_webhook_url?: string
 }
 
 // In-memory storage for development

@@ -45,12 +45,20 @@ export interface Automation {
   name: string
   enabled: boolean
   articles_per_day: number
+  publish_frequency?: 'daily' | 'every-2-days' | 'every-3-days' | 'weekly' | 'biweekly' | 'monthly'
   categories: string
   style: string
   length: string
   language: string
   keywords?: string
   feeds?: string
+  site_name?: string
+  site_url?: string
+  site_example_url?: string
+  site_template?: string
+  site_detail_template?: string
+  integration_type?: 'script-tag' | 'fetch-api' | 'build-time' | 'netlify-function'
+  deploy_webhook_url?: string
 }
 
 export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt'>) {
@@ -222,8 +230,16 @@ function recordToAutomation(record: any): Automation {
     style: (f.style as string) || 'news',
     length: (f.length as string) || 'medium',
     language: (f.language as string) || 'nl',
+    publish_frequency: (f.publish_frequency as Automation['publish_frequency']) || 'daily',
     keywords: (f.keywords as string) || '',
     feeds: (f.feeds as string) || '',
+    site_name: (f.site_name as string) || '',
+    site_url: (f.site_url as string) || '',
+    site_example_url: (f.site_example_url as string) || '',
+    site_template: (f.site_template as string) || '',
+    site_detail_template: (f.site_detail_template as string) || '',
+    integration_type: (f.integration_type as Automation['integration_type']) || undefined,
+    deploy_webhook_url: (f.deploy_webhook_url as string) || '',
   }
 }
 
@@ -262,7 +278,16 @@ export async function createAutomation(data: Omit<Automation, 'id'>): Promise<Au
   }
 
   try {
-    const records = await base('automation_settings').create([{ fields: data }])
+    // Clean empty strings for singleSelect and url fields
+    const cleaned: Record<string, any> = { ...data }
+    const selectFields = ['integration_type', 'publish_frequency']
+    const urlFields = ['site_url', 'site_example_url', 'deploy_webhook_url']
+    for (const key of [...selectFields, ...urlFields]) {
+      if (key in cleaned && cleaned[key] === '') {
+        delete cleaned[key]
+      }
+    }
+    const records = await base('automation_settings').create([{ fields: cleaned }])
     return recordToAutomation(records[0])
   } catch (error) {
     console.error('Error creating automation:', error)
@@ -277,7 +302,16 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
 
   try {
     const { id: _id, ...fields } = data
-    const record = await base('automation_settings').update(id, fields)
+    // Airtable requires null (not empty string) to clear singleSelect and url fields
+    const cleaned: Record<string, any> = { ...fields }
+    const selectFields = ['integration_type', 'publish_frequency']
+    const urlFields = ['site_url', 'site_example_url', 'deploy_webhook_url']
+    for (const key of [...selectFields, ...urlFields]) {
+      if (key in cleaned && cleaned[key] === '') {
+        cleaned[key] = null
+      }
+    }
+    const record = await base('automation_settings').update(id, cleaned)
     return recordToAutomation(record)
   } catch (error) {
     console.error(`Error updating automation ${id}:`, error)

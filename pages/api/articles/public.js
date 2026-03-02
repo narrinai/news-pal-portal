@@ -1,18 +1,31 @@
 import { getArticles } from '../../../lib/airtable'
 
 export default async function handler(req, res) {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    res.setHeader('Access-Control-Max-Age', '86400')
+    return res.status(204).end()
+  }
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // Allow CORS so external sites can fetch articles
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
+  // Cache headers
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+
   try {
-    const { category, limit, automation_id } = req.query
+    const { category, limit, offset, automation_id } = req.query
     const maxArticles = Math.min(parseInt(limit || '20', 10), 50)
+    const startOffset = Math.max(parseInt(offset || '0', 10), 0)
 
     // Only return published articles
     let articles = await getArticles('published', category || undefined)
@@ -22,8 +35,10 @@ export default async function handler(req, res) {
       articles = articles.filter(a => a.automation_id === automation_id)
     }
 
+    const total = articles.length
+
     // Return only the fields the consuming site needs
-    const publicArticles = articles.slice(0, maxArticles).map(a => ({
+    const publicArticles = articles.slice(startOffset, startOffset + maxArticles).map(a => ({
       id: a.id,
       title: a.title,
       description: a.description,
@@ -39,7 +54,9 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
+      total,
       count: publicArticles.length,
+      offset: startOffset,
       articles: publicArticles,
     })
   } catch (error) {

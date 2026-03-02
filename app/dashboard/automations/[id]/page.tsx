@@ -3,19 +3,27 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useNotifications } from '../../../../components/NotificationSystem'
-import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code } from 'lucide-react'
 
 interface Automation {
   id: string
   name: string
   enabled: boolean
   articles_per_day: number
+  publish_frequency: string
   categories: string
   style: string
   length: string
   language: string
   keywords: string
   feeds: string
+  site_name: string
+  site_url: string
+  site_example_url: string
+  site_template: string
+  site_detail_template: string
+  integration_type: string
+  deploy_webhook_url: string
 }
 
 interface Feed {
@@ -37,6 +45,8 @@ export default function AutomationEditPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [expandedGuide, setExpandedGuide] = useState<string | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [testingConnection, setTestingConnection] = useState(false)
 
   const id = params?.id as string
 
@@ -53,7 +63,19 @@ export default function AutomationEditPage() {
       const res = await fetch(`/api/automations/${id}`)
       if (res.ok) {
         const data = await res.json()
-        setAutomation({ ...data, keywords: data.keywords || '', feeds: data.feeds || '' })
+        setAutomation({
+          ...data,
+          publish_frequency: data.publish_frequency || 'daily',
+          keywords: data.keywords || '',
+          feeds: data.feeds || '',
+          site_name: data.site_name || '',
+          site_url: data.site_url || '',
+          site_example_url: data.site_example_url || '',
+          site_template: data.site_template || '',
+          site_detail_template: data.site_detail_template || '',
+          integration_type: data.integration_type || '',
+          deploy_webhook_url: data.deploy_webhook_url || '',
+        })
       } else {
         showNotification({ type: 'error', title: 'Not found', message: 'Automation not found' })
         router.push('/dashboard/automations')
@@ -219,6 +241,50 @@ export default function AutomationEditPage() {
     showNotification({ type: 'success', title: 'Copied', message: 'API URL copied to clipboard', duration: 2000 })
   }
 
+  const analyzeTemplate = async () => {
+    if (!automation?.site_example_url) {
+      showNotification({ type: 'error', title: 'Missing URL', message: 'Enter an example article URL first' })
+      return
+    }
+    setAnalyzing(true)
+    try {
+      const res = await fetch('/api/sites/analyze-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: automation.site_example_url, automation_id: id }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        update('site_template', data.card_template)
+        update('site_detail_template', data.detail_template)
+        showNotification({ type: 'success', title: 'Template extracted', message: 'Your site\'s article styling has been saved', duration: 4000 })
+      } else {
+        showNotification({ type: 'error', title: 'Analysis failed', message: data.error || 'Could not extract template' })
+      }
+    } catch {
+      showNotification({ type: 'error', title: 'Network error', message: 'Could not reach analysis endpoint' })
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const testConnection = async () => {
+    setTestingConnection(true)
+    try {
+      const res = await fetch(`/api/articles/status?automation_id=${id}`)
+      const data = await res.json()
+      if (data.connected) {
+        showNotification({ type: 'success', title: 'Connected', message: `${data.name} is active and reachable`, duration: 3000 })
+      } else {
+        showNotification({ type: 'error', title: 'Not connected', message: data.error || 'Automation not found' })
+      }
+    } catch {
+      showNotification({ type: 'error', title: 'Error', message: 'Could not test connection' })
+    } finally {
+      setTestingConnection(false)
+    }
+  }
+
   if (loading) return <div className="p-6 lg:p-8"><div className="text-sm text-slate-500">Loading...</div></div>
   if (!automation) return null
 
@@ -304,15 +370,27 @@ export default function AutomationEditPage() {
             <h3 className="text-sm font-semibold text-slate-900">Output Settings</h3>
             <span className="text-xs text-slate-400">How articles are rewritten and published</span>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Articles / day</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Articles</label>
               <input
                 type="number" min="1" max="10"
                 value={automation.articles_per_day}
-                onChange={(e) => update('articles_per_day', parseInt(e.target.value) || 2)}
+                onChange={(e) => update('articles_per_day', parseInt(e.target.value) || 1)}
                 className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Frequency</label>
+              <select value={automation.publish_frequency} onChange={(e) => update('publish_frequency', e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <option value="daily">Daily</option>
+                <option value="every-2-days">Every 2 days</option>
+                <option value="every-3-days">Every 3 days</option>
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Every 2 weeks</option>
+                <option value="monthly">Monthly</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">Style</label>
@@ -344,8 +422,8 @@ export default function AutomationEditPage() {
         {/* Categories — visual cards */}
         <div className="bg-white rounded-lg border border-slate-200 p-5">
           <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-sm font-semibold text-slate-900">Categories</h3>
-            <span className="text-xs text-slate-400">{activeCats.length} active</span>
+            <h3 className="text-sm font-semibold text-slate-900">Topics</h3>
+            <span className="text-xs text-slate-400">{activeCats.length} active — pick which topics this automation should find and rewrite articles for</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {allCategories.map((cat) => {
@@ -519,202 +597,180 @@ export default function AutomationEditPage() {
           </div>
         )}
 
-        {/* Publishing Guide */}
+        {/* Connected Site — combined platform + integration + setup */}
         <div className="bg-white rounded-lg border border-slate-200 p-5">
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">Publish to your website</h3>
-          <p className="text-xs text-slate-400 mb-4">
-            {automation.enabled
-              ? `This automation is active. Every day at 07:00 it fetches, rewrites, and publishes ${automation.articles_per_day} article${automation.articles_per_day > 1 ? 's' : ''}. Choose how you want to display them:`
-              : 'Enable this automation (toggle above), save your settings, then follow the steps for your platform:'}
-          </p>
-
-          {/* API URL */}
-          <div className="flex items-center gap-2 mb-5 p-3 bg-slate-50 rounded-lg border border-slate-100">
-            <span className="text-xs font-medium text-slate-500 shrink-0">Your API:</span>
-            <code className="flex-1 text-xs text-slate-700 font-mono truncate">
-              {typeof window !== 'undefined' ? window.location.origin : ''}/api/articles/public?automation_id={id}
-            </code>
-            <button
-              onClick={copyApiUrl}
-              className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-slate-700 hover:text-white hover:border-slate-700 transition-colors shrink-0"
-            >
-              <Copy className="w-3 h-3 mr-1" />
-              Copy
-            </button>
+          <div className="flex items-center gap-2 mb-4">
+            <Link className="w-4 h-4 text-indigo-500" />
+            <h3 className="text-sm font-semibold text-slate-900">Publish to your website</h3>
+            {automation.site_name && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Connected
+              </span>
+            )}
           </div>
 
-          {/* Platform guides */}
-          <div className="space-y-2">
-            {/* Netlify */}
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setExpandedGuide(expandedGuide === 'netlify' ? null : 'netlify')}
-                className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
-                    <span className="text-sm font-bold text-teal-600">N</span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-slate-900">Netlify</span>
-                    <span className="text-xs text-slate-400 ml-2">Static site, Next.js, Gatsby, Hugo</span>
-                  </div>
+          <div className="space-y-5">
+            {/* Step 1: Your site */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">1</div>
+                <span className="text-sm font-medium text-slate-800">Your site</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-7">
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Site name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CompanionGuide.ai"
+                    value={automation.site_name}
+                    onChange={(e) => update('site_name', e.target.value)}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
                 </div>
-                {expandedGuide === 'netlify' ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-              </button>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">News listing page</label>
+                  <input
+                    type="url"
+                    placeholder="https://companionguide.ai/news"
+                    value={automation.site_url}
+                    onChange={(e) => update('site_url', e.target.value)}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">The page on your site where articles are listed</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 2: Choose platform */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">2</div>
+                <span className="text-sm font-medium text-slate-800">Choose your platform</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 ml-7">
+                {[
+                  { key: 'netlify', label: 'Netlify', desc: 'Static sites & SSG', color: 'teal', letter: 'N' },
+                  { key: 'wordpress', label: 'WordPress', desc: 'Blog & CMS', color: 'blue', letter: 'W' },
+                  { key: 'replit', label: 'Replit', desc: 'Hosted web apps', color: 'orange', letter: 'R' },
+                  { key: 'other', label: 'Other', desc: 'Any website', color: 'slate', letter: '?' },
+                ].map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => setExpandedGuide(expandedGuide === p.key ? null : p.key)}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                      expandedGuide === p.key
+                        ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20'
+                        : 'bg-white border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      expandedGuide === p.key ? 'bg-indigo-100' : 'bg-slate-100'
+                    }`}>
+                      <span className={`text-sm font-bold ${expandedGuide === p.key ? 'text-indigo-600' : 'text-slate-400'}`}>{p.letter}</span>
+                    </div>
+                    <span className={`text-xs font-medium ${expandedGuide === p.key ? 'text-slate-900' : 'text-slate-600'}`}>{p.label}</span>
+                    <span className="text-[10px] text-slate-400">{p.desc}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Platform-specific guide with step-by-step */}
               {expandedGuide === 'netlify' && (
-                <div className="px-4 pb-4 border-t border-slate-100">
-                  <div className="mt-3 space-y-3">
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-xs font-bold">1</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Add a news page to your Netlify site</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Create a page (e.g. <code className="bg-slate-100 px-1 rounded">/news</code> or <code className="bg-slate-100 px-1 rounded">/blog</code>) that fetches articles from your API.</p>
+                <div className="ml-7 mt-3 p-4 bg-teal-50/50 rounded-lg border border-teal-100">
+                  <p className="text-xs text-slate-600 mb-3">Netlify rebuilds your site from code. News Pal can inject articles at build time so they're ready when the page loads, or you can load them client-side.</p>
+                  <p className="text-xs font-medium text-slate-700 mb-2">Recommended: Auto-build + Embed script (best of both: SEO + freshness)</p>
+                  <div className="space-y-2.5">
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Create a deploy webhook</p>
+                        <p className="mt-0.5">Open your Netlify dashboard → select your site → <strong>Site configuration</strong> → <strong>Build & deploy</strong> → <strong>Build hooks</strong> → click <strong>Add build hook</strong>. Name it "News Pal" and click Save. Copy the URL.</p>
                       </div>
                     </div>
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-xs font-bold">2</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Fetch articles with JavaScript</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Add this code to your page:</p>
-                        <pre className="mt-2 bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto"><code>{`// Fetch articles from News Pal
-const API_URL = '${typeof window !== 'undefined' ? window.location.origin : 'https://your-newspal.vercel.app'}/api/articles/public?automation_id=${id}&limit=10';
-
-async function loadArticles() {
-  const res = await fetch(API_URL);
-  const data = await res.json();
-  return data.articles; // Array of articles
-}
-
-// Each article contains:
-// - title        (rewritten headline)
-// - content_html (full article in HTML)
-// - imageUrl     (article image)
-// - publishedAt  (ISO date)
-// - category     (e.g. "europeanpurpose")`}</code></pre>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Add environment variables to Netlify</p>
+                        <p className="mt-0.5">In Netlify → <strong>Site configuration</strong> → <strong>Environment variables</strong> → add the variables shown in step 3 below (after choosing your integration).</p>
                       </div>
                     </div>
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-xs font-bold">3</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Render the articles</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Loop through articles and insert the <code className="bg-slate-100 px-1 rounded">content_html</code> into your page. Style with your own CSS.</p>
-                        <pre className="mt-2 bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto"><code>{`// Example: render articles on page
-const articles = await loadArticles();
-const container = document.getElementById('news');
-
-articles.forEach(article => {
-  container.innerHTML += \`
-    <article>
-      <h2>\${article.title}</h2>
-      <time>\${new Date(article.publishedAt).toLocaleDateString('nl-NL')}</time>
-      \${article.imageUrl ? \`<img src="\${article.imageUrl}" alt="">\` : ''}
-      <div>\${article.content_html}</div>
-    </article>
-  \`;
-});`}</code></pre>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Paste the webhook URL below</p>
+                        <p className="mt-0.5">Scroll down to step 4 (Advanced) and paste the webhook URL. News Pal will trigger a new Netlify build every time new articles are published.</p>
                       </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-xs font-bold">4</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Deploy</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Push to your repo. Netlify rebuilds automatically. Articles update every time the page loads (client-side fetch) or on rebuild (SSG).</p>
-                      </div>
-                    </div>
-                    <div className="mt-2 p-3 bg-teal-50 rounded-lg border border-teal-100">
-                      <p className="text-xs text-teal-700"><strong>Note:</strong> News Pal must be deployed online (e.g. Vercel) for Netlify to reach the API. While developing locally, use <code className="bg-teal-100 px-1 rounded">localhost:3000</code> for testing.</p>
                     </div>
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* WordPress */}
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setExpandedGuide(expandedGuide === 'wordpress' ? null : 'wordpress')}
-                className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <span className="text-sm font-bold text-blue-600">W</span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-slate-900">WordPress</span>
-                    <span className="text-xs text-slate-400 ml-2">Auto-publish via REST API</span>
-                  </div>
-                </div>
-                {expandedGuide === 'wordpress' ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-              </button>
               {expandedGuide === 'wordpress' && (
-                <div className="px-4 pb-4 border-t border-slate-100">
-                  <div className="mt-3 space-y-3">
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-xs font-bold">1</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Create an Application Password in WordPress</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Go to WordPress &rarr; Users &rarr; Profile &rarr; Application Passwords. Create one and save the password.</p>
+                <div className="ml-7 mt-3 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                  <p className="text-xs text-slate-600 mb-3">WordPress can display articles using the embed script, or you can fetch them in your theme.</p>
+                  <p className="text-xs font-medium text-slate-700 mb-2">Recommended: Embed script (no plugin needed)</p>
+                  <div className="space-y-2.5">
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Create a page for your articles</p>
+                        <p className="mt-0.5">In WordPress → <strong>Pages</strong> → <strong>Add New</strong>. Name it "News" or "Blog". Switch to the <strong>Code editor</strong> (or use a Custom HTML block).</p>
                       </div>
                     </div>
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-xs font-bold">2</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Add WordPress credentials to News Pal</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Add to your <code className="bg-slate-100 px-1 rounded">.env.local</code>: <code className="bg-slate-100 px-1 rounded">WORDPRESS_SITE_URL</code>, <code className="bg-slate-100 px-1 rounded">WORDPRESS_USERNAME</code>, <code className="bg-slate-100 px-1 rounded">WORDPRESS_APP_PASSWORD</code></p>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Choose "Embed script" in step 3 below</p>
+                        <p className="mt-0.5">Select the Embed script integration and paste the generated HTML snippet into your WordPress page.</p>
                       </div>
                     </div>
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-xs font-bold">3</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Articles are auto-published</p>
-                        <p className="text-xs text-slate-500 mt-0.5">The pipeline pushes rewritten articles directly to WordPress as draft or published posts via the REST API.</p>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Publish the page</p>
+                        <p className="mt-0.5">Click Publish. Articles from News Pal will load automatically whenever someone visits the page.</p>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Replit */}
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setExpandedGuide(expandedGuide === 'replit' ? null : 'replit')}
-                className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
-                    <span className="text-sm font-bold text-orange-600">R</span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-slate-900">Replit</span>
-                    <span className="text-xs text-slate-400 ml-2">Hosted web app</span>
-                  </div>
-                </div>
-                {expandedGuide === 'replit' ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-              </button>
               {expandedGuide === 'replit' && (
-                <div className="px-4 pb-4 border-t border-slate-100">
-                  <div className="mt-3 space-y-3">
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-xs font-bold">1</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Add a fetch to your Replit app</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Use <code className="bg-slate-100 px-1 rounded">fetch()</code> to pull articles from the API URL above. Same code as the Netlify example.</p>
+                <div className="ml-7 mt-3 p-4 bg-orange-50/50 rounded-lg border border-orange-100">
+                  <p className="text-xs text-slate-600 mb-3">Replit apps are always running, so articles are fetched fresh on every page load.</p>
+                  <p className="text-xs font-medium text-slate-700 mb-2">Recommended: Embed script or Custom code</p>
+                  <div className="space-y-2.5">
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Open your Replit project</p>
+                        <p className="mt-0.5">Open the HTML file where you want articles to appear (e.g. <code className="bg-orange-100 px-1 rounded">index.html</code> or a dedicated news page).</p>
                       </div>
                     </div>
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-xs font-bold">2</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Render articles in your HTML</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Each article has <code className="bg-slate-100 px-1 rounded">title</code>, <code className="bg-slate-100 px-1 rounded">content_html</code>, <code className="bg-slate-100 px-1 rounded">imageUrl</code>, and <code className="bg-slate-100 px-1 rounded">publishedAt</code>. Insert into your page template.</p>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Choose "Embed script" in step 3 and paste the snippet</p>
+                        <p className="mt-0.5">The embed script works out of the box — articles load on every page visit with no extra setup.</p>
                       </div>
                     </div>
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-xs font-bold">3</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Articles refresh automatically</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Since Replit apps are always running, every page load fetches the latest articles from News Pal.</p>
+                  </div>
+                </div>
+              )}
+              {expandedGuide === 'other' && (
+                <div className="ml-7 mt-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <p className="text-xs text-slate-600 mb-2">Works with any website that supports HTML.</p>
+                  <div className="space-y-2.5">
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Choose "Embed script" in step 3 below</p>
+                        <p className="mt-0.5">This is the easiest option — just copy and paste a snippet into your HTML. No coding required.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Or use the API directly</p>
+                        <p className="mt-0.5">Choose "Custom code" if you want full control. You'll get a fetch URL that returns JSON with all your articles.</p>
                       </div>
                     </div>
                   </div>
@@ -722,50 +778,139 @@ articles.forEach(article => {
               )}
             </div>
 
-            {/* HubSpot */}
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setExpandedGuide(expandedGuide === 'hubspot' ? null : 'hubspot')}
-                className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
-                    <span className="text-sm font-bold text-orange-500">H</span>
+            {/* Step 3: Integration type */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">3</div>
+                <span className="text-sm font-medium text-slate-800">How should articles appear?</span>
+              </div>
+              <div className="ml-7 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {[
+                    { value: 'script-tag', label: 'Embed script', desc: 'Paste a snippet — articles load automatically', best: 'Easiest, works everywhere' },
+                    { value: 'build-time', label: 'Auto-build', desc: 'Articles baked into your site at deploy time', best: 'Best for SEO & fast loading' },
+                    { value: 'fetch-api', label: 'Custom code', desc: 'You fetch and render articles yourself', best: 'Full control over design' },
+                    { value: 'netlify-function', label: 'Server function', desc: 'Runs on Netlify/Vercel server-side', best: 'Keeps API key private' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => update('integration_type', automation.integration_type === opt.value ? '' : opt.value)}
+                      className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${
+                        automation.integration_type === opt.value
+                          ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20'
+                          : 'bg-white border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50'
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${
+                        automation.integration_type === opt.value ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                      }`}>
+                        {automation.integration_type === opt.value && <Check className="w-2.5 h-2.5 text-white" />}
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-slate-900">{opt.label}</span>
+                        <p className="text-xs text-slate-500 mt-0.5">{opt.desc}</p>
+                        <p className="text-[10px] text-indigo-500 mt-0.5">{opt.best}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Setup instructions for chosen integration */}
+                {automation.integration_type === 'script-tag' && (
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <p className="text-xs font-medium text-slate-700 mb-1">Paste this in your site's HTML where you want articles to appear:</p>
+                    <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto mt-2"><code>{`<div id="newspal-articles"></div>
+<script src="${typeof window !== 'undefined' ? window.location.origin : 'https://newspal.vercel.app'}/embed/newspal-loader.js"
+  data-automation-id="${id}"
+  data-limit="20"></script>`}</code></pre>
+                  </div>
+                )}
+
+                {automation.integration_type === 'build-time' && (
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <p className="text-xs font-medium text-slate-700 mb-1">Add these environment variables in your hosting dashboard:</p>
+                    <p className="text-xs text-slate-500 mb-2">For Netlify: Site settings → Environment variables. For Vercel: Project settings → Environment variables.</p>
+                    <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto mt-2"><code>{`NEWSPAL_API_URL=${typeof window !== 'undefined' ? window.location.origin : 'https://newspal.vercel.app'}
+NEWSPAL_AUTOMATION_ID=${id}
+NEWSPAL_LIMIT=50`}</code></pre>
+                  </div>
+                )}
+
+                {automation.integration_type === 'fetch-api' && (
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <p className="text-xs font-medium text-slate-700 mb-1">Use this code in your site to fetch and display articles:</p>
+                    <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto mt-2"><code>{`const res = await fetch('${typeof window !== 'undefined' ? window.location.origin : 'https://newspal.vercel.app'}/api/articles/public?automation_id=${id}&limit=20');
+const { articles } = await res.json();
+// articles[] = { title, description, content, html, category, source, sourceUrl, imageUrl, publishedAt }`}</code></pre>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Step 4: Advanced settings */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">4</div>
+                <span className="text-sm font-medium text-slate-800">Advanced</span>
+                <span className="text-xs text-slate-400">optional</span>
+              </div>
+              <div className="ml-7 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Deploy webhook URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://api.netlify.com/build_hooks/..."
+                      value={automation.deploy_webhook_url}
+                      onChange={(e) => update('deploy_webhook_url', e.target.value)}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">News Pal will trigger a rebuild of your site after publishing new articles</p>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-slate-900">HubSpot</span>
-                    <span className="text-xs text-slate-400 ml-2">CMS blog module</span>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Example article URL</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        placeholder="https://yoursite.com/news/example-article"
+                        value={automation.site_example_url}
+                        onChange={(e) => update('site_example_url', e.target.value)}
+                        className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                      <button
+                        onClick={analyzeTemplate}
+                        disabled={analyzing || !automation.site_example_url}
+                        className="inline-flex items-center px-3 py-1.5 border border-indigo-200 rounded-lg text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors disabled:opacity-50 shrink-0"
+                      >
+                        {analyzing ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Analyzing...</> : <><Search className="w-3 h-3 mr-1" />Analyze</>}
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">AI extracts your site's article styling so new articles match your design</p>
                   </div>
                 </div>
-                {expandedGuide === 'hubspot' ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-              </button>
-              {expandedGuide === 'hubspot' && (
-                <div className="px-4 pb-4 border-t border-slate-100">
-                  <div className="mt-3 space-y-3">
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 text-xs font-bold">1</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Create a custom module in HubSpot CMS</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Go to Design Manager &rarr; Create module. Add a HubL + JavaScript module that fetches from your API.</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 text-xs font-bold">2</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Use serverless functions or client-side fetch</p>
-                        <p className="text-xs text-slate-500 mt-0.5">HubSpot serverless functions can fetch the API server-side, or use client-side JavaScript on the page. Same <code className="bg-slate-100 px-1 rounded">fetch()</code> pattern.</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 text-xs font-bold">3</div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Add the module to a page</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Drag the module onto any HubSpot page. Articles from News Pal will render automatically.</p>
-                      </div>
-                    </div>
-                  </div>
+
+                {/* API URL + Test */}
+                <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                  <span className="text-xs font-medium text-slate-500 shrink-0">Your API:</span>
+                  <code className="flex-1 text-xs text-slate-700 font-mono truncate">
+                    {typeof window !== 'undefined' ? window.location.origin : ''}/api/articles/public?automation_id={id}
+                  </code>
+                  <button
+                    onClick={copyApiUrl}
+                    className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-slate-700 hover:text-white hover:border-slate-700 transition-colors shrink-0"
+                  >
+                    <Copy className="w-3 h-3 mr-1" />
+                    Copy
+                  </button>
+                  <button
+                    onClick={testConnection}
+                    disabled={testingConnection}
+                    className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-slate-700 hover:text-white hover:border-slate-700 transition-colors shrink-0 disabled:opacity-50"
+                  >
+                    {testingConnection ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Testing...</> : 'Test'}
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

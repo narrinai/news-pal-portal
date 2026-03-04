@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useNotifications } from '../../../../components/NotificationSystem'
-import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code } from 'lucide-react'
+import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown } from 'lucide-react'
 
 interface Automation {
   id: string
@@ -47,6 +47,7 @@ export default function AutomationEditPage() {
   const [expandedGuide, setExpandedGuide] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
+  const [showAdvancedIntegration, setShowAdvancedIntegration] = useState(false)
 
   const id = params?.id as string
 
@@ -673,7 +674,10 @@ export default function AutomationEditPage() {
                 ].map((p) => (
                   <button
                     key={p.key}
-                    onClick={() => setExpandedGuide(expandedGuide === p.key ? null : p.key)}
+                    onClick={() => {
+                      setExpandedGuide(expandedGuide === p.key ? null : p.key)
+                      if (p.key !== 'other') update('integration_type', 'script-tag')
+                    }}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
                       expandedGuide === p.key
                         ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20'
@@ -694,38 +698,72 @@ export default function AutomationEditPage() {
               {/* Platform-specific guide with step-by-step */}
               {expandedGuide === 'netlify' && (
                 <div className="ml-7 mt-3 p-4 bg-teal-50/50 rounded-lg border border-teal-100">
-                  <p className="text-xs text-slate-600 mb-3">Netlify rebuilds your site from code. News Pal can inject articles at build time so they're ready when the page loads, or you can load them client-side.</p>
-                  <p className="text-xs font-medium text-slate-700 mb-2">Recommended: Auto-build + Embed script (best of both: SEO + freshness)</p>
-                  <div className="space-y-2.5">
+                  <p className="text-xs text-slate-600 mb-3">Best for SEO: articles are baked into your HTML at build time so Google can index them. Between builds, the embed script keeps content fresh for visitors. News Pal triggers <strong>1 rebuild per day</strong> (only when new articles are published).</p>
+                  <div className="space-y-3">
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
-                      <div className="text-xs text-slate-600">
-                        <p className="font-medium text-slate-700">Create a deploy webhook</p>
-                        <p className="mt-0.5">Open your Netlify dashboard → select your site → <strong>Site configuration</strong> → <strong>Build & deploy</strong> → <strong>Build hooks</strong> → click <strong>Add build hook</strong>. Name it "News Pal" and click Save. Copy the URL.</p>
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Add this code to your site</p>
+                        <p className="mb-1.5">Paste this in your HTML where you want articles to appear:</p>
+                        <div className="relative">
+                          <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto"><code>{`<div id="newspal-articles"></div>
+<script src="${typeof window !== 'undefined' ? window.location.origin : 'https://newspal.vercel.app'}/embed/newspal-loader.js"
+  data-automation-id="${id}"
+  data-limit="20"></script>`}</code></pre>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(`<div id="newspal-articles"></div>\n<script src="${window.location.origin}/embed/newspal-loader.js"\n  data-automation-id="${id}"\n  data-limit="20"></script>`)
+                              showNotification({ type: 'success', title: 'Copied', message: 'Embed snippet copied to clipboard', duration: 2000 })
+                            }}
+                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors"
+                          >
+                            <Copy className="w-3 h-3 mr-1" />Copy
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1.5">This script loads articles instantly for visitors. For SEO, add the webhook below so articles are also in the static HTML.</p>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
                       <div className="text-xs text-slate-600">
-                        <p className="font-medium text-slate-700">Add environment variables to Netlify</p>
-                        <p className="mt-0.5">In Netlify → <strong>Site configuration</strong> → <strong>Environment variables</strong> → add the variables shown in step 3 below (after choosing your integration).</p>
+                        <p className="font-medium text-slate-700">Create a deploy webhook in Netlify</p>
+                        <p className="mt-0.5">Open your Netlify dashboard → select your site → <strong>Site configuration</strong> → <strong>Build & deploy</strong> → <strong>Build hooks</strong> → click <strong>Add build hook</strong>. Name it "News Pal" and click Save. Copy the URL.</p>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
-                      <div className="text-xs text-slate-600">
-                        <p className="font-medium text-slate-700">Paste the webhook URL below</p>
-                        <p className="mt-0.5">Scroll down to step 4 (Advanced) and paste the webhook URL. News Pal will trigger a new Netlify build every time new articles are published.</p>
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Paste your webhook URL here</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            placeholder="https://api.netlify.com/build_hooks/..."
+                            value={automation.deploy_webhook_url}
+                            onChange={(e) => update('deploy_webhook_url', e.target.value)}
+                            className="flex-1 border border-teal-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          />
+                          <button
+                            onClick={triggerDeploy}
+                            disabled={!automation.deploy_webhook_url}
+                            className="inline-flex items-center px-3 py-1.5 border border-emerald-200 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-30 shrink-0"
+                          >
+                            Deploy now
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1">Rebuilds <strong>your Netlify site</strong> so articles are in the static HTML (important for SEO). Triggered automatically once per day after new articles are published. "Deploy now" triggers a manual rebuild. Costs 1 build credit per trigger.</p>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 ml-7">
+                      <Check className="w-4 h-4 text-emerald-500" />
+                      <span className="text-xs font-medium text-emerald-700">That's it! Save your settings and you're done.</span>
                     </div>
                   </div>
                 </div>
               )}
               {expandedGuide === 'wordpress' && (
                 <div className="ml-7 mt-3 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
-                  <p className="text-xs text-slate-600 mb-3">WordPress can display articles using the embed script, or you can fetch them in your theme.</p>
-                  <p className="text-xs font-medium text-slate-700 mb-2">Recommended: Embed script (no plugin needed)</p>
-                  <div className="space-y-2.5">
+                  <p className="text-xs text-slate-600 mb-3">No plugin needed — just paste a snippet and articles load automatically.</p>
+                  <div className="space-y-3">
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
                       <div className="text-xs text-slate-600">
@@ -735,26 +773,43 @@ export default function AutomationEditPage() {
                     </div>
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
-                      <div className="text-xs text-slate-600">
-                        <p className="font-medium text-slate-700">Choose "Embed script" in step 3 below</p>
-                        <p className="mt-0.5">Select the Embed script integration and paste the generated HTML snippet into your WordPress page.</p>
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Paste this code into the page</p>
+                        <div className="relative">
+                          <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto"><code>{`<div id="newspal-articles"></div>
+<script src="${typeof window !== 'undefined' ? window.location.origin : 'https://newspal.vercel.app'}/embed/newspal-loader.js"
+  data-automation-id="${id}"
+  data-limit="20"></script>`}</code></pre>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(`<div id="newspal-articles"></div>\n<script src="${window.location.origin}/embed/newspal-loader.js"\n  data-automation-id="${id}"\n  data-limit="20"></script>`)
+                              showNotification({ type: 'success', title: 'Copied', message: 'Embed snippet copied to clipboard', duration: 2000 })
+                            }}
+                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors"
+                          >
+                            <Copy className="w-3 h-3 mr-1" />Copy
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
                       <div className="text-xs text-slate-600">
                         <p className="font-medium text-slate-700">Publish the page</p>
-                        <p className="mt-0.5">Click Publish. Articles from News Pal will load automatically whenever someone visits the page.</p>
+                        <p className="mt-0.5">Click Publish. Articles load automatically whenever someone visits the page.</p>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 ml-7">
+                      <Check className="w-4 h-4 text-emerald-500" />
+                      <span className="text-xs font-medium text-emerald-700">That's it! Save your settings and you're done.</span>
                     </div>
                   </div>
                 </div>
               )}
               {expandedGuide === 'replit' && (
                 <div className="ml-7 mt-3 p-4 bg-orange-50/50 rounded-lg border border-orange-100">
-                  <p className="text-xs text-slate-600 mb-3">Replit apps are always running, so articles are fetched fresh on every page load.</p>
-                  <p className="text-xs font-medium text-slate-700 mb-2">Recommended: Embed script or Custom code</p>
-                  <div className="space-y-2.5">
+                  <p className="text-xs text-slate-600 mb-3">Articles are fetched fresh on every page load — no extra setup needed.</p>
+                  <div className="space-y-3">
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
                       <div className="text-xs text-slate-600">
@@ -764,10 +819,28 @@ export default function AutomationEditPage() {
                     </div>
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
-                      <div className="text-xs text-slate-600">
-                        <p className="font-medium text-slate-700">Choose "Embed script" in step 3 and paste the snippet</p>
-                        <p className="mt-0.5">The embed script works out of the box — articles load on every page visit with no extra setup.</p>
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Paste this code into your HTML</p>
+                        <div className="relative">
+                          <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto"><code>{`<div id="newspal-articles"></div>
+<script src="${typeof window !== 'undefined' ? window.location.origin : 'https://newspal.vercel.app'}/embed/newspal-loader.js"
+  data-automation-id="${id}"
+  data-limit="20"></script>`}</code></pre>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(`<div id="newspal-articles"></div>\n<script src="${window.location.origin}/embed/newspal-loader.js"\n  data-automation-id="${id}"\n  data-limit="20"></script>`)
+                              showNotification({ type: 'success', title: 'Copied', message: 'Embed snippet copied to clipboard', duration: 2000 })
+                            }}
+                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors"
+                          >
+                            <Copy className="w-3 h-3 mr-1" />Copy
+                          </button>
+                        </div>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 ml-7">
+                      <Check className="w-4 h-4 text-emerald-500" />
+                      <span className="text-xs font-medium text-emerald-700">That's it! Save your settings and you're done.</span>
                     </div>
                   </div>
                 </div>
@@ -795,7 +868,8 @@ export default function AutomationEditPage() {
               )}
             </div>
 
-            {/* Step 3: Integration type */}
+            {/* Step 3: Integration type — only for 'other' platform or advanced toggle */}
+            {(expandedGuide === 'other' || showAdvancedIntegration) && (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">3</div>
@@ -863,16 +937,29 @@ const { articles } = await res.json();
                 )}
               </div>
             </div>
+            )}
 
-            {/* Step 4: Advanced settings */}
+            {/* Advanced options toggle — only shown when a known platform is selected */}
+            {expandedGuide && expandedGuide !== 'other' && !showAdvancedIntegration && (
+              <button
+                onClick={() => setShowAdvancedIntegration(true)}
+                className="ml-7 inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+                Advanced integration options
+              </button>
+            )}
+
+            {/* Extra options */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">4</div>
-                <span className="text-sm font-medium text-slate-800">Advanced</span>
+                <div className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold">{expandedGuide === 'other' || showAdvancedIntegration ? '4' : '3'}</div>
+                <span className="text-sm font-medium text-slate-800">Extra options</span>
                 <span className="text-xs text-slate-400">optional</span>
               </div>
               <div className="ml-7 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Deploy webhook — only show here if NOT already in Netlify guide */}
+                {expandedGuide !== 'netlify' && (
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1">Deploy webhook URL</label>
                     <div className="flex gap-2">
@@ -891,50 +978,63 @@ const { articles } = await res.json();
                         Deploy now
                       </button>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">Auto-deploys only when new articles are published. Use the button to deploy manually.</p>
+                    <p className="text-xs text-slate-400 mt-1">Triggers a rebuild of <strong>your website</strong> (not News Pal). Happens automatically when new articles are published. Use "Deploy now" to manually rebuild your site.</p>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Example article URL</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        placeholder="https://yoursite.com/news/example-article"
-                        value={automation.site_example_url}
-                        onChange={(e) => update('site_example_url', e.target.value)}
-                        className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      />
-                      <button
-                        onClick={analyzeTemplate}
-                        disabled={analyzing || !automation.site_example_url}
-                        className="inline-flex items-center px-3 py-1.5 border border-indigo-200 rounded-lg text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors disabled:opacity-50 shrink-0"
-                      >
-                        {analyzing ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Analyzing...</> : <><Search className="w-3 h-3 mr-1" />Analyze</>}
-                      </button>
+                )}
+
+                {/* Match your site's design */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Match your site's design</label>
+                  <p className="text-xs text-slate-500 mb-2">Paste a URL to an existing article on your site. AI will visit the page, analyze the HTML structure and CSS classes, and create a template so new articles look exactly like your existing ones — same fonts, colors, layout, and spacing.</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="https://yoursite.com/news/example-article"
+                      value={automation.site_example_url}
+                      onChange={(e) => update('site_example_url', e.target.value)}
+                      className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                    <button
+                      onClick={analyzeTemplate}
+                      disabled={analyzing || !automation.site_example_url}
+                      className="inline-flex items-center px-3 py-1.5 border border-indigo-200 rounded-lg text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      {analyzing ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Analyzing...</> : <><Search className="w-3 h-3 mr-1" />Analyze</>}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">Without this, articles use a clean default design. With this, they blend seamlessly into your site.</p>
+                  {(automation.site_template || automation.site_detail_template) && (
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Template extracted — new articles will match your site's styling</span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">AI extracts your site's article styling so new articles match your design</p>
-                  </div>
+                  )}
                 </div>
 
                 {/* API URL + Test */}
-                <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="text-xs font-medium text-slate-500 shrink-0">Your API:</span>
-                  <code className="flex-1 text-xs text-slate-700 font-mono truncate">
-                    {typeof window !== 'undefined' ? window.location.origin : ''}/api/articles/public?automation_id={id}
-                  </code>
-                  <button
-                    onClick={copyApiUrl}
-                    className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-slate-700 hover:text-white hover:border-slate-700 transition-colors shrink-0"
-                  >
-                    <Copy className="w-3 h-3 mr-1" />
-                    Copy
-                  </button>
-                  <button
-                    onClick={testConnection}
-                    disabled={testingConnection}
-                    className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-slate-700 hover:text-white hover:border-slate-700 transition-colors shrink-0 disabled:opacity-50"
-                  >
-                    {testingConnection ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Testing...</> : 'Test'}
-                  </button>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Diagnostics</label>
+                  <p className="text-xs text-slate-500 mb-2">This is the API URL that your site uses to fetch articles. The embed script uses this automatically — you only need it if you're building a custom integration. Use "Test" to verify that News Pal can find your automation and articles.</p>
+                  <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="text-xs font-medium text-slate-500 shrink-0">Your API:</span>
+                    <code className="flex-1 text-xs text-slate-700 font-mono truncate">
+                      {typeof window !== 'undefined' ? window.location.origin : ''}/api/articles/public?automation_id={id}
+                    </code>
+                    <button
+                      onClick={copyApiUrl}
+                      className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-slate-700 hover:text-white hover:border-slate-700 transition-colors shrink-0"
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copy
+                    </button>
+                    <button
+                      onClick={testConnection}
+                      disabled={testingConnection}
+                      className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-slate-700 hover:text-white hover:border-slate-700 transition-colors shrink-0 disabled:opacity-50"
+                    >
+                      {testingConnection ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Testing...</> : 'Test'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

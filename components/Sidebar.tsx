@@ -8,15 +8,15 @@ import {
 
 const navGroups = [
   {
-    label: 'MANUAL',
-    items: [
-      { icon: Newspaper, label: 'Articles', href: '/dashboard' },
-    ],
-  },
-  {
     label: 'AUTOMATIC',
     items: [
       { icon: Zap, label: 'Automations', href: '/dashboard/automations' },
+    ],
+  },
+  {
+    label: 'MANUAL',
+    items: [
+      { icon: Newspaper, label: 'Articles', href: '/dashboard' },
     ],
   },
   {

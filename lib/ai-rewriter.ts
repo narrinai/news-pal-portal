@@ -1,8 +1,13 @@
 import OpenAI from 'openai'
+import Anthropic from '@anthropic-ai/sdk'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
+
+const anthropic = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null
 
 export interface RewriteOptions {
   style: 'professional' | 'engaging' | 'technical' | 'news'
@@ -23,83 +28,120 @@ export async function rewriteArticle(
   customInstructions?: string,
   originalUrl?: string
 ): Promise<{ title: string; content: string; content_html: string }> {
-  try {
-    const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
-    
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: customInstructions || `Je bent een professionele Nederlandse tech journalist gespecialiseerd in cybersecurity.
+  const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
+  const systemPrompt = customInstructions || `Je bent een professionele Nederlandse tech journalist gespecialiseerd in cybersecurity.
 
 Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, waarbij je de kernboodschap behoudt.
 
 BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk alleen met de informatie die je krijgt.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
+
+  const refusalPatterns = [
+    /^I('m| am) sorry/im,
+    /^I('m| am) unable to/im,
+    /^I can'?t (assist|help|fulfill|perform|complete|browse|access)/im,
+    /^Unfortunately,? I (cannot|can'?t|am unable)/im,
+    /^I (do not|don'?t) have (access|the ability)/im,
+    /against my (guidelines|policies|content policy)/i,
+    /violates? (my|our|the) (content |usage )?polic/i,
+  ]
+
+  // Try OpenAI first
+  let response = ''
+  let usedModel = 'gpt-4o'
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
       ],
       temperature: 0.7,
       max_tokens: 2000
     }, {
-      timeout: 90000  // 90 second timeout
+      timeout: 90000
     })
 
-    const response = completion.choices[0]?.message?.content || ''
-    
-    // Parse the response to extract title and content
-    const sections = response.split('---')
-    let title = sections[0]?.replace(/^(TITEL|Titel):\s*/i, '').trim() || originalTitle
-    let content = sections[1]?.replace(/^CONTENT:\s*/i, '').trim() || response
+    response = completion.choices[0]?.message?.content || ''
 
-    // If there's no --- separator, try to extract title from first line
-    if (sections.length === 1) {
-      const lines = response.split('\n')
-      const firstLine = lines[0]?.replace(/^(TITEL|Titel):\s*/i, '').trim()
-      if (firstLine && firstLine.length > 0 && firstLine.length < 200) {
-        title = firstLine
-        content = lines.slice(1).join('\n').replace(/^CONTENT:\s*/i, '').trim()
+    if (refusalPatterns.some(p => p.test(response))) {
+      console.warn('⚠️ OpenAI refused, falling back to Claude:', originalTitle)
+      throw new Error('AI_REFUSAL')
+    }
+  } catch (openaiError: any) {
+    // Fallback to Claude
+    if (!anthropic) {
+      console.error('OpenAI failed and no ANTHROPIC_API_KEY configured')
+      throw new Error('Failed to rewrite article: OpenAI refused and Claude fallback not available')
+    }
+
+    console.log('🔄 Falling back to Claude for:', originalTitle)
+    usedModel = 'claude-sonnet-4-20250514'
+
+    try {
+      const message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+      })
+
+      response = message.content[0]?.type === 'text' ? message.content[0].text : ''
+
+      if (!response) {
+        throw new Error('Claude returned empty response')
       }
+    } catch (claudeError: any) {
+      console.error('Claude fallback also failed:', claudeError.message)
+      throw new Error('Failed to rewrite article with both OpenAI and Claude')
     }
-
-    // If the content already contains HTML tags, use it as-is for WordPress
-    // Otherwise, generate HTML from plain text
-    let content_html: string
-
-    if (content.includes('<p>') || content.includes('<h2>')) {
-      // Content is already HTML formatted
-      content_html = content
-      // Convert HTML to plain text for the content field
-      content = content
-        .replace(/<h[1-6][^>]*>/g, '\n\n')
-        .replace(/<\/h[1-6]>/g, '\n')
-        .replace(/<p[^>]*>/g, '\n')
-        .replace(/<\/p>/g, '')
-        .replace(/<li[^>]*>/g, '• ')
-        .replace(/<\/li>/g, '\n')
-        .replace(/<ul[^>]*>|<\/ul>/g, '\n')
-        .replace(/<strong[^>]*>|<\/strong>/g, '')
-        .replace(/<em[^>]*>|<\/em>/g, '')
-        .replace(/<a[^>]*>|<\/a>/g, '')
-        .replace(/\n\s*\n/g, '\n\n')
-        .trim()
-    } else {
-      // Content is plain text, generate HTML
-      content_html = generateWordPressHTML(title, content)
-    }
-    
-    return {
-      title,
-      content,
-      content_html
-    }
-  } catch (error) {
-    console.error('Error rewriting article:', error)
-    throw new Error('Failed to rewrite article')
   }
+
+  console.log(`✅ Article rewritten with ${usedModel}: ${originalTitle.substring(0, 50)}...`)
+
+  // Parse the response to extract title and content
+  return parseRewriteResponse(response, originalTitle)
+}
+
+function parseRewriteResponse(response: string, originalTitle: string) {
+  const sections = response.split('---')
+  let title = sections[0]?.replace(/^(TITEL|Titel):\s*/i, '').trim() || originalTitle
+  let content = sections[1]?.replace(/^CONTENT:\s*/i, '').trim() || response
+
+  // If there's no --- separator, try to extract title from first line
+  if (sections.length === 1) {
+    const lines = response.split('\n')
+    const firstLine = lines[0]?.replace(/^(TITEL|Titel):\s*/i, '').trim()
+    if (firstLine && firstLine.length > 0 && firstLine.length < 200) {
+      title = firstLine
+      content = lines.slice(1).join('\n').replace(/^CONTENT:\s*/i, '').trim()
+    }
+  }
+
+  let content_html: string
+
+  if (content.includes('<p>') || content.includes('<h2>')) {
+    content_html = content
+    content = content
+      .replace(/<h[1-6][^>]*>/g, '\n\n')
+      .replace(/<\/h[1-6]>/g, '\n')
+      .replace(/<p[^>]*>/g, '\n')
+      .replace(/<\/p>/g, '')
+      .replace(/<li[^>]*>/g, '• ')
+      .replace(/<\/li>/g, '\n')
+      .replace(/<ul[^>]*>|<\/ul>/g, '\n')
+      .replace(/<strong[^>]*>|<\/strong>/g, '')
+      .replace(/<em[^>]*>|<\/em>/g, '')
+      .replace(/<a[^>]*>|<\/a>/g, '')
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim()
+  } else {
+    content_html = generateWordPressHTML(title, content)
+  }
+
+  return { title, content, content_html }
 }
 
 function createRewritePrompt(
@@ -170,16 +212,16 @@ STEP 3 - SOURCES AND URL VALIDATION:
 
 CRITICAL INSTRUCTIONS - READ CAREFULLY:
 
-1. DATE: Always use today's date
-2. LOCATION: Use the relevant location where the incident occurred
-3. ORIGINAL HEADINGS: Create unique headings based on actual content
-4. QUOTES: If people are mentioned, generate 1 relevant quote
-5. LINKS: Integrate subtly in the text, no "Source:" labels
+1. NO DATE: Do NOT include any publication date in the article - the CMS handles dates
+2. ORIGINAL HEADINGS: Create unique headings based on actual content
+3. QUOTES: If people are mentioned, generate 1 relevant quote
+4. LINKS: Integrate subtly in the text, no "Source:" labels
+5. NO META INSTRUCTIONS: Do NOT include any "CHECK:" or review instructions in the output
 
 FORMAT YOUR ANSWER AS FOLLOWS:
 [Powerful English title WITHOUT "TITLE:" before it]
 ---
-<p>[Relevant location], [date] - [core message]</p>
+<p>[Core message opening paragraph - do NOT include a date or location prefix]</p>
 
 <p><strong>[Original heading based on content]</strong><br>
 [Details right after the heading, no extra line in between]</p>
@@ -194,7 +236,7 @@ FORMAT YOUR ANSWER AS FOLLOWS:
 <li><a href="[RESEARCH_URL_2]" target="_blank">[EXTRA_SOURCE_2]</a></li>
 </ul>
 
-CHECK: Today's date used? Subtle link in intro? All URLs tested and working? NO 404 links in source list?
+IMPORTANT: Do NOT include any date, location prefix, or "CHECK:" instructions in your output. Start directly with the content.
 
 Start rewriting now:
 `
@@ -239,16 +281,16 @@ STAP 3 - BRONNEN EN URL VALIDATIE:
 
 KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 
-1. DATUM: Gebruik altijd de datum van vandaag
-2. LOCATIE: Gebruik de relevante locatie waar het incident plaatsvond
-3. ORIGINELE KOPPEN: Creëer unieke koppen op basis van werkelijke inhoud
-4. QUOTES: Als er personen worden genoemd, genereer 1 relevante quote
-5. LINKS: Verwerk subtiel in de tekst, geen "Bron:" labels
+1. GEEN DATUM: Voeg GEEN publicatiedatum toe aan het artikel - het CMS regelt datums
+2. ORIGINELE KOPPEN: Creëer unieke koppen op basis van werkelijke inhoud
+3. QUOTES: Als er personen worden genoemd, genereer 1 relevante quote
+4. LINKS: Verwerk subtiel in de tekst, geen "Bron:" labels
+5. GEEN META INSTRUCTIES: Voeg GEEN "CONTROLEER:" of review instructies toe aan de output
 
 FORMAT JE ANTWOORD ALS VOLGT:
 [Krachtige Nederlandse titel ZONDER "TITEL:" ervoor]
 ---
-<p>[Relevante locatie], [datum] - [kernboodschap]</p>
+<p>[Openingsparagraaf met kernboodschap - begin NIET met een datum of locatie prefix]</p>
 
 <p><strong>[Origineel kopje gebaseerd op inhoud]</strong><br>
 [Details direct na het kopje, geen extra regel ertussen]</p>
@@ -263,7 +305,7 @@ FORMAT JE ANTWOORD ALS VOLGT:
 <li><a href="[RESEARCH_URL_2]" target="_blank">[EXTRA_BRON_2]</a></li>
 </ul>
 
-CONTROLEER: Vandaag's datum gebruikt? Subtiele link in intro? Alle URLs getest en werkend? GEEN 404 links in bronnenlijst?
+BELANGRIJK: Voeg GEEN datum, locatie prefix, of "CONTROLEER:" instructies toe aan je output. Begin direct met de inhoud.
 
 Begin nu met het herschrijven:
 `

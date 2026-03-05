@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import Logo from './Logo'
 import {
@@ -16,7 +17,7 @@ const navGroups = [
   {
     label: 'MANUAL',
     items: [
-      { icon: Newspaper, label: 'Articles', href: '/dashboard' },
+      { icon: Newspaper, label: 'Articles', href: '/dashboard/articles' },
     ],
   },
   {
@@ -36,8 +37,8 @@ export default function Sidebar() {
 
   const isActive = (href: string) => {
     if (!pathname) return false
-    if (href === '/dashboard') {
-      return pathname === '/dashboard' || pathname.startsWith('/dashboard/rewrite')
+    if (href === '/dashboard/articles') {
+      return pathname === '/dashboard/articles' || pathname.startsWith('/dashboard/rewrite')
     }
     return pathname.startsWith(href)
   }
@@ -53,7 +54,7 @@ export default function Sidebar() {
     <aside className="fixed inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex flex-col z-30">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-slate-100">
-        <Logo size="lg" clickable href="/dashboard" />
+        <Logo size="lg" clickable href="/dashboard/automations" />
       </div>
 
       {/* Navigation */}
@@ -68,7 +69,7 @@ export default function Sidebar() {
                 const Icon = item.icon
                 const active = isActive(item.href)
                 return (
-                  <a
+                  <Link
                     key={item.href}
                     href={item.href}
                     className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -79,7 +80,7 @@ export default function Sidebar() {
                   >
                     <Icon className={`w-4 h-4 mr-3 ${active ? 'text-indigo-600' : 'text-slate-400'}`} />
                     {item.label}
-                  </a>
+                  </Link>
                 )
               })}
             </div>

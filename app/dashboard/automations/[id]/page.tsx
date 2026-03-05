@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useNotifications } from '../../../../components/NotificationSystem'
-import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown, FileText, Calendar, Clock, ArrowRightLeft, PenLine } from 'lucide-react'
 
 interface Automation {
   id: string
@@ -34,6 +34,18 @@ interface Feed {
   enabled: boolean
 }
 
+interface Article {
+  id: string
+  title: string
+  url: string
+  category: string
+  status: string
+  publishedAt: string
+  createdAt?: string
+  source: string
+  matchedKeywords?: string[]
+}
+
 export default function AutomationEditPage() {
   const params = useParams()
   const router = useRouter()
@@ -48,6 +60,11 @@ export default function AutomationEditPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
   const [showAdvancedIntegration, setShowAdvancedIntegration] = useState(false)
+  const [articles, setArticles] = useState<Article[]>([])
+  const [articleCounts, setArticleCounts] = useState({ total: 0, selected: 0, published: 0 })
+  const [articlesLoading, setArticlesLoading] = useState(true)
+  const [activeArticleTab] = useState<'all'>('all')
+  const [editingDateId, setEditingDateId] = useState<string | null>(null)
 
   const id = params?.id as string
 
@@ -56,6 +73,7 @@ export default function AutomationEditPage() {
       loadAutomation()
       loadCategories()
       loadFeeds()
+      loadArticles()
     }
   }, [id])
 
@@ -110,6 +128,78 @@ export default function AutomationEditPage() {
     }
   }
 
+  const loadArticles = async () => {
+    setArticlesLoading(true)
+    try {
+      const res = await fetch(`/api/articles/by-automation?automation_id=${id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setArticles(data.articles)
+        setArticleCounts(data.counts)
+      }
+    } catch (error) {
+      console.error('Error loading articles:', error)
+    } finally {
+      setArticlesLoading(false)
+    }
+  }
+
+  const handleDeleteArticle = async (article: Article) => {
+    const confirmed = await showConfirm({
+      title: 'Delete article',
+      message: `Are you sure you want to delete "${article.title}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    })
+    if (!confirmed) return
+
+    try {
+      const res = await fetch(`/api/articles/${article.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        showNotification({ type: 'success', title: 'Deleted', message: 'Article removed' })
+        loadArticles()
+      } else {
+        showNotification({ type: 'error', title: 'Error', message: 'Could not delete article' })
+      }
+    } catch {
+      showNotification({ type: 'error', title: 'Error', message: 'Could not delete article' })
+    }
+  }
+
+  const handleUpdateArticleDate = async (articleId: string, newDate: string) => {
+    try {
+      const res = await fetch(`/api/articles/${articleId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publishedAt: newDate }),
+      })
+      if (res.ok) {
+        showNotification({ type: 'success', title: 'Updated', message: 'Date updated' })
+        setEditingDateId(null)
+        loadArticles()
+      } else {
+        showNotification({ type: 'error', title: 'Error', message: 'Could not update date' })
+      }
+    } catch {
+      showNotification({ type: 'error', title: 'Error', message: 'Could not update date' })
+    }
+  }
+
+  const formatRelativeTime = (dateStr: string) => {
+    if (!dateStr) return '—'
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    if (diffMins < 1) return 'just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours}h ago`
+    const diffDays = Math.floor(diffHours / 24)
+    if (diffDays < 30) return `${diffDays}d ago`
+    return date.toLocaleDateString()
+  }
+
   // Keywords helpers
   const getKeywordsMap = (): { [cat: string]: string[] } => {
     if (!automation?.keywords) return {}
@@ -137,10 +227,13 @@ export default function AutomationEditPage() {
     })
     if (!input) return
     const current = getKeywordsForCategory(cat)
-    const newKws = input.split(',').map(k => k.trim().toLowerCase()).filter(k => k && !current.includes(k))
+    const currentLower = current.map(k => k.toLowerCase())
+    const newKws = input.split(',').map(k => k.trim()).filter(k => k && !currentLower.includes(k.toLowerCase()))
     if (newKws.length > 0) {
       setKeywordsForCategory(cat, [...current, ...newKws])
       showNotification({ type: 'success', title: `${newKws.length} keyword(s) added`, message: newKws.join(', '), duration: 3000 })
+    } else {
+      showNotification({ type: 'warning', title: 'No new keywords', message: 'All keywords already exist', duration: 3000 })
     }
   }
 
@@ -585,7 +678,7 @@ export default function AutomationEditPage() {
                       <span className={`text-xs font-semibold uppercase tracking-wide ${colors.icon}`}>{meta.label}</span>
                       <button
                         onClick={() => addKeyword(cat)}
-                        className="inline-flex items-center px-2 py-0.5 border border-slate-200 rounded text-xs font-medium text-slate-500 bg-white hover:bg-slate-700 hover:text-white hover:border-slate-700 transition-colors"
+                        className="inline-flex items-center px-2 py-0.5 border border-slate-200 rounded text-xs font-medium text-slate-500 bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors"
                       >
                         <Plus className="w-3 h-3 mr-0.5" />
                         Add
@@ -614,6 +707,267 @@ export default function AutomationEditPage() {
             </div>
           </div>
         )}
+
+        {/* Articles overview */}
+        <div className="bg-white rounded-lg border border-slate-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-indigo-500" />
+              <h3 className="text-sm font-semibold text-slate-900">Articles</h3>
+              <span className="text-xs text-slate-400">{articleCounts.total} total</span>
+            </div>
+            <button
+              onClick={() => loadArticles()}
+              disabled={articlesLoading}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors disabled:opacity-50"
+            >
+              <Loader2 className={`w-3 h-3 ${articlesLoading ? 'animate-spin' : ''}`} />
+              {articlesLoading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+
+          {/* Summary strip */}
+          <div className="flex items-center gap-4 text-xs text-slate-500 mb-4 pb-3 border-b border-slate-100">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              Last processed: {(() => {
+                const sorted = [...articles].filter(a => a.createdAt).sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
+                return sorted.length > 0 ? formatRelativeTime(sorted[0].createdAt!) : 'never'
+              })()}
+            </span>
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" />
+              Next run: daily at 7:00
+            </span>
+          </div>
+
+
+          {/* Article list */}
+          {articlesLoading ? (
+            <div className="flex items-center gap-2 text-sm text-slate-400 py-6 justify-center">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading articles...
+            </div>
+          ) : articles.length === 0 ? (
+            <div className="text-sm text-slate-400 py-6 text-center">
+              No articles yet. The automation will process articles on the next scheduled run (daily at 7:00).
+            </div>
+          ) : (() => {
+            const isRefusal = (title: string) =>
+              /I('m| am) sorry|I('m| am) unable to|I can'?t (perform|assist|help)|Unfortunately,? I cannot/i.test(title)
+            const filtered = articles
+              .filter(a => !isRefusal(a.title))
+            // Planning slots: next 3 scheduled articles (or most recent 3 published if on Published tab)
+            // Both 'selected' and 'published' (= processed/ready) are scheduled, not yet live
+            const scheduled = filtered.filter(a => a.status === 'selected' || a.status === 'published')
+              .sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime())
+            const planningSlots = scheduled.slice(0, 3)
+            // Assign future publish dates to planning slots (today, tomorrow, day after)
+            const slotDates = planningSlots.map((_, i) => {
+              const d = new Date()
+              d.setDate(d.getDate() + i)
+              return d
+            })
+            const planningIds = new Set(planningSlots.map(a => a.id))
+            const rest = filtered.filter(a => !planningIds.has(a.id))
+
+            const renderArticleRow = (article: Article, isSlot: boolean, slotDate?: Date) => {
+              const meta = categoryMeta[article.category]
+              const colors = meta ? colorClasses[meta.color] : null
+              return (
+                <div
+                  key={article.id}
+                  className={`flex items-center gap-3 py-2.5 px-3 rounded-lg group transition-colors ${
+                    isSlot
+                      ? 'bg-indigo-50/50 border border-indigo-200/60 hover:bg-indigo-50'
+                      : 'hover:bg-slate-50'
+                  }`}
+                >
+                  {/* Slot indicator */}
+                  {isSlot && (
+                    <div className="shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                      <Calendar className="w-3 h-3" />
+                    </div>
+                  )}
+
+                  {/* Title + source */}
+                  <div className="flex-1 min-w-0">
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-slate-800 hover:text-indigo-600 truncate block transition-colors"
+                    >
+                      {article.title}
+                    </a>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] text-slate-400">{article.source}</span>
+                      {article.publishedAt && (
+                        <span className="text-[11px] text-slate-300">
+                          {new Date(article.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
+                      {article.matchedKeywords && article.matchedKeywords.length > 0 &&
+                        [...new Set(article.matchedKeywords.map(kw => kw.replace(/,\s*$/, '').trim()).filter(Boolean))].map(kw => (
+                          <span key={kw} className="inline-flex items-center px-1.5 py-0 rounded text-[10px] bg-slate-100 text-slate-500">
+                            {kw}
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Category badge */}
+                  {meta && colors && (
+                    <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${colors.badge}`}>
+                      {meta.label}
+                    </span>
+                  )}
+
+                  {/* Date */}
+                  {editingDateId === article.id ? (
+                    <input
+                      type="date"
+                      defaultValue={article.publishedAt ? article.publishedAt.split('T')[0] : ''}
+                      onBlur={(e) => {
+                        if (e.target.value) {
+                          handleUpdateArticleDate(article.id, e.target.value + 'T07:00:00.000Z')
+                        } else {
+                          setEditingDateId(null)
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                        if (e.key === 'Escape') setEditingDateId(null)
+                      }}
+                      autoFocus
+                      className="shrink-0 text-xs border border-indigo-300 rounded px-2 py-1 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <span
+                      className={`shrink-0 text-xs ${isSlot && slotDate ? 'text-indigo-600 font-medium' : 'text-slate-400'} ${article.status === 'selected' ? 'cursor-pointer hover:text-indigo-600' : ''}`}
+                      onClick={() => article.status === 'selected' && setEditingDateId(article.id)}
+                      title={article.status === 'selected' ? 'Click to change date' : undefined}
+                    >
+                      {isSlot && slotDate
+                        ? slotDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+                        : article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : '—'}
+                    </span>
+                  )}
+
+                  {/* Status badge */}
+                  <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                    (article.status === 'published' || article.status === 'selected')
+                      ? 'bg-indigo-50 text-indigo-700'
+                      : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {(article.status === 'selected' || article.status === 'published') ? 'Scheduled' : article.status}
+                  </span>
+
+                  {/* Actions */}
+                  <div className="shrink-0 flex items-center gap-0.5">
+                    {/* View/edit rewrite */}
+                    {(article.status === 'selected' || article.status === 'published' || article.status === 'rewritten') && (
+                      <a
+                        href={`/dashboard/rewrite/${article.id}`}
+                        className="p-1 rounded text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                        title="View / edit article"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <PenLine className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    {/* Schedule: promote alternative to selected */}
+                    {!isSlot && article.status !== 'published' && article.status !== 'selected' && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await fetch(`/api/articles/${article.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ status: 'selected' }),
+                            })
+                            showNotification({ type: 'success', title: 'Scheduled', message: `"${article.title}" added to planning` })
+                            loadArticles()
+                          } catch {
+                            showNotification({ type: 'error', title: 'Error', message: 'Could not schedule article' })
+                          }
+                        }}
+                        className="p-1 rounded text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                        title="Schedule this article"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {/* Swap: replace a planning slot with this alternative */}
+                    {!isSlot && article.status !== 'published' && planningSlots.some(s => s.status === 'selected') && (
+                      <button
+                        onClick={async () => {
+                          const lastSlot = [...planningSlots].reverse().find(s => s.status === 'selected')
+                          if (!lastSlot) return
+                          try {
+                            await Promise.all([
+                              fetch(`/api/articles/${article.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: 'selected' }),
+                              }),
+                              fetch(`/api/articles/${lastSlot.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: 'pending' }),
+                              }),
+                            ])
+                            showNotification({ type: 'success', title: 'Swapped', message: `"${article.title}" replaced "${lastSlot.title}"` })
+                            loadArticles()
+                          } catch {
+                            showNotification({ type: 'error', title: 'Error', message: 'Could not swap articles' })
+                          }
+                        }}
+                        className="p-1 rounded text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                        title="Swap with last scheduled article"
+                      >
+                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {/* Delete */}
+                    {(article.status === 'selected' || article.status === 'published') && (
+                      <button
+                        onClick={() => handleDeleteArticle(article)}
+                        className="p-1 rounded text-slate-500 hover:text-red-500 hover:bg-red-50"
+                        title="Delete article"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            }
+
+            return (
+              <div className="space-y-1">
+                {/* Planning slots */}
+                {planningSlots.length > 0 && (
+                  <>
+                    <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wide mb-1.5 px-1">
+                      Up next
+                    </p>
+                    {planningSlots.map((a, i) => renderArticleRow(a, true, slotDates[i]))}
+                  </>
+                )}
+                {/* Rest */}
+                {rest.length > 0 && (
+                  <>
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mt-4 mb-1.5 px-1">
+                      Alternatives
+                    </p>
+                    {rest.map(a => renderArticleRow(a, false))}
+                  </>
+                )}
+              </div>
+            )
+          })()}
+        </div>
 
         {/* Connected Site — combined platform + integration + setup */}
         <div className="bg-white rounded-lg border border-slate-200 p-5">
@@ -715,7 +1069,7 @@ export default function AutomationEditPage() {
                               navigator.clipboard.writeText(`<div id="newspal-articles"></div>\n<script src="${window.location.origin}/embed/newspal-loader.js"\n  data-automation-id="${id}"\n  data-limit="20"></script>`)
                               showNotification({ type: 'success', title: 'Copied', message: 'Embed snippet copied to clipboard', duration: 2000 })
                             }}
-                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors"
+                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-400 bg-slate-800/90 hover:bg-slate-700 transition-colors"
                           >
                             <Copy className="w-3 h-3 mr-1" />Copy
                           </button>
@@ -785,7 +1139,7 @@ export default function AutomationEditPage() {
                               navigator.clipboard.writeText(`<div id="newspal-articles"></div>\n<script src="${window.location.origin}/embed/newspal-loader.js"\n  data-automation-id="${id}"\n  data-limit="20"></script>`)
                               showNotification({ type: 'success', title: 'Copied', message: 'Embed snippet copied to clipboard', duration: 2000 })
                             }}
-                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors"
+                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-400 bg-slate-800/90 hover:bg-slate-700 transition-colors"
                           >
                             <Copy className="w-3 h-3 mr-1" />Copy
                           </button>
@@ -831,7 +1185,7 @@ export default function AutomationEditPage() {
                               navigator.clipboard.writeText(`<div id="newspal-articles"></div>\n<script src="${window.location.origin}/embed/newspal-loader.js"\n  data-automation-id="${id}"\n  data-limit="20"></script>`)
                               showNotification({ type: 'success', title: 'Copied', message: 'Embed snippet copied to clipboard', duration: 2000 })
                             }}
-                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors"
+                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-400 bg-slate-800/90 hover:bg-slate-700 transition-colors"
                           >
                             <Copy className="w-3 h-3 mr-1" />Copy
                           </button>
@@ -1022,7 +1376,7 @@ const { articles } = await res.json();
                     </code>
                     <button
                       onClick={copyApiUrl}
-                      className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-slate-700 hover:text-white hover:border-slate-700 transition-colors shrink-0"
+                      className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors shrink-0"
                     >
                       <Copy className="w-3 h-3 mr-1" />
                       Copy
@@ -1030,7 +1384,7 @@ const { articles } = await res.json();
                     <button
                       onClick={testConnection}
                       disabled={testingConnection}
-                      className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-slate-700 hover:text-white hover:border-slate-700 transition-colors shrink-0 disabled:opacity-50"
+                      className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors shrink-0 disabled:opacity-50"
                     >
                       {testingConnection ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Testing...</> : 'Test'}
                     </button>

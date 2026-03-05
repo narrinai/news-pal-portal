@@ -110,6 +110,7 @@ export default async function handler(req, res) {
       const results = []
 
       for (const article of toProcess) {
+        let articleId = null
         try {
           const created = await createArticle({
             title: article.title,
@@ -125,7 +126,7 @@ export default async function handler(req, res) {
             automation_id: automation.id,
           })
 
-          const articleId = created.id
+          articleId = created.id
 
           const rewritten = await rewriteArticle(
             article.title,
@@ -154,6 +155,16 @@ export default async function handler(req, res) {
           results.push({ originalTitle: article.title, rewrittenTitle: rewritten.title, status: 'published' })
         } catch (error) {
           console.error(`[AUTO-PIPELINE] [${automation.name}] Error: ${article.title}:`, error)
+          // Clean up: delete the article if rewrite failed (e.g. AI refusal)
+          if (articleId) {
+            try {
+              const { deleteArticle } = require('../../../lib/airtable')
+              await deleteArticle(articleId)
+              console.log(`[AUTO-PIPELINE] [${automation.name}] Cleaned up failed article: ${article.title}`)
+            } catch (cleanupErr) {
+              console.error(`[AUTO-PIPELINE] Cleanup failed for ${articleId}:`, cleanupErr)
+            }
+          }
           results.push({ originalTitle: article.title, status: 'error', error: error.message })
         }
       }

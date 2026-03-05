@@ -6,7 +6,7 @@ import { NewsArticle } from '../../../../lib/airtable'
 import { RewriteOptions } from '../../../../lib/ai-rewriter'
 import { useNotifications } from '../../../../components/NotificationSystem'
 import {
-  ArrowLeft, ExternalLink, Copy, Check, Send, RefreshCw, Code, FileText, PenLine
+  ArrowLeft, ExternalLink, Copy, Check, RefreshCw, Code, FileText, PenLine
 } from 'lucide-react'
 
 interface RewritePageProps {
@@ -14,7 +14,7 @@ interface RewritePageProps {
 }
 
 export default function RewritePage({ params }: RewritePageProps) {
-  const { showNotification, showConfirm } = useNotifications()
+  const { showNotification } = useNotifications()
   const [article, setArticle] = useState<NewsArticle | null>(null)
   const [loading, setLoading] = useState(true)
   const [rewriting, setRewriting] = useState(false)
@@ -33,14 +33,11 @@ export default function RewritePage({ params }: RewritePageProps) {
   const [settings, setSettings] = useState<any>(null)
   const [showHtml, setShowHtml] = useState(false)
   const [tooltips, setTooltips] = useState<{[key: string]: boolean}>({})
-  const [publishing, setPublishing] = useState(false)
-  const [selectedWordPressSite, setSelectedWordPressSite] = useState('marketingtoolz')
   const router = useRouter()
 
-  const wordPressSites = [
-    { id: 'marketingtoolz', name: 'Marketingtoolz.nl', url: 'https://www.marketingtoolz.nl' },
-    { id: 'cybertijger', name: 'CyberTijger.nl', url: 'https://cybertijger.nl' }
-  ]
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [editingContent, setEditingContent] = useState(false)
+  const [savingEdits, setSavingEdits] = useState(false)
 
   useEffect(() => {
     fetchArticle()
@@ -118,50 +115,6 @@ export default function RewritePage({ params }: RewritePageProps) {
     }
   }
 
-  const publishToWordPress = async () => {
-    if (!rewritten) {
-      showNotification({ type: 'warning', title: 'No content', message: 'Please rewrite the article first' })
-      return
-    }
-    setPublishing(true)
-    try {
-      const selectedSite = wordPressSites.find(site => site.id === selectedWordPressSite)
-      const response = await fetch('/api/wordpress/publish-with-category', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          articleId: params.id,
-          title: rewritten.title,
-          content_html: rewritten.content_html,
-          wordPressSite: selectedSite
-        })
-      })
-      if (response.ok) {
-        const result = await response.json()
-        showNotification({ type: 'success', title: 'Published!', message: 'Article saved as draft', duration: 5000 })
-        if (result.wordpress?.editUrl) {
-          setTimeout(() => {
-            showConfirm({
-              title: 'Article published!',
-              message: 'Would you like to open the WordPress editor to review it?',
-              confirmText: 'Open Editor',
-              cancelText: 'Stay Here'
-            }).then((confirmed) => {
-              if (confirmed) window.open(result.wordpress.editUrl, '_blank')
-            })
-          }, 1000)
-        }
-      } else {
-        const error = await response.json()
-        showNotification({ type: 'error', title: 'Publish failed', message: error.details || `Server error: ${response.status}` })
-      }
-    } catch (error) {
-      showNotification({ type: 'error', title: 'Network error', message: 'Could not connect to WordPress' })
-    } finally {
-      setPublishing(false)
-    }
-  }
-
   const copyToClipboard = async (text: string, tooltipId: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -169,6 +122,33 @@ export default function RewritePage({ params }: RewritePageProps) {
       setTimeout(() => { setTooltips(prev => ({ ...prev, [tooltipId]: false })) }, 2000)
     } catch (error) {
       console.error('Failed to copy:', error)
+    }
+  }
+
+  const saveEdits = async () => {
+    if (!rewritten) return
+    setSavingEdits(true)
+    try {
+      const res = await fetch(`/api/articles/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: rewritten.title,
+          content_rewritten: rewritten.content,
+          content_html: rewritten.content_html,
+        }),
+      })
+      if (res.ok) {
+        showNotification({ type: 'success', title: 'Saved', message: 'Changes saved successfully' })
+        setEditingTitle(false)
+        setEditingContent(false)
+      } else {
+        showNotification({ type: 'error', title: 'Error', message: 'Could not save changes' })
+      }
+    } catch {
+      showNotification({ type: 'error', title: 'Error', message: 'Could not save changes' })
+    } finally {
+      setSavingEdits(false)
     }
   }
 
@@ -188,7 +168,7 @@ export default function RewritePage({ params }: RewritePageProps) {
       <div className="p-6 lg:p-8 flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
           <p className="text-slate-500">Article not found</p>
-          <button onClick={() => router.push('/dashboard')} className="mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+          <button onClick={() => router.back()} className="mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium">
             Back to dashboard
           </button>
         </div>
@@ -201,7 +181,7 @@ export default function RewritePage({ params }: RewritePageProps) {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.back()}
             className="inline-flex items-center px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-1.5" />
@@ -343,7 +323,24 @@ export default function RewritePage({ params }: RewritePageProps) {
 
                 <div className="space-y-4">
                   <div>
-                    <h3 className="font-medium text-slate-900 mb-2">{rewritten.title}</h3>
+                    {editingTitle ? (
+                      <input
+                        type="text"
+                        value={rewritten.title}
+                        onChange={(e) => setRewritten({ ...rewritten, title: e.target.value })}
+                        onKeyDown={(e) => { if (e.key === 'Escape') setEditingTitle(false) }}
+                        autoFocus
+                        className="w-full font-medium text-slate-900 mb-2 border border-indigo-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <h3
+                        className="font-medium text-slate-900 mb-2 cursor-pointer hover:text-indigo-600 transition-colors"
+                        onClick={() => setEditingTitle(true)}
+                        title="Click to edit"
+                      >
+                        {rewritten.title}
+                      </h3>
+                    )}
                     <div className="relative inline-block">
                       <button
                         onClick={() => copyToClipboard(rewritten.title, 'title')}
@@ -360,46 +357,42 @@ export default function RewritePage({ params }: RewritePageProps) {
                       <pre className="text-sm bg-slate-50 border border-slate-100 p-4 rounded-lg overflow-x-auto whitespace-pre-wrap text-slate-600">
                         {rewritten.content_html}
                       </pre>
+                    ) : editingContent ? (
+                      <textarea
+                        value={rewritten.content}
+                        onChange={(e) => setRewritten({ ...rewritten, content: e.target.value })}
+                        rows={12}
+                        className="w-full text-slate-600 text-sm leading-relaxed border border-indigo-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
                     ) : (
-                      <div className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed">
+                      <div
+                        className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed cursor-pointer hover:bg-slate-50 rounded-lg p-2 -m-2 transition-colors"
+                        onClick={() => setEditingContent(true)}
+                        title="Click to edit"
+                      >
                         {rewritten.content}
                       </div>
                     )}
                     <div className="flex flex-wrap items-center gap-2 mt-3">
+                      {(editingTitle || editingContent) && (
+                        <button
+                          onClick={saveEdits}
+                          disabled={savingEdits}
+                          className="inline-flex items-center text-sm bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+                        >
+                          {savingEdits ? (
+                            <><RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />Saving...</>
+                          ) : (
+                            <><Check className="w-3.5 h-3.5 mr-1.5" />Save changes</>
+                          )}
+                        </button>
+                      )}
                       <button
                         onClick={() => copyToClipboard(showHtml ? rewritten.content_html : rewritten.content, 'content')}
                         className="inline-flex items-center text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 px-3 py-1.5 rounded-md transition-colors"
                       >
                         {tooltips.content ? <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
                         {tooltips.content ? 'Copied!' : `Copy ${showHtml ? 'HTML' : 'text'}`}
-                      </button>
-
-                      <select
-                        value={selectedWordPressSite}
-                        onChange={(e) => setSelectedWordPressSite(e.target.value)}
-                        className="text-sm border border-slate-200 rounded-md px-3 py-1.5 bg-white text-slate-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      >
-                        {wordPressSites.map(site => (
-                          <option key={site.id} value={site.id}>{site.name}</option>
-                        ))}
-                      </select>
-
-                      <button
-                        onClick={publishToWordPress}
-                        disabled={publishing}
-                        className="inline-flex items-center text-sm bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
-                      >
-                        {publishing ? (
-                          <>
-                            <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                            Publishing...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-3.5 h-3.5 mr-1.5" />
-                            Publish to {wordPressSites.find(s => s.id === selectedWordPressSite)?.name}
-                          </>
-                        )}
                       </button>
                     </div>
                   </div>

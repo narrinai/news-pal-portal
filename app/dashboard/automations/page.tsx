@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNotifications } from '../../../components/NotificationSystem'
-import { Plus, Zap, ZapOff, Globe } from 'lucide-react'
+import { Plus, Zap, ZapOff, Globe, FileText } from 'lucide-react'
 
 interface Automation {
   id: string
@@ -23,6 +23,7 @@ export default function AutomationsPage() {
   const router = useRouter()
   const { showNotification, showPrompt } = useNotifications()
   const [automations, setAutomations] = useState<Automation[]>([])
+  const [articleCounts, setArticleCounts] = useState<Record<string, { total: number, selected: number, published: number }>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -33,7 +34,18 @@ export default function AutomationsPage() {
     try {
       const res = await fetch('/api/automations')
       if (res.ok) {
-        setAutomations(await res.json())
+        const data = await res.json()
+        setAutomations(data)
+        // Fetch article counts for each automation
+        data.forEach(async (a: Automation) => {
+          try {
+            const r = await fetch(`/api/articles/by-automation?automation_id=${a.id}`)
+            if (r.ok) {
+              const d = await r.json()
+              setArticleCounts(prev => ({ ...prev, [a.id]: d.counts }))
+            }
+          } catch {}
+        })
       }
     } catch (error) {
       console.error('Error loading automations:', error)
@@ -157,14 +169,23 @@ export default function AutomationsPage() {
                         ))}
                       </div>
                     )}
-                    {automation.site_name && (
-                      <div className="flex items-center gap-1.5 mt-2">
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      {automation.site_name && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                           <Globe className="w-3 h-3" />
                           {automation.site_name}
                         </span>
-                      </div>
-                    )}
+                      )}
+                      {articleCounts[automation.id] && (articleCounts[automation.id].selected + articleCounts[automation.id].published) > 0 && (
+                        <span
+                          onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/automations/${automation.id}#articles`) }}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+                        >
+                          <FileText className="w-3 h-3" />
+                          {articleCounts[automation.id].selected + articleCounts[automation.id].published} scheduled
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleEnabled(automation) }}

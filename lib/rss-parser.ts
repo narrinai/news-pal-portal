@@ -68,56 +68,36 @@ export async function parseArticlesFromFeed(
       'fundering', 'draagconstructie', 'brandveiligheid', 'brand veiligheid', 'toegankelijkheid'
     ],
     'ai-companion': [
-      // Core AI terms - Broad to catch all AI news
-      ' AI ', ' AI,', ' AI.', 'AI-', 'artificial intelligence', 'machine learning', 'deep learning', 'neural network',
-      'generative AI', 'language model', 'LLM', 'large language model', 'foundation model',
-      'AI model', 'AI system', 'AI tool', 'AI startup', 'AI company', 'AI industry',
-      'AI boom', 'AI revolution', 'AI race', 'AI regulation', 'AI safety', 'AI ethics',
+      // Core — AI companion/romance/chat niche
+      'AI companion', 'AI girlfriend', 'AI boyfriend', 'AI romance', 'AI relationship',
+      'AI chat companion', 'romantic AI', 'dating AI', 'intimacy AI', 'AI waifu',
+      'virtual companion', 'virtual girlfriend', 'virtual boyfriend', 'digital companion',
+      'AI friend', 'companion chatbot', 'roleplay AI', 'NSFW AI', 'AI sexting',
+      'emotional AI', 'AI loneliness', 'AI emotional support',
 
-      // AI Companies & Products - Well-known names (expanded)
-      'OpenAI', 'ChatGPT', 'GPT-4', 'GPT-5', 'Claude', 'Anthropic', 'Google AI', 'Gemini', 'Bard',
-      'Microsoft Copilot', 'GitHub Copilot', 'Midjourney', 'DALL-E', 'Stable Diffusion',
-      'DeepSeek', 'Grok', 'xAI', 'Mistral', 'Llama', 'Meta AI', 'Perplexity', 'Cohere',
-      'Hugging Face', 'Nvidia AI', 'Amazon AI', 'AWS AI', 'Azure AI',
+      // Platforms — companion/romance focused
+      'Replika', 'Character.AI', 'Chai AI', 'Nomi AI', 'Kindroid', 'Talkie AI',
+      'Crushon AI', 'Janitor AI', 'Candy AI', 'DreamGF', 'Kupid AI', 'Intimate AI',
+      'Caryn AI', 'Forever Voices', 'Soulmate AI', 'Botify AI', 'Romantic AI',
+      'EVA AI', 'Anima AI', 'Paradot', 'MyAnima', 'Kajiwoto',
+      'Snapchat My AI', 'Inflection AI', 'Pi AI',
+      'Simone AI', 'Ourdream AI', 'Secrets AI', 'MyDreamCompanion', 'JOI AI',
+      'Darlink AI', 'Girlfriend GPT', 'Soulkyn', 'Golove AI', 'SweetDream AI',
+      'The AI Peeps', 'FantasyGF', 'Hammer AI', 'Spicychat AI', 'Soulgen',
+      'Lovescape', 'Swipey AI', 'Cuties AI', 'Nectar AI', 'Tiny Stories',
+      'Junipero AI', 'Dunia AI', 'Secret Share AI', 'Thotchat AI',
 
-      // Robots & Humanoids
-      'robot', 'humanoid', 'robotics', 'Boston Dynamics', 'Figure', 'Tesla Bot', 'Optimus',
+      // Broader AI chatbots & assistants
+      'ChatGPT', 'Character AI', 'Grok', 'Replika',
+      'AI chatbot', 'chatbot', 'conversational AI',
 
-      // AI Concepts - Relevant to AI companion space
-      'conversational AI', 'AI agent', 'chatbot', 'virtual assistant', 'AI assistant',
+      // Trends & regulation
+      'AI companion ban', 'AI companion regulation', 'teen AI safety',
+      'AI child safety', 'AI addiction', 'parasocial AI',
+      'AI companion market', 'AI companion trend', 'AI companion revenue',
 
-      // AI Companion Specific Terms
-      'AI companion', 'AI girlfriend', 'AI boyfriend', 'virtual companion',
-      'character AI', 'personality AI', 'emotional AI', 'companion robot', 'social robot',
-      'digital companion', 'virtual friend', 'AI friend', 'AI lover', 'virtual lover',
-      'AI relationship', 'virtual relationship', 'digital relationship', 'AI romance',
-      'virtual romance', 'AI intimacy', 'virtual intimacy', 'AI dating', 'virtual dating',
-      'companion chatbot', 'romantic chatbot',
-      'digital human', 'virtual human', 'synthetic human',
-      'AI partner', 'virtual partner', 'digital partner', 'companion AI',
-      'emotional support AI', 'therapeutic AI', 'mental health AI',
-      'companionship AI', 'social AI', 'empathetic AI',
-
-      // Relationship & Social Terms
-      'AI friendship', 'virtual friendship', 'human-AI interaction',
-      'human-AI relationship', 'parasocial relationship',
-
-      // Major AI Companion Platforms
-      'Replika', 'Character.AI', 'Anima', 'EVA AI', 'Paradot',
-      'Crushon.AI', 'Janitor AI', 'Candy.ai', 'DreamGF',
-      'Inflection AI',
-
-      // Mental Health AI
-      'Woebot', 'Wysa', 'Youper',
-      'AI therapist', 'virtual therapist', 'digital therapist',
-
-      // Romantic/Dating AI
-      'Romantic AI', 'AI waifu', 'AI husbando',
-      'virtual girlfriend', 'virtual boyfriend',
-      'digital girlfriend', 'digital boyfriend',
-
-      // Virtual Influencers
-      'Lil Miquela', 'virtual influencer', 'digital influencer', 'AI influencer'
+      // Asian market companions
+      'Xiaoice', 'AI boyfriend China', 'AI companion Japan',
     ],
     'marketingtoolz': [
       // Marketing Strategy & Concepts

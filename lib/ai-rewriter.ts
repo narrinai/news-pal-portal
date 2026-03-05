@@ -11,7 +11,7 @@ const anthropic = process.env.ANTHROPIC_API_KEY
 
 export interface RewriteOptions {
   style: 'professional' | 'engaging' | 'technical' | 'news'
-  length: 'short' | 'medium' | 'long'
+  length: 'short' | 'medium' | 'long' | 'extra-long'
   language: 'nl' | 'en'
   tone: 'neutral' | 'warning' | 'informative'
 }
@@ -48,6 +48,7 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
   // Try OpenAI first
   let response = ''
   let usedModel = 'gpt-4o'
+  const maxTokens = options.length === 'extra-long' ? 4000 : 2000
 
   try {
     const completion = await openai.chat.completions.create({
@@ -57,7 +58,7 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
         { role: 'user', content: prompt }
       ],
       temperature: 0.7,
-      max_tokens: 2000
+      max_tokens: maxTokens
     }, {
       timeout: 90000
     })
@@ -81,7 +82,7 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
     try {
       const message = await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
+        max_tokens: maxTokens,
         system: systemPrompt,
         messages: [
           { role: 'user', content: prompt }
@@ -156,7 +157,8 @@ function createRewritePrompt(
   const lengthInstructions = {
     short: isEnglish ? 'Keep the text short and concise (200-300 words)' : 'Houd de tekst kort en bondig (200-300 woorden)',
     medium: isEnglish ? 'Write a medium-length article (400-600 words)' : 'Schrijf een artikel van gemiddelde lengte (400-600 woorden)',
-    long: isEnglish ? 'Write an extensive article (700-1000 words)' : 'Schrijf een uitgebreid artikel (700-1000 woorden)'
+    long: isEnglish ? 'Write an extensive article (700-1000 words)' : 'Schrijf een uitgebreid artikel (700-1000 woorden)',
+    'extra-long': isEnglish ? 'Write a comprehensive, in-depth article (1200-1500 words). Include detailed analysis, multiple perspectives, and thorough coverage of the topic' : 'Schrijf een uitgebreid, diepgaand artikel (1200-1500 woorden). Voeg gedetailleerde analyse, meerdere perspectieven en grondige dekking van het onderwerp toe'
   }
 
   const styleInstructions = {
@@ -200,6 +202,23 @@ STEP 2 - REWRITING:
 - Use specific, context-related headings (e.g., "Microsoft patch fixes Exchange vulnerability")
 - Make it informative but readable for a broad audience
 - Add relevant context for English readers
+
+STEP 2B - INTERNAL LINKS:
+- Naturally weave in 5-8 internal links to relevant CompanionGuide.ai pages throughout the article
+- Link generic terms to overview/category pages using natural anchor text:
+  * "AI chatbot(s)" or "AI chat" → <a href="/companions">AI chatbots</a>
+  * "AI girlfriend" → <a href="/categories/best-ai-girlfriend">AI girlfriend</a>
+  * "AI boyfriend" → <a href="/categories/ai-boyfriend-companions">AI boyfriend</a>
+  * "AI companion(s)" → <a href="/companions">AI companions</a>
+  * "roleplay" or "character chat" → <a href="/categories/roleplay-character-chat-companions">roleplay</a>
+  * "AI voice" or "voice chat" → <a href="/categories/ai-voice-companions">voice chat</a>
+  * "NSFW AI" or "adult AI" → <a href="/categories/best-ai-nsfw-chat">NSFW AI chat</a>
+  * "AI anime" → <a href="/categories/ai-anime-companions">AI anime</a>
+  * "romantic AI" → <a href="/categories/ai-romantic-companions">romantic AI</a>
+- Link to specific AI companion reviews when mentioning platforms: /companions/[slug] (e.g. /companions/secrets-ai, /companions/nomi-ai, /companions/joi-ai, /companions/ourdream-ai, /companions/soulkyn-ai, /companions/girlfriendgpt, /companions/darlink-ai)
+- Use descriptive anchor text that fits naturally in the sentence
+- Do NOT group all internal links together - spread them throughout the article
+- Do NOT link the same term more than once
 
 STEP 3 - SOURCES AND URL VALIDATION:
 - Test all URLs before adding them - use ONLY working links
@@ -269,6 +288,23 @@ STAP 2 - HERSCHRIJVEN:
 - Gebruik specifieke, contextgerelateerde koppen (bijv. "Microsoft patch lost Exchange kwetsbaarheid op")
 - Maak het informatief maar leesbaar voor een breed publiek
 - Voeg relevante context toe voor Nederlandse lezers
+
+STAP 2B - INTERNE LINKS:
+- Verwerk op een natuurlijke manier 5-8 interne links naar relevante CompanionGuide.ai pagina's door het artikel heen
+- Link generieke termen naar overzichts-/categoriepagina's met natuurlijke ankertekst:
+  * "AI chatbot(s)" of "AI chat" → <a href="/companions">AI chatbots</a>
+  * "AI vriendin" of "AI girlfriend" → <a href="/categories/best-ai-girlfriend">AI girlfriend</a>
+  * "AI vriend" of "AI boyfriend" → <a href="/categories/ai-boyfriend-companions">AI boyfriend</a>
+  * "AI companion(s)" → <a href="/companions">AI companions</a>
+  * "roleplay" of "character chat" → <a href="/categories/roleplay-character-chat-companions">roleplay</a>
+  * "AI voice" of "voice chat" → <a href="/categories/ai-voice-companions">voice chat</a>
+  * "NSFW AI" of "adult AI" → <a href="/categories/best-ai-nsfw-chat">NSFW AI chat</a>
+  * "AI anime" → <a href="/categories/ai-anime-companions">AI anime</a>
+  * "romantische AI" → <a href="/categories/ai-romantic-companions">romantische AI</a>
+- Link naar specifieke AI companion reviews bij het noemen van platforms: /companions/[slug] (bijv. /companions/secrets-ai, /companions/nomi-ai, /companions/joi-ai, /companions/ourdream-ai, /companions/soulkyn-ai, /companions/girlfriendgpt, /companions/darlink-ai)
+- Gebruik beschrijvende ankertekst die natuurlijk in de zin past
+- Groepeer NIET alle interne links bij elkaar - verspreid ze door het hele artikel
+- Link NIET dezelfde term meer dan één keer
 
 STAP 3 - BRONNEN EN URL VALIDATIE:
 - Test alle URLs voordat je ze toevoegt - gebruik ALLEEN werkende links

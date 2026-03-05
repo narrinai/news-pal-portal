@@ -248,6 +248,7 @@ export default function RewritePage({ params }: RewritePageProps) {
                     <option value="short">Short (200-300 words)</option>
                     <option value="medium">Medium (400-600 words)</option>
                     <option value="long">Long (700-1000 words)</option>
+                    <option value="extra-long">Extra Long (1200-1500 words)</option>
                   </select>
                 </div>
                 <div>

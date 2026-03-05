@@ -517,6 +517,7 @@ export default function AutomationEditPage() {
                 <option value="short">Short</option>
                 <option value="medium">Medium</option>
                 <option value="long">Long</option>
+                <option value="extra-long">Extra Long</option>
               </select>
             </div>
             <div>

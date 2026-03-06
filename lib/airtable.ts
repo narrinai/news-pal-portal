@@ -33,6 +33,8 @@ export interface NewsArticle {
   content_rewritten?: string
   content_html?: string
   imageUrl?: string
+  subtitle?: string
+  faq?: string
   wordpressUrl?: string
   wordpressPostId?: string
   matchedKeywords?: string[]
@@ -156,6 +158,8 @@ export async function getArticles(status?: string, categories?: string | string[
       content_rewritten: record.fields.content_rewritten as string,
       content_html: record.fields.content_html as string,
       imageUrl: record.fields.imageUrl as string,
+      subtitle: record.fields.subtitle as string,
+      faq: record.fields.faq as string,
       matchedKeywords: record.fields.matchedKeywords
         ? (record.fields.matchedKeywords as string).split(', ').filter(k => k.trim())
         : [],

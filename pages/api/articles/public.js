@@ -48,6 +48,8 @@ export default async function handler(req, res) {
       source: a.source,
       sourceUrl: a.url,
       imageUrl: a.imageUrl || '',
+      subtitle: a.subtitle || '',
+      faq: a.faq ? (typeof a.faq === 'string' ? JSON.parse(a.faq) : a.faq) : [],
       publishedAt: a.publishedAt,
       automation_id: a.automation_id || null,
     }))

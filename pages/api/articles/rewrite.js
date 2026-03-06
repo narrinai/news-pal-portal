@@ -32,7 +32,9 @@ export default async function handler(req, res) {
     const updatedArticle = await updateArticle(id, {
       content_rewritten: rewritten.content,
       content_html: rewritten.content_html,
-      title: rewritten.title, // Update title with rewritten version
+      title: rewritten.title,
+      subtitle: rewritten.subtitle || '',
+      faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
       status: 'rewritten'
     })
 
@@ -40,8 +42,10 @@ export default async function handler(req, res) {
       success: true,
       rewritten: {
         title: rewritten.title,
+        subtitle: rewritten.subtitle,
         content: rewritten.content,
-        content_html: rewritten.content_html
+        content_html: rewritten.content_html,
+        faq: rewritten.faq
       }
     })
   } catch (error) {

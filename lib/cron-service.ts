@@ -188,8 +188,10 @@ class CronService {
 
             await updateArticle(created.id, {
               title: rewritten.title,
+              subtitle: rewritten.subtitle || '',
               content_rewritten: rewritten.content,
               content_html: rewritten.content_html,
+              faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
               status: 'published',
             })
 

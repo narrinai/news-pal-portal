@@ -27,7 +27,7 @@ export async function rewriteArticle(
   },
   customInstructions?: string,
   originalUrl?: string
-): Promise<{ title: string; content: string; content_html: string }> {
+): Promise<{ title: string; content: string; content_html: string; subtitle?: string; faq?: { question: string; answer: string }[] }> {
   const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
   const systemPrompt = customInstructions || `Je bent een professionele Nederlandse tech journalist gespecialiseerd in cybersecurity.
 
@@ -107,25 +107,60 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
 }
 
 function parseRewriteResponse(response: string, originalTitle: string) {
-  const sections = response.split('---')
-  let title = sections[0]?.replace(/^(TITEL|Titel):\s*/i, '').trim() || originalTitle
-  let content = sections[1]?.replace(/^CONTENT:\s*/i, '').trim() || response
+  // Split FAQ section first
+  let mainContent = response
+  let faq: { question: string; answer: string }[] = []
 
-  // If there's no --- separator, try to extract title from first line
+  const faqSplit = response.split('---FAQ---')
+  if (faqSplit.length > 1) {
+    mainContent = faqSplit[0].trim()
+    const faqText = faqSplit[1].trim()
+    const faqMatches = faqText.matchAll(/Q:\s*(.+?)\nA:\s*(.+?)(?=\nQ:|\n*$)/gs)
+    for (const match of faqMatches) {
+      faq.push({ question: match[1].trim(), answer: match[2].trim() })
+    }
+  }
+
+  // Parse title, subtitle, and content from main section
+  const sections = mainContent.split(/^---$/m)
+  let headerPart = sections[0]?.trim() || ''
+  let content = sections[1]?.replace(/^CONTENT:\s*/i, '').trim() || (sections.length === 1 ? '' : '')
+
+  // Extract title and subtitle from header
+  let title = originalTitle
+  let subtitle = ''
+
+  const headerLines = headerPart.split('\n').filter(l => l.trim())
+  if (headerLines.length >= 1) {
+    title = headerLines[0].replace(/^(TITEL|Titel|TITLE|Title):\s*/i, '').trim()
+  }
+  for (const line of headerLines) {
+    const subMatch = line.match(/^SUBTITLE:\s*(.+)/i)
+    if (subMatch) {
+      subtitle = subMatch[1].trim()
+    }
+  }
+
+  // If no --- separator found, try first line as title
   if (sections.length === 1) {
-    const lines = response.split('\n')
-    const firstLine = lines[0]?.replace(/^(TITEL|Titel):\s*/i, '').trim()
+    const lines = mainContent.split('\n')
+    const firstLine = lines[0]?.replace(/^(TITEL|Titel|TITLE|Title):\s*/i, '').trim()
     if (firstLine && firstLine.length > 0 && firstLine.length < 200) {
       title = firstLine
-      content = lines.slice(1).join('\n').replace(/^CONTENT:\s*/i, '').trim()
+      // Find content start (skip title and subtitle lines)
+      let startIdx = 1
+      if (lines[1]?.match(/^SUBTITLE:/i)) startIdx = 2
+      content = lines.slice(startIdx).join('\n').replace(/^CONTENT:\s*/i, '').trim()
     }
   }
 
   let content_html: string
 
-  if (content.includes('<p>') || content.includes('<h2>')) {
+  if (content.includes('<p>') || content.includes('<h2>') || content.includes('<section')) {
     content_html = content
     content = content
+      .replace(/<section[^>]*>/g, '')
+      .replace(/<\/section>/g, '\n\n')
       .replace(/<h[1-6][^>]*>/g, '\n\n')
       .replace(/<\/h[1-6]>/g, '\n')
       .replace(/<p[^>]*>/g, '\n')
@@ -133,6 +168,8 @@ function parseRewriteResponse(response: string, originalTitle: string) {
       .replace(/<li[^>]*>/g, '• ')
       .replace(/<\/li>/g, '\n')
       .replace(/<ul[^>]*>|<\/ul>/g, '\n')
+      .replace(/<div[^>]*>|<\/div>/g, '')
+      .replace(/<span[^>]*>|<\/span>/g, '')
       .replace(/<strong[^>]*>|<\/strong>/g, '')
       .replace(/<em[^>]*>|<\/em>/g, '')
       .replace(/<a[^>]*>|<\/a>/g, '')
@@ -142,7 +179,7 @@ function parseRewriteResponse(response: string, originalTitle: string) {
     content_html = generateWordPressHTML(title, content)
   }
 
-  return { title, content, content_html }
+  return { title, content, content_html, subtitle, faq }
 }
 
 function createRewritePrompt(
@@ -239,23 +276,50 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
 
 FORMAT YOUR ANSWER AS FOLLOWS:
 [Powerful English title WITHOUT "TITLE:" before it]
+SUBTITLE: [One-line subtitle that adds context or angle to the title]
 ---
-<p>[Core message opening paragraph - do NOT include a date or location prefix]</p>
+<section class="content-section" id="[slug-of-heading]">
+<h2>[Original heading based on content]</h2>
+<p>[Opening paragraph - do NOT include a date or location prefix]</p>
+<p>[More paragraphs, lists, quotes as needed]</p>
+</section>
 
-<p><strong>[Original heading based on content]</strong><br>
-[Details right after the heading, no extra line in between]</p>
+<section class="content-section" id="[slug-of-heading]">
+<h2>[Next heading]</h2>
+<p>[Content for this section]</p>
+</section>
 
-<p><strong>[Next original heading based on content]</strong><br>
-[Next paragraph right after the heading]</p>
-
-<p><strong>Sources and more information</strong></p>
+<section class="content-section" id="sources">
+<h2>Sources</h2>
 <ul>
-<li><a href="${originalUrl || '[URL]'}" target="_blank">[Platform name]</a></li>
-<li><a href="[RESEARCH_URL_1]" target="_blank">[EXTRA_SOURCE_1]</a></li>
-<li><a href="[RESEARCH_URL_2]" target="_blank">[EXTRA_SOURCE_2]</a></li>
+<li><a href="${originalUrl || '[URL]'}" target="_blank" rel="noopener noreferrer">[Platform name]</a></li>
+<li><a href="[RESEARCH_URL_1]" target="_blank" rel="noopener noreferrer">[EXTRA_SOURCE_1]</a></li>
 </ul>
+</section>
 
-IMPORTANT: Do NOT include any date, location prefix, or "CHECK:" instructions in your output. Start directly with the content.
+---FAQ---
+Q: [Frequently asked question about the topic]
+A: [Concise answer in 2-3 sentences]
+
+Q: [Another question]
+A: [Answer]
+
+Q: [Another question]
+A: [Answer]
+
+Q: [Another question]
+A: [Answer]
+
+Q: [Another question]
+A: [Answer]
+
+IMPORTANT FORMATTING RULES:
+- Each content section MUST be wrapped in <section class="content-section" id="[slug]">
+- Use <h2> for section headings, NOT <p><strong>
+- Use <div class="quote-callout"><p>"Quote text"</p><span class="quote-source">— Source name</span></div> for quotes
+- Generate exactly 5 FAQ items after the ---FAQ--- separator
+- The SUBTITLE line must appear right after the title, before the --- separator
+- Do NOT include any date, location prefix, or "CHECK:" instructions
 
 Start rewriting now:
 `
@@ -325,21 +389,50 @@ KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 
 FORMAT JE ANTWOORD ALS VOLGT:
 [Krachtige Nederlandse titel ZONDER "TITEL:" ervoor]
+SUBTITLE: [Eenregelige ondertitel die context of invalshoek toevoegt aan de titel]
 ---
-<p>[Openingsparagraaf met kernboodschap - begin NIET met een datum of locatie prefix]</p>
+<section class="content-section" id="[slug-van-kop]">
+<h2>[Origineel kopje gebaseerd op inhoud]</h2>
+<p>[Openingsparagraaf - begin NIET met een datum of locatie prefix]</p>
+<p>[Meer paragrafen, lijsten, quotes waar nodig]</p>
+</section>
 
-<p><strong>[Origineel kopje gebaseerd op inhoud]</strong><br>
-[Details direct na het kopje, geen extra regel ertussen]</p>
+<section class="content-section" id="[slug-van-kop]">
+<h2>[Volgende kop]</h2>
+<p>[Inhoud voor deze sectie]</p>
+</section>
 
-<p><strong>[Volgend origineel kopje gebaseerd op inhoud]</strong><br>
-[Volgende paragraaf direct na het kopje]</p>
-
-<p><strong>Bronnen en meer informatie</strong></p>
+<section class="content-section" id="sources">
+<h2>Bronnen</h2>
 <ul>
-<li><a href="${originalUrl || '[URL]'}" target="_blank">[Platform naam]</a></li>
-<li><a href="[RESEARCH_URL_1]" target="_blank">[EXTRA_BRON_1]</a></li>
-<li><a href="[RESEARCH_URL_2]" target="_blank">[EXTRA_BRON_2]</a></li>
+<li><a href="${originalUrl || '[URL]'}" target="_blank" rel="noopener noreferrer">[Platform naam]</a></li>
+<li><a href="[RESEARCH_URL_1]" target="_blank" rel="noopener noreferrer">[EXTRA_BRON_1]</a></li>
 </ul>
+</section>
+
+---FAQ---
+Q: [Veelgestelde vraag over het onderwerp]
+A: [Beknopt antwoord in 2-3 zinnen]
+
+Q: [Andere vraag]
+A: [Antwoord]
+
+Q: [Andere vraag]
+A: [Antwoord]
+
+Q: [Andere vraag]
+A: [Antwoord]
+
+Q: [Andere vraag]
+A: [Antwoord]
+
+BELANGRIJKE OPMAAKREGELS:
+- Elke sectie MOET gewrapt zijn in <section class="content-section" id="[slug]">
+- Gebruik <h2> voor sectiekoppen, NIET <p><strong>
+- Gebruik <div class="quote-callout"><p>"Quote tekst"</p><span class="quote-source">— Bron naam</span></div> voor quotes
+- Genereer precies 5 FAQ items na de ---FAQ--- separator
+- De SUBTITLE regel moet direct na de titel staan, vóór de --- separator
+- Voeg GEEN datum, locatie prefix, of "CONTROLEER:" instructies toe
 
 BELANGRIJK: Voeg GEEN datum, locatie prefix, of "CONTROLEER:" instructies toe aan je output. Begin direct met de inhoud.
 

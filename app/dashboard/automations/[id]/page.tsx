@@ -1233,7 +1233,7 @@ export default function AutomationEditPage() {
                         <p className="mb-1.5">Works with Claude Code, Cursor, Replit AI, or any AI assistant with access to your project.</p>
                         {(() => {
                           const apiBase = 'https://newspal.netlify.app'
-                          const netlifyPrompt = `Add a News Pal news feed to my site (${automation.site_url || 'my website'}). Fetch articles from the News Pal API and integrate them into the site.
+                          const netlifyPrompt = `Integrate News Pal articles into my existing site (${automation.site_url || 'my website'}). My site already has a news/blog page and article detail pages. The articles from News Pal should appear in my existing design as if they are native content — same cards, same layout, same styling.
 
 ## API Endpoint
 GET ${apiBase}/api/articles/public?automation_id=${id}&limit=20
@@ -1258,30 +1258,20 @@ Returns JSON:
   ]
 }
 
-## What to build
-1. **News overview page** (e.g. /news) — a grid/list of article cards matching my site's existing design. Each card shows: title, description, category badge, date, and image. Links to the detail page.
-2. **Article detail page** (e.g. /news/article-slug) — full article with:
-   - Title as <h1>, subtitle below it
-   - Category badge, publication date, source link
-   - content_html rendered directly (it's pre-formatted HTML with <section>, <h2>, <p>, <ul> tags)
-   - If faq exists (JSON string), parse and render as collapsible FAQ section
-   - Source attribution at the bottom
-3. **SEO** — fetch articles at BUILD TIME (not client-side) so they're in the static HTML. Add og:title, og:description, og:image meta tags on detail pages.
-
-## Slug generation
-Generate from title: lowercase, replace non-alphanumeric with hyphens, trim hyphens, max 80 chars.
-Example: "The Rise of AI Chatbots" → "the-rise-of-ai-chatbots"
-
-## Styling
-- Match my existing site design exactly — same fonts, colors, spacing, layout
-- Articles should look like native content, not an external feed
-- Style the content_html sections with my site's typography (the HTML uses semantic tags: h2, p, ul, li, blockquote, a)
+## What to do
+- Fetch articles from the API above at BUILD TIME and merge them into the existing news/article overview page — same grid, same card design, same styling as articles already on the site
+- For each article, create a detail page using my site's existing article/detail page template and layout
+- On the detail page: render content_html directly (it's pre-formatted HTML with <section>, <h2>, <p>, <ul> tags). Style these tags to match my site's typography.
+- If faq exists (JSON string of [{question, answer}]), render as a collapsible FAQ section on the detail page
+- Generate slugs from title: lowercase, replace non-alphanumeric with hyphens, max 80 chars
+- Add og:title, og:description, og:image meta tags on detail pages for SEO
+- Nothing new needs to be designed — use my existing pages and components, just add the API data source
 
 ## Deploy hook (important!)
 Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
 1. Netlify dashboard → Site configuration → Build & deploy → Build hooks
 2. Add build hook → Name: "News Pal" → Copy the URL
-3. Give me the webhook URL — I need to paste it into News Pal so it can trigger rebuilds when new articles are published`
+3. Give me the webhook URL — I need to paste it into News Pal so it triggers a rebuild when new articles are published`
                           return <>
                             <button
                               onClick={() => {

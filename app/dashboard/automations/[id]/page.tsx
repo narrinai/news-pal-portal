@@ -1233,45 +1233,55 @@ export default function AutomationEditPage() {
                         <p className="mb-1.5">Works with Claude Code, Cursor, Replit AI, or any AI assistant with access to your project.</p>
                         {(() => {
                           const apiBase = 'https://newspal.netlify.app'
-                          const netlifyPrompt = `Add a News Pal news feed to my site. Fetch articles from the News Pal API and display them on my existing news/blog page, matching my site's current design.
+                          const netlifyPrompt = `Add a News Pal news feed to my site (${automation.site_url || 'my website'}). Fetch articles from the News Pal API and integrate them into the site.
 
 ## API Endpoint
 GET ${apiBase}/api/articles/public?automation_id=${id}&limit=20
 
-## Response format
+Returns JSON:
 {
   "success": true,
   "articles": [
     {
       "id": "recXXX",
       "title": "Article title",
-      "description": "Short summary of the article",
-      "content_html": "<section>...</section>",
-      "category": "AI Companion",
-      "source": "Original Source",
-      "sourceUrl": "https://original-article-url.com",
+      "description": "Short summary",
+      "content_html": "<section class=\\"content-section\\" id=\\"slug\\"><h2>Heading</h2><p>Paragraph</p></section>",
+      "category": "Category Name",
+      "source": "Source Name",
+      "sourceUrl": "https://original-url.com",
       "imageUrl": "https://...",
-      "subtitle": "A one-line subtitle",
+      "subtitle": "One-line subtitle under the title",
       "publishedAt": "2026-03-11T07:00:00.000Z",
-      "faq": "[{\\"question\\":\\"..\\",\\"answer\\":\\"..\\"}]"
+      "faq": "[{\\"question\\":\\"Question?\\",\\"answer\\":\\"Answer text\\"}]"
     }
   ]
 }
 
-## Requirements
-- Fetch articles from the API above at BUILD TIME (not client-side) so they are included in the static HTML for SEO
-- Display articles in my site's existing news/article grid style — they should look like native content
-- Each article needs: a list/card view (title, description, category badge, date, image) and a detail page with the full content_html
-- Generate a slug from the title for the detail page URL (e.g. /news/article-title-here)
-- On the detail page, render content_html directly (it's already formatted HTML with <section>, <h2>, <p> tags)
-- If faq is present (JSON string), parse it and render as a collapsible FAQ section
-- Add proper meta tags (og:title, og:description, og:image) on detail pages for SEO
-- Make sure all styling matches my existing site design — fonts, colors, spacing, layout
+## What to build
+1. **News overview page** (e.g. /news) — a grid/list of article cards matching my site's existing design. Each card shows: title, description, category badge, date, and image. Links to the detail page.
+2. **Article detail page** (e.g. /news/article-slug) — full article with:
+   - Title as <h1>, subtitle below it
+   - Category badge, publication date, source link
+   - content_html rendered directly (it's pre-formatted HTML with <section>, <h2>, <p>, <ul> tags)
+   - If faq exists (JSON string), parse and render as collapsible FAQ section
+   - Source attribution at the bottom
+3. **SEO** — fetch articles at BUILD TIME (not client-side) so they're in the static HTML. Add og:title, og:description, og:image meta tags on detail pages.
 
-## Deploy hook
-Also set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
-- Go to Netlify dashboard → Site configuration → Build & deploy → Build hooks → Add build hook → Name it "News Pal" → Copy the URL
-- Give me the webhook URL so I can paste it back into News Pal settings`
+## Slug generation
+Generate from title: lowercase, replace non-alphanumeric with hyphens, trim hyphens, max 80 chars.
+Example: "The Rise of AI Chatbots" → "the-rise-of-ai-chatbots"
+
+## Styling
+- Match my existing site design exactly — same fonts, colors, spacing, layout
+- Articles should look like native content, not an external feed
+- Style the content_html sections with my site's typography (the HTML uses semantic tags: h2, p, ul, li, blockquote, a)
+
+## Deploy hook (important!)
+Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
+1. Netlify dashboard → Site configuration → Build & deploy → Build hooks
+2. Add build hook → Name: "News Pal" → Copy the URL
+3. Give me the webhook URL — I need to paste it into News Pal so it can trigger rebuilds when new articles are published`
                           return <>
                             <button
                               onClick={() => {

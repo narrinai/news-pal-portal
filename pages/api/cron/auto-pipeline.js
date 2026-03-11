@@ -55,6 +55,28 @@ export default async function handler(req, res) {
       }
     }
 
+    // Step 3b: Publish scheduled articles whose date has arrived
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    let publishedCount = 0
+    for (const article of existingArticles) {
+      if (article.status === 'selected' && article.publishedAt) {
+        const scheduledDate = new Date(article.publishedAt)
+        scheduledDate.setHours(0, 0, 0, 0)
+        if (scheduledDate <= today) {
+          try {
+            await updateArticle(article.id, { status: 'published' })
+            publishedCount++
+          } catch (err) {
+            console.error(`[AUTO-PIPELINE] Failed to publish scheduled article ${article.id}:`, err.message)
+          }
+        }
+      }
+    }
+    if (publishedCount > 0) {
+      console.log(`[AUTO-PIPELINE] Published ${publishedCount} scheduled articles whose date arrived`)
+    }
+
     const automationResults = []
 
     for (const automation of enabled) {
@@ -107,17 +129,40 @@ export default async function handler(req, res) {
       const toProcess = ranked.slice(0, maxArticles)
       console.log(`[AUTO-PIPELINE] [${automation.name}] Selected ${toProcess.length} articles`)
 
+      // Calculate scheduled dates: one article per day starting tomorrow
+      const existingScheduled = existingArticles
+        .filter(a => a.automation_id === automation.id && a.status === 'selected' && a.publishedAt)
+        .map(a => new Date(a.publishedAt).toISOString().split('T')[0])
+      const scheduledDatesSet = new Set(existingScheduled)
+
+      function getNextAvailableDate(startFrom) {
+        const d = new Date(startFrom)
+        d.setHours(7, 0, 0, 0)
+        while (scheduledDatesSet.has(d.toISOString().split('T')[0])) {
+          d.setDate(d.getDate() + 1)
+        }
+        scheduledDatesSet.add(d.toISOString().split('T')[0])
+        return d
+      }
+
+      let nextDate = new Date()
+      nextDate.setDate(nextDate.getDate() + 1) // start from tomorrow
+
       const results = []
 
       for (const article of toProcess) {
         let articleId = null
         try {
+          const scheduledDate = getNextAvailableDate(nextDate)
+          nextDate = new Date(scheduledDate)
+          nextDate.setDate(nextDate.getDate() + 1)
+
           const created = await createArticle({
             title: article.title,
             description: article.description,
             url: article.url,
             source: article.source,
-            publishedAt: article.publishedAt,
+            publishedAt: scheduledDate.toISOString(),
             status: 'selected',
             category: article.category,
             originalContent: article.originalContent || '',
@@ -145,14 +190,16 @@ export default async function handler(req, res) {
             title: rewritten.title,
             content_rewritten: rewritten.content,
             content_html: rewritten.content_html,
-            status: 'published',
+            subtitle: rewritten.subtitle || '',
+            faq: rewritten.faq || '',
+            status: 'selected',
           })
 
           // Add to existingUrls so other automations don't duplicate
           existingUrls.add(article.url)
 
-          console.log(`[AUTO-PIPELINE] [${automation.name}] Published: ${rewritten.title}`)
-          results.push({ originalTitle: article.title, rewrittenTitle: rewritten.title, status: 'published' })
+          console.log(`[AUTO-PIPELINE] [${automation.name}] Scheduled: ${rewritten.title} for ${scheduledDate.toISOString().split('T')[0]}`)
+          results.push({ originalTitle: article.title, rewrittenTitle: rewritten.title, status: 'scheduled', scheduledFor: scheduledDate.toISOString().split('T')[0] })
         } catch (error) {
           console.error(`[AUTO-PIPELINE] [${automation.name}] Error: ${article.title}:`, error)
           // Clean up: delete the article if rewrite failed (e.g. AI refusal)
@@ -169,7 +216,7 @@ export default async function handler(req, res) {
         }
       }
 
-      const successful = results.filter(r => r.status === 'published').length
+      const successful = results.filter(r => r.status === 'scheduled').length
       const failed = results.filter(r => r.status === 'error').length
 
       automationResults.push({
@@ -185,16 +232,72 @@ export default async function handler(req, res) {
     const totalRewritten = automationResults.reduce((sum, r) => sum + r.rewritten, 0)
     const totalFailed = automationResults.reduce((sum, r) => sum + r.failed, 0)
 
-    // Trigger deploy webhooks only for automations that published new articles
+    // Push articles to Replit sites (push model)
+    const pushResults = []
+    for (const automation of enabled) {
+      if (automation.site_platform === 'replit' && automation.site_api_key && automation.site_url) {
+        // Push if there are any published articles (either newly published scheduled ones or existing)
+
+
+        try {
+          // Re-fetch articles to include newly published ones from this pipeline run
+          const latestArticles = await getArticles()
+          const allArticles = latestArticles.filter(a => a.automation_id === automation.id)
+          const publishedArticles = allArticles
+            .filter(a => a.status === 'published')
+            .map(a => ({
+              id: a.id,
+              slug: (a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
+              title: a.title,
+              description: a.description,
+              content_html: a.content_html || a.content_rewritten || '',
+              category: a.category,
+              source: a.source,
+              sourceUrl: a.url,
+              imageUrl: a.imageUrl || '',
+              subtitle: a.subtitle || '',
+              publishedAt: a.publishedAt,
+              faq: a.faq || null,
+            }))
+
+          const origin = new URL(automation.site_url).origin
+          const pushUrl = `${origin}/newspal/receive`
+
+          const pushRes = await fetch(pushUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-newspal-key': automation.site_api_key,
+            },
+            body: JSON.stringify({ articles: publishedArticles }),
+          })
+
+          const pushData = await pushRes.json().catch(() => ({}))
+          pushResults.push({
+            automation_id: automation.id,
+            automation_name: automation.name,
+            pushed: true,
+            status: pushRes.status,
+            received: pushData.received || 0,
+            total: pushData.total || 0,
+          })
+          console.log(`[AUTO-PIPELINE] Pushed ${pushData.received || 0} articles to ${automation.name} Replit site: ${pushRes.status}`)
+        } catch (pushError) {
+          pushResults.push({
+            automation_id: automation.id,
+            automation_name: automation.name,
+            pushed: false,
+            error: pushError.message,
+          })
+          console.error(`[AUTO-PIPELINE] Push failed for ${automation.name}:`, pushError.message)
+        }
+      }
+    }
+
+    // Trigger deploy webhooks when articles were published (scheduled articles whose date arrived)
     const webhookResults = []
     for (const automation of enabled) {
-      if (automation.deploy_webhook_url) {
-        const result = automationResults.find(r => r.automation_id === automation.id)
-        const newArticles = result?.rewritten || 0
-        if (newArticles === 0) {
-          console.log(`[AUTO-PIPELINE] Skipping webhook for ${automation.name} (no new articles)`)
-          continue
-        }
+      if (automation.deploy_webhook_url && publishedCount > 0) {
         try {
           const webhookRes = await fetch(automation.deploy_webhook_url, { method: 'POST' })
           webhookResults.push({
@@ -221,6 +324,7 @@ export default async function handler(req, res) {
       success: true,
       message: `Auto-pipeline completed: ${totalRewritten} published, ${totalFailed} failed across ${enabled.length} automations`,
       automations: automationResults,
+      pushes: pushResults.length > 0 ? pushResults : undefined,
       webhooks: webhookResults.length > 0 ? webhookResults : undefined,
       timestamp: new Date().toISOString(),
     }

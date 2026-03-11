@@ -30,6 +30,7 @@ export default function RewritePage({ params }: RewritePageProps) {
     tone: 'informative'
   })
   const [customInstructions, setCustomInstructions] = useState('')
+  const [extraInstructions, setExtraInstructions] = useState('')
   const [settings, setSettings] = useState<any>(null)
   const [showHtml, setShowHtml] = useState(false)
   const [tooltips, setTooltips] = useState<{[key: string]: boolean}>({})
@@ -98,15 +99,15 @@ export default function RewritePage({ params }: RewritePageProps) {
         body: JSON.stringify({
           id: params.id,
           options,
-          customInstructions: customInstructions || undefined
+          customInstructions: [extraInstructions, customInstructions].filter(Boolean).join('\n\n') || undefined
         })
       })
+      const result = await response.json()
       if (response.ok) {
-        const result = await response.json()
         setRewritten(result.rewritten)
         showNotification({ type: 'success', title: 'Article rewritten', message: 'The article has been successfully rewritten', duration: 4000 })
       } else {
-        showNotification({ type: 'error', title: 'Rewrite failed', message: 'An error occurred while rewriting the article' })
+        showNotification({ type: 'error', title: 'Rewrite failed', message: result.details || result.error || 'An error occurred while rewriting the article' })
       }
     } catch (error) {
       showNotification({ type: 'error', title: 'Network error', message: 'Could not rewrite article' })
@@ -265,15 +266,26 @@ export default function RewritePage({ params }: RewritePageProps) {
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-slate-500 mb-2">AI Instructions</label>
+                <label className="block text-sm font-medium text-slate-500 mb-2">Extra instructions</label>
+                <textarea
+                  value={extraInstructions}
+                  onChange={(e) => setExtraInstructions(e.target.value)}
+                  rows={2}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="e.g. Change 2025 to 2026, add a section about pricing..."
+                />
+              </div>
+
+              <details className="mt-4">
+                <summary className="text-sm font-medium text-slate-400 cursor-pointer hover:text-slate-600">AI Instructions</summary>
                 <textarea
                   value={customInstructions}
                   onChange={(e) => setCustomInstructions(e.target.value)}
                   rows={3}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  placeholder="Custom instructions for the AI..."
+                  className="mt-2 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="System-level instructions for the AI..."
                 />
-              </div>
+              </details>
 
               <button
                 onClick={handleRewrite}
@@ -300,6 +312,16 @@ export default function RewritePage({ params }: RewritePageProps) {
                     <div className="bg-indigo-600 h-full rounded-full progress-bar"></div>
                   </div>
                 </div>
+              )}
+
+              {rewritten && article.automation_id && (
+                <button
+                  onClick={() => router.push(`/dashboard/automations/${article.automation_id}`)}
+                  className="mt-3 w-full inline-flex items-center justify-center border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Automation
+                </button>
               )}
             </div>
 

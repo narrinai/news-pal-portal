@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useNotifications } from '../../../../components/NotificationSystem'
-import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown, FileText, Calendar, Clock, ArrowRightLeft, PenLine } from 'lucide-react'
+import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown, FileText, Calendar, Clock, ArrowRightLeft, PenLine, Activity, AlertTriangle } from 'lucide-react'
 
 interface Automation {
   id: string
@@ -24,6 +24,8 @@ interface Automation {
   site_detail_template: string
   integration_type: string
   deploy_webhook_url: string
+  site_platform: string
+  site_api_key: string
 }
 
 interface Feed {
@@ -59,12 +61,15 @@ export default function AutomationEditPage() {
   const [expandedGuide, setExpandedGuide] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
+  const [connectionHealth, setConnectionHealth] = useState<{ healthy: boolean; issues: string[]; checks: any } | null>(null)
   const [showAdvancedIntegration, setShowAdvancedIntegration] = useState(false)
   const [articles, setArticles] = useState<Article[]>([])
   const [articleCounts, setArticleCounts] = useState({ total: 0, selected: 0, published: 0 })
   const [articlesLoading, setArticlesLoading] = useState(true)
   const [activeArticleTab] = useState<'all'>('all')
   const [editingDateId, setEditingDateId] = useState<string | null>(null)
+  const [pushingTest, setPushingTest] = useState(false)
+  const [runningPipeline, setRunningPipeline] = useState(false)
 
   const id = params?.id as string
 
@@ -94,7 +99,12 @@ export default function AutomationEditPage() {
           site_detail_template: data.site_detail_template || '',
           integration_type: data.integration_type || '',
           deploy_webhook_url: data.deploy_webhook_url || '',
+          site_platform: data.site_platform || '',
+          site_api_key: data.site_api_key || '',
         })
+        if (data.site_platform) {
+          setExpandedGuide(data.site_platform)
+        }
       } else {
         showNotification({ type: 'error', title: 'Not found', message: 'Automation not found' })
         router.push('/dashboard/automations')
@@ -278,6 +288,8 @@ export default function AutomationEditPage() {
     setSaving(true)
     try {
       const merged = overrides ? { ...automation, ...overrides } : automation
+      // Auto-fill site_name from automation name
+      if (merged.site_url && !merged.site_name) merged.site_name = merged.name
       const { id: _id, ...fields } = merged
       const res = await fetch(`/api/automations/${id}`, {
         method: 'PUT',
@@ -286,6 +298,7 @@ export default function AutomationEditPage() {
       })
       if (res.ok) {
         showNotification({ type: 'success', title: 'Saved', message: 'Automation settings saved', duration: 3000 })
+        window.scrollTo({ top: 0, behavior: 'smooth' })
       } else {
         showNotification({ type: 'error', title: 'Save failed', message: 'Could not save automation' })
       }
@@ -364,13 +377,23 @@ export default function AutomationEditPage() {
 
   const testConnection = async () => {
     setTestingConnection(true)
+    setConnectionHealth(null)
     try {
-      const res = await fetch(`/api/articles/status?automation_id=${id}`)
+      const res = await fetch('/api/sites/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ automation_id: id }),
+      })
       const data = await res.json()
-      if (data.connected) {
-        showNotification({ type: 'success', title: 'Connected', message: `${data.name} is active and reachable`, duration: 3000 })
+      if (data.success) {
+        setConnectionHealth({ healthy: data.healthy, issues: data.issues, checks: data.checks })
+        if (data.healthy) {
+          showNotification({ type: 'success', title: 'All good', message: 'Automation is healthy and connected', duration: 3000 })
+        } else {
+          showNotification({ type: 'warning', title: `${data.issues.length} issue(s) found`, message: data.issues[0], duration: 5000 })
+        }
       } else {
-        showNotification({ type: 'error', title: 'Not connected', message: data.error || 'Automation not found' })
+        showNotification({ type: 'error', title: 'Test failed', message: data.error || 'Could not test connection' })
       }
     } catch {
       showNotification({ type: 'error', title: 'Error', message: 'Could not test connection' })
@@ -393,6 +416,40 @@ export default function AutomationEditPage() {
       }
     } catch {
       showNotification({ type: 'error', title: 'Error', message: 'Could not reach webhook URL' })
+    }
+  }
+
+  const generateApiKey = () => {
+    const key = 'npk_' + Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, '0')).join('')
+    update('site_api_key', key)
+    showNotification({ type: 'success', title: 'API key generated', message: 'Save your settings to activate the key', duration: 3000 })
+  }
+
+  const testPush = async () => {
+    if (!automation?.site_url || !automation?.site_api_key) {
+      showNotification({ type: 'error', title: 'Missing info', message: 'Enter your Replit site URL and generate an API key first' })
+      return
+    }
+    setPushingTest(true)
+    try {
+      const res = await fetch('/api/sites/test-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          site_url: automation.site_url,
+          site_api_key: automation.site_api_key,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        showNotification({ type: 'success', title: 'Push successful', message: `Your Replit site received the test article`, duration: 4000 })
+      } else {
+        showNotification({ type: 'error', title: 'Push failed', message: data.error || 'Could not reach your Replit site' })
+      }
+    } catch {
+      showNotification({ type: 'error', title: 'Error', message: 'Could not test push connection' })
+    } finally {
+      setPushingTest(false)
     }
   }
 
@@ -463,7 +520,7 @@ export default function AutomationEditPage() {
           disabled={saving}
           className="inline-flex items-center px-4 py-1.5 bg-indigo-600 text-white hover:bg-white hover:text-indigo-600 border border-indigo-600 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shrink-0"
         >
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? 'Saving...' : 'Save Settings'}
         </button>
         <button
           onClick={handleDelete}
@@ -475,6 +532,369 @@ export default function AutomationEditPage() {
       </div>
 
       <div className="space-y-5">
+        {/* Articles overview */}
+        <div className="bg-white rounded-lg border border-slate-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-indigo-500" />
+              <h3 className="text-sm font-semibold text-slate-900">Articles</h3>
+              <span className="text-xs text-slate-400">{articleCounts.total} total</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  setRunningPipeline(true)
+                  try {
+                    const res = await fetch('/api/cron/auto-pipeline', { method: 'POST' })
+                    const data = await res.json()
+                    const result = data.automations?.find((a: any) => a.automation_id === id)
+                    if (result?.rewritten > 0) {
+                      showNotification({ type: 'success', title: 'Pipeline complete', message: `${result.rewritten} article(s) scheduled`, duration: 4000 })
+                    } else {
+                      showNotification({ type: 'warning', title: 'Pipeline complete', message: result?.message || 'No new articles found', duration: 4000 })
+                    }
+                    loadArticles()
+                  } catch {
+                    showNotification({ type: 'error', title: 'Error', message: 'Pipeline failed' })
+                  } finally {
+                    setRunningPipeline(false)
+                  }
+                }}
+                disabled={runningPipeline || !automation.enabled}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+              >
+                <Loader2 className={`w-3 h-3 ${runningPipeline ? 'animate-spin' : ''}`} />
+                {runningPipeline ? 'Fetching & rewriting articles — this takes about 1 min...' : 'Fetch articles'}
+              </button>
+              <button
+                onClick={() => loadArticles()}
+                disabled={articlesLoading}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors disabled:opacity-50"
+              >
+                <Loader2 className={`w-3 h-3 ${articlesLoading ? 'animate-spin' : ''}`} />
+                {articlesLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
+          </div>
+
+          {/* Pipeline running indicator */}
+          {runningPipeline && (
+            <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center gap-3">
+              <div className="relative shrink-0">
+                <div className="w-8 h-8 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-indigo-900">Fetching and rewriting articles...</p>
+                <p className="text-xs text-indigo-600 mt-0.5">AI is selecting, filtering, and rewriting articles in your style. This usually takes about 1 minute.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Summary strip */}
+          <div className="flex items-center justify-between gap-4 text-xs text-slate-500 mb-4 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                Last processed: {(() => {
+                  const sorted = [...articles].filter(a => a.createdAt).sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
+                  return sorted.length > 0 ? formatRelativeTime(sorted[0].createdAt!) : 'never'
+                })()}
+              </span>
+              <span className="flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5" />
+                Next run: daily at 7:00
+              </span>
+              {connectionHealth && (
+                <span className={`flex items-center gap-1 font-medium ${connectionHealth.healthy ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {connectionHealth.healthy
+                    ? <><Check className="w-3.5 h-3.5" />Healthy</>
+                    : <><AlertTriangle className="w-3.5 h-3.5" />{connectionHealth.issues.length} issue{connectionHealth.issues.length !== 1 ? 's' : ''}</>
+                  }
+                </span>
+              )}
+            </div>
+            <button
+              onClick={testConnection}
+              disabled={testingConnection}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              {testingConnection
+                ? <><Loader2 className="w-3 h-3 animate-spin" />Testing...</>
+                : <><Activity className="w-3 h-3" />Test connection</>
+              }
+            </button>
+          </div>
+
+          {/* Connection issues */}
+          {connectionHealth && !connectionHealth.healthy && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-xs font-medium text-amber-800 mb-1.5">Issues found:</p>
+              <ul className="space-y-1">
+                {connectionHealth.issues.map((issue, i) => (
+                  <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
+                    <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                    {issue}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Article list */}
+          {articlesLoading ? (
+            <div className="flex items-center gap-2 text-sm text-slate-400 py-6 justify-center">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading articles...
+            </div>
+          ) : articles.length === 0 ? (
+            <div className="text-sm text-slate-400 py-6 text-center">
+              No articles yet. The automation will process articles on the next scheduled run (daily at 7:00).
+            </div>
+          ) : (() => {
+            const isRefusal = (title: string) =>
+              /I('m| am) sorry|I('m| am) unable to|I can'?t (perform|assist|help)|Unfortunately,? I cannot/i.test(title)
+            const filtered = articles
+              .filter(a => !isRefusal(a.title))
+            const scheduled = filtered.filter(a => a.status === 'selected')
+              .sort((a, b) => new Date(a.publishedAt || 0).getTime() - new Date(b.publishedAt || 0).getTime())
+            const published = filtered.filter(a => a.status === 'published')
+              .sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime())
+            const planningSlots = scheduled.slice(0, 3)
+            const slotDates = planningSlots.map((_, i) => {
+              const d = new Date()
+              d.setDate(d.getDate() + i)
+              return d
+            })
+            const planningIds = new Set(planningSlots.map(a => a.id))
+            const publishedIds = new Set(published.map(a => a.id))
+            const rest = filtered.filter(a => !planningIds.has(a.id) && !publishedIds.has(a.id))
+
+            const renderArticleRow = (article: Article, isSlot: boolean, slotDate?: Date) => {
+              const meta = categoryMeta[article.category]
+              const colors = meta ? colorClasses[meta.color] : null
+              return (
+                <div
+                  key={article.id}
+                  className={`flex items-center gap-3 py-2.5 px-3 rounded-lg group transition-colors ${
+                    isSlot
+                      ? 'bg-indigo-50/50 border border-indigo-200/60 hover:bg-indigo-50'
+                      : 'hover:bg-slate-50'
+                  }`}
+                >
+                  {isSlot && (
+                    <div className="shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                      <Calendar className="w-3 h-3" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-slate-800 hover:text-indigo-600 truncate block transition-colors"
+                    >
+                      {article.title}
+                    </a>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] text-slate-400">{article.source}</span>
+                      {article.publishedAt && (
+                        <span className="text-[11px] text-slate-300">
+                          {new Date(article.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
+                      {article.matchedKeywords && article.matchedKeywords.length > 0 &&
+                        [...new Set(article.matchedKeywords.map(kw => kw.replace(/,\s*$/, '').trim()).filter(Boolean))].map(kw => (
+                          <span key={kw} className="inline-flex items-center px-1.5 py-0 rounded text-[10px] bg-slate-100 text-slate-500">
+                            {kw}
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                  {meta && colors && (
+                    <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${colors.badge}`}>
+                      {meta.label}
+                    </span>
+                  )}
+                  {editingDateId === article.id ? (
+                    <input
+                      type="date"
+                      defaultValue={article.publishedAt ? article.publishedAt.split('T')[0] : ''}
+                      onBlur={(e) => {
+                        if (e.target.value) {
+                          handleUpdateArticleDate(article.id, e.target.value + 'T07:00:00.000Z')
+                        } else {
+                          setEditingDateId(null)
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                        if (e.key === 'Escape') setEditingDateId(null)
+                      }}
+                      autoFocus
+                      className="shrink-0 text-xs border border-indigo-300 rounded px-2 py-1 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <span
+                      className={`shrink-0 text-xs ${article.status === 'selected' ? 'text-indigo-600 font-medium cursor-pointer hover:text-indigo-700' : 'text-slate-400'}`}
+                      onClick={() => article.status === 'selected' && setEditingDateId(article.id)}
+                      title={article.status === 'selected' ? 'Click to change date' : undefined}
+                    >
+                      {article.publishedAt
+                        ? new Date(article.publishedAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+                        : '—'}
+                    </span>
+                  )}
+                  <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                    article.status === 'published'
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : article.status === 'selected'
+                        ? 'bg-indigo-50 text-indigo-700'
+                        : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {article.status === 'published' ? 'Published' : article.status === 'selected' ? 'Scheduled' : article.status}
+                  </span>
+                  {article.status === 'published' && automation.site_url && (
+                    <a
+                      href={automation.site_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                      title="View on site"
+                    >
+                      <ExternalLink className="w-2.5 h-2.5" />
+                      View on site
+                    </a>
+                  )}
+                  <div className="shrink-0 flex items-center gap-0.5">
+                    {(article.status === 'selected' || article.status === 'published' || article.status === 'rewritten') && (
+                      <a
+                        href={`/dashboard/rewrite/${article.id}`}
+                        className="p-1 rounded text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
+                        title="View / edit article"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <PenLine className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    {!isSlot && article.status !== 'published' && article.status !== 'selected' && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await fetch(`/api/articles/${article.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ status: 'selected' }),
+                            })
+                            showNotification({ type: 'success', title: 'Scheduled', message: `"${article.title}" added to planning` })
+                            loadArticles()
+                          } catch {
+                            showNotification({ type: 'error', title: 'Error', message: 'Could not schedule article' })
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                        title="Schedule this article"
+                      >
+                        <Calendar className="w-3 h-3" />
+                        Schedule
+                      </button>
+                    )}
+                    {article.status === 'selected' && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await fetch(`/api/articles/${article.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ status: 'published' }),
+                            })
+                            showNotification({ type: 'success', title: 'Published', message: `"${article.title}" is now published` })
+                            loadArticles()
+                          } catch {
+                            showNotification({ type: 'error', title: 'Error', message: 'Could not publish article' })
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                        title="Publish now"
+                      >
+                        Publish now
+                      </button>
+                    )}
+                    {!isSlot && article.status !== 'published' && planningSlots.some(s => s.status === 'selected') && (
+                      <button
+                        onClick={async () => {
+                          const lastSlot = [...planningSlots].reverse().find(s => s.status === 'selected')
+                          if (!lastSlot) return
+                          try {
+                            await Promise.all([
+                              fetch(`/api/articles/${article.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: 'selected' }),
+                              }),
+                              fetch(`/api/articles/${lastSlot.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: 'pending' }),
+                              }),
+                            ])
+                            showNotification({ type: 'success', title: 'Swapped', message: `"${article.title}" replaced "${lastSlot.title}"` })
+                            loadArticles()
+                          } catch {
+                            showNotification({ type: 'error', title: 'Error', message: 'Could not swap articles' })
+                          }
+                        }}
+                        className="p-1 rounded text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
+                        title="Swap with last scheduled article"
+                      >
+                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {(article.status === 'selected' || article.status === 'published') && (
+                      <button
+                        onClick={() => handleDeleteArticle(article)}
+                        className="p-1 rounded text-slate-700 hover:text-red-500 hover:bg-red-50"
+                        title="Delete article"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            }
+
+            return (
+              <div className="space-y-1">
+                {planningSlots.length > 0 && (
+                  <>
+                    <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wide mb-1.5 px-1">
+                      Up next
+                    </p>
+                    {planningSlots.map((a, i) => renderArticleRow(a, true, slotDates[i]))}
+                  </>
+                )}
+                {published.length > 0 && (
+                  <>
+                    <p className="text-[11px] font-semibold text-emerald-500 uppercase tracking-wide mt-4 mb-1.5 px-1">
+                      Published
+                    </p>
+                    {published.map(a => renderArticleRow(a, false))}
+                  </>
+                )}
+                {rest.length > 0 && (
+                  <>
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mt-4 mb-1.5 px-1">
+                      Alternatives
+                    </p>
+                    {rest.map(a => renderArticleRow(a, false))}
+                  </>
+                )}
+              </div>
+            )
+          })()}
+        </div>
+
         {/* Settings — 4 cols */}
         <div className="bg-white rounded-lg border border-slate-200 p-5">
           <div className="flex items-center gap-2 mb-4">
@@ -514,10 +934,10 @@ export default function AutomationEditPage() {
               <label className="block text-xs font-medium text-slate-400 mb-1">Length</label>
               <select value={automation.length} onChange={(e) => update('length', e.target.value)}
                 className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                <option value="short">Short</option>
-                <option value="medium">Medium</option>
-                <option value="long">Long</option>
-                <option value="extra-long">Extra Long</option>
+                <option value="short">Short (200-300 words)</option>
+                <option value="medium">Medium (400-600 words)</option>
+                <option value="long">Long (700-1000 words)</option>
+                <option value="extra-long">Extra Long (1200-1500 words)</option>
               </select>
             </div>
             <div>
@@ -709,275 +1129,15 @@ export default function AutomationEditPage() {
           </div>
         )}
 
-        {/* Articles overview */}
-        <div className="bg-white rounded-lg border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-indigo-500" />
-              <h3 className="text-sm font-semibold text-slate-900">Articles</h3>
-              <span className="text-xs text-slate-400">{articleCounts.total} total</span>
-            </div>
-            <button
-              onClick={() => loadArticles()}
-              disabled={articlesLoading}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors disabled:opacity-50"
-            >
-              <Loader2 className={`w-3 h-3 ${articlesLoading ? 'animate-spin' : ''}`} />
-              {articlesLoading ? 'Loading...' : 'Refresh'}
-            </button>
-          </div>
-
-          {/* Summary strip */}
-          <div className="flex items-center gap-4 text-xs text-slate-500 mb-4 pb-3 border-b border-slate-100">
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              Last processed: {(() => {
-                const sorted = [...articles].filter(a => a.createdAt).sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
-                return sorted.length > 0 ? formatRelativeTime(sorted[0].createdAt!) : 'never'
-              })()}
-            </span>
-            <span className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
-              Next run: daily at 7:00
-            </span>
-          </div>
-
-
-          {/* Article list */}
-          {articlesLoading ? (
-            <div className="flex items-center gap-2 text-sm text-slate-400 py-6 justify-center">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading articles...
-            </div>
-          ) : articles.length === 0 ? (
-            <div className="text-sm text-slate-400 py-6 text-center">
-              No articles yet. The automation will process articles on the next scheduled run (daily at 7:00).
-            </div>
-          ) : (() => {
-            const isRefusal = (title: string) =>
-              /I('m| am) sorry|I('m| am) unable to|I can'?t (perform|assist|help)|Unfortunately,? I cannot/i.test(title)
-            const filtered = articles
-              .filter(a => !isRefusal(a.title))
-            // Planning slots: next 3 scheduled articles (or most recent 3 published if on Published tab)
-            // Both 'selected' and 'published' (= processed/ready) are scheduled, not yet live
-            const scheduled = filtered.filter(a => a.status === 'selected' || a.status === 'published')
-              .sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime())
-            const planningSlots = scheduled.slice(0, 3)
-            // Assign future publish dates to planning slots (today, tomorrow, day after)
-            const slotDates = planningSlots.map((_, i) => {
-              const d = new Date()
-              d.setDate(d.getDate() + i)
-              return d
-            })
-            const planningIds = new Set(planningSlots.map(a => a.id))
-            const rest = filtered.filter(a => !planningIds.has(a.id))
-
-            const renderArticleRow = (article: Article, isSlot: boolean, slotDate?: Date) => {
-              const meta = categoryMeta[article.category]
-              const colors = meta ? colorClasses[meta.color] : null
-              return (
-                <div
-                  key={article.id}
-                  className={`flex items-center gap-3 py-2.5 px-3 rounded-lg group transition-colors ${
-                    isSlot
-                      ? 'bg-indigo-50/50 border border-indigo-200/60 hover:bg-indigo-50'
-                      : 'hover:bg-slate-50'
-                  }`}
-                >
-                  {/* Slot indicator */}
-                  {isSlot && (
-                    <div className="shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                      <Calendar className="w-3 h-3" />
-                    </div>
-                  )}
-
-                  {/* Title + source */}
-                  <div className="flex-1 min-w-0">
-                    <a
-                      href={article.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium text-slate-800 hover:text-indigo-600 truncate block transition-colors"
-                    >
-                      {article.title}
-                    </a>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[11px] text-slate-400">{article.source}</span>
-                      {article.publishedAt && (
-                        <span className="text-[11px] text-slate-300">
-                          {new Date(article.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                      )}
-                      {article.matchedKeywords && article.matchedKeywords.length > 0 &&
-                        [...new Set(article.matchedKeywords.map(kw => kw.replace(/,\s*$/, '').trim()).filter(Boolean))].map(kw => (
-                          <span key={kw} className="inline-flex items-center px-1.5 py-0 rounded text-[10px] bg-slate-100 text-slate-500">
-                            {kw}
-                          </span>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Category badge */}
-                  {meta && colors && (
-                    <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${colors.badge}`}>
-                      {meta.label}
-                    </span>
-                  )}
-
-                  {/* Date */}
-                  {editingDateId === article.id ? (
-                    <input
-                      type="date"
-                      defaultValue={article.publishedAt ? article.publishedAt.split('T')[0] : ''}
-                      onBlur={(e) => {
-                        if (e.target.value) {
-                          handleUpdateArticleDate(article.id, e.target.value + 'T07:00:00.000Z')
-                        } else {
-                          setEditingDateId(null)
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                        if (e.key === 'Escape') setEditingDateId(null)
-                      }}
-                      autoFocus
-                      className="shrink-0 text-xs border border-indigo-300 rounded px-2 py-1 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                  ) : (
-                    <span
-                      className={`shrink-0 text-xs ${isSlot && slotDate ? 'text-indigo-600 font-medium' : 'text-slate-400'} ${article.status === 'selected' ? 'cursor-pointer hover:text-indigo-600' : ''}`}
-                      onClick={() => article.status === 'selected' && setEditingDateId(article.id)}
-                      title={article.status === 'selected' ? 'Click to change date' : undefined}
-                    >
-                      {isSlot && slotDate
-                        ? slotDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
-                        : article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : '—'}
-                    </span>
-                  )}
-
-                  {/* Status badge */}
-                  <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                    (article.status === 'published' || article.status === 'selected')
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {(article.status === 'selected' || article.status === 'published') ? 'Scheduled' : article.status}
-                  </span>
-
-                  {/* Actions */}
-                  <div className="shrink-0 flex items-center gap-0.5">
-                    {/* View/edit rewrite */}
-                    {(article.status === 'selected' || article.status === 'published' || article.status === 'rewritten') && (
-                      <a
-                        href={`/dashboard/rewrite/${article.id}`}
-                        className="p-1 rounded text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
-                        title="View / edit article"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <PenLine className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-                    {/* Schedule: promote alternative to selected */}
-                    {!isSlot && article.status !== 'published' && article.status !== 'selected' && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            await fetch(`/api/articles/${article.id}`, {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ status: 'selected' }),
-                            })
-                            showNotification({ type: 'success', title: 'Scheduled', message: `"${article.title}" added to planning` })
-                            loadArticles()
-                          } catch {
-                            showNotification({ type: 'error', title: 'Error', message: 'Could not schedule article' })
-                          }
-                        }}
-                        className="p-1 rounded text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
-                        title="Schedule this article"
-                      >
-                        <Calendar className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    {/* Swap: replace a planning slot with this alternative */}
-                    {!isSlot && article.status !== 'published' && planningSlots.some(s => s.status === 'selected') && (
-                      <button
-                        onClick={async () => {
-                          const lastSlot = [...planningSlots].reverse().find(s => s.status === 'selected')
-                          if (!lastSlot) return
-                          try {
-                            await Promise.all([
-                              fetch(`/api/articles/${article.id}`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ status: 'selected' }),
-                              }),
-                              fetch(`/api/articles/${lastSlot.id}`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ status: 'pending' }),
-                              }),
-                            ])
-                            showNotification({ type: 'success', title: 'Swapped', message: `"${article.title}" replaced "${lastSlot.title}"` })
-                            loadArticles()
-                          } catch {
-                            showNotification({ type: 'error', title: 'Error', message: 'Could not swap articles' })
-                          }
-                        }}
-                        className="p-1 rounded text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
-                        title="Swap with last scheduled article"
-                      >
-                        <ArrowRightLeft className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    {/* Delete */}
-                    {(article.status === 'selected' || article.status === 'published') && (
-                      <button
-                        onClick={() => handleDeleteArticle(article)}
-                        className="p-1 rounded text-slate-500 hover:text-red-500 hover:bg-red-50"
-                        title="Delete article"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )
-            }
-
-            return (
-              <div className="space-y-1">
-                {/* Planning slots */}
-                {planningSlots.length > 0 && (
-                  <>
-                    <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wide mb-1.5 px-1">
-                      Up next
-                    </p>
-                    {planningSlots.map((a, i) => renderArticleRow(a, true, slotDates[i]))}
-                  </>
-                )}
-                {/* Rest */}
-                {rest.length > 0 && (
-                  <>
-                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mt-4 mb-1.5 px-1">
-                      Alternatives
-                    </p>
-                    {rest.map(a => renderArticleRow(a, false))}
-                  </>
-                )}
-              </div>
-            )
-          })()}
-        </div>
-
         {/* Connected Site — combined platform + integration + setup */}
         <div className="bg-white rounded-lg border border-slate-200 p-5">
           <div className="flex items-center gap-2 mb-4">
             <Link className="w-4 h-4 text-indigo-500" />
             <h3 className="text-sm font-semibold text-slate-900">Publish to your website</h3>
-            {automation.site_name && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Connected
+            {automation.site_platform && automation.site_url && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                {automation.site_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}
               </span>
             )}
           </div>
@@ -986,52 +1146,61 @@ export default function AutomationEditPage() {
             {/* Step 1: Your site */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">1</div>
+                {automation.site_url ? (
+                  <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><Check className="w-3 h-3" /></div>
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shrink-0">1</div>
+                )}
                 <span className="text-sm font-medium text-slate-800">Your site</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-7">
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Site name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. CompanionGuide.ai"
-                    value={automation.site_name}
-                    onChange={(e) => update('site_name', e.target.value)}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">News listing page</label>
-                  <input
-                    type="url"
-                    placeholder="https://companionguide.ai/news"
-                    value={automation.site_url}
-                    onChange={(e) => update('site_url', e.target.value)}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-slate-400 mt-1">The page on your site where articles are listed</p>
-                </div>
+              <div className="ml-7">
+                <label className="block text-xs font-medium text-slate-400 mb-1">News page URL</label>
+                <input
+                  type="url"
+                  placeholder="https://mywebsite.com/news"
+                  value={automation.site_url}
+                  onChange={(e) => {
+                    update('site_url', e.target.value)
+                    if (!automation.site_name) update('site_name', automation.name)
+                  }}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <p className="text-xs text-slate-400 mt-1">The page on your website where news articles will appear</p>
               </div>
             </div>
 
             {/* Step 2: Choose platform */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">2</div>
+                {automation.site_platform && (
+                  (automation.site_platform === 'netlify' && automation.deploy_webhook_url) ||
+                  (automation.site_platform === 'replit' && automation.site_api_key) ||
+                  automation.site_platform === 'wordpress' ||
+                  automation.site_platform === 'other'
+                ) ? (
+                  <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><Check className="w-3 h-3" /></div>
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                )}
                 <span className="text-sm font-medium text-slate-800">Choose your platform</span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 ml-7">
                 {[
-                  { key: 'netlify', label: 'Netlify', desc: 'Static sites & SSG', color: 'teal', letter: 'N' },
-                  { key: 'wordpress', label: 'WordPress', desc: 'Blog & CMS', color: 'blue', letter: 'W' },
-                  { key: 'replit', label: 'Replit', desc: 'Hosted web apps', color: 'orange', letter: 'R' },
-                  { key: 'other', label: 'Other', desc: 'Any website', color: 'slate', letter: '?' },
+                  { key: 'netlify', label: 'Netlify', desc: 'Static sites & SSG', logo: '/images/platforms/netlify.png' },
+                  { key: 'wordpress', label: 'WordPress', desc: 'Blog & CMS', logo: '/images/platforms/wordpress.png' },
+                  { key: 'replit', label: 'Replit', desc: 'Hosted web apps', logo: '/images/platforms/replit.png' },
+                  { key: 'other', label: 'Other', desc: 'Any website', logo: null },
                 ].map((p) => (
                   <button
                     key={p.key}
                     onClick={() => {
                       setExpandedGuide(expandedGuide === p.key ? null : p.key)
-                      if (p.key !== 'other') update('integration_type', 'script-tag')
+                      update('site_platform', p.key)
+                      if (p.key === 'replit') {
+                        update('integration_type', 'fetch-api')
+                      } else if (p.key !== 'other') {
+                        update('integration_type', 'script-tag')
+                      }
                     }}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
                       expandedGuide === p.key
@@ -1039,10 +1208,12 @@ export default function AutomationEditPage() {
                         : 'bg-white border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50'
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      expandedGuide === p.key ? 'bg-indigo-100' : 'bg-slate-100'
-                    }`}>
-                      <span className={`text-sm font-bold ${expandedGuide === p.key ? 'text-indigo-600' : 'text-slate-400'}`}>{p.letter}</span>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                      {p.logo ? (
+                        <img src={p.logo} alt={p.label} className="w-7 h-7 object-contain" />
+                      ) : (
+                        <span className={`text-sm font-bold ${expandedGuide === p.key ? 'text-indigo-600' : 'text-slate-400'}`}>?</span>
+                      )}
                     </div>
                     <span className={`text-xs font-medium ${expandedGuide === p.key ? 'text-slate-900' : 'text-slate-600'}`}>{p.label}</span>
                     <span className="text-[10px] text-slate-400">{p.desc}</span>
@@ -1053,64 +1224,73 @@ export default function AutomationEditPage() {
               {/* Platform-specific guide with step-by-step */}
               {expandedGuide === 'netlify' && (
                 <div className="ml-7 mt-3 p-4 bg-teal-50/50 rounded-lg border border-teal-100">
-                  <p className="text-xs text-slate-600 mb-3">Best for SEO: articles are baked into your HTML at build time so Google can index them. Between builds, the embed script keeps content fresh for visitors. News Pal triggers <strong>1 rebuild per day</strong> (only when new articles are published).</p>
+                  <p className="text-xs text-slate-600 mb-3">Articles load automatically on your site via a small script. News Pal triggers <strong>1 rebuild per day</strong> so Google can index new articles too.</p>
                   <div className="space-y-3">
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
                       <div className="text-xs text-slate-600 flex-1">
-                        <p className="font-medium text-slate-700 mb-1.5">Add this code to your site</p>
-                        <p className="mb-1.5">Paste this in your HTML where you want articles to appear:</p>
-                        <div className="relative">
-                          <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto"><code>{`<div id="newspal-articles"></div>
+                        <p className="font-medium text-slate-700 mb-1.5">Copy this prompt and paste it in your code editor AI</p>
+                        <p className="mb-1.5">Works with Claude Code, Cursor, Replit AI, or any AI assistant with access to your project.</p>
+                        {(() => {
+                          const netlifyPrompt = `Add a News Pal news feed to my site. This loads articles automatically from the News Pal API and displays them on a news page.
+
+Requirements:
+- Add the following embed snippet to my site on the page where news articles should appear (e.g. /news or /blog):
+
+<div id="newspal-articles"></div>
 <script src="${typeof window !== 'undefined' ? window.location.origin : 'https://newspal.vercel.app'}/embed/newspal-loader.js"
   data-automation-id="${id}"
-  data-limit="20"></script>`}</code></pre>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(`<div id="newspal-articles"></div>\n<script src="${window.location.origin}/embed/newspal-loader.js"\n  data-automation-id="${id}"\n  data-limit="20"></script>`)
-                              showNotification({ type: 'success', title: 'Copied', message: 'Embed snippet copied to clipboard', duration: 2000 })
-                            }}
-                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-400 bg-slate-800/90 hover:bg-slate-700 transition-colors"
-                          >
-                            <Copy className="w-3 h-3 mr-1" />Copy
-                          </button>
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-1.5">This script loads articles instantly for visitors. For SEO, add the webhook below so articles are also in the static HTML.</p>
+  data-limit="20"></script>
+
+- The script automatically fetches and renders articles. No backend code needed.
+- Make sure the page has proper meta tags for SEO (title, description).
+- Style the surrounding page to match the existing site design.
+- The articles container will be populated automatically by the script.
+
+Also set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
+- In Netlify dashboard → Site configuration → Build & deploy → Build hooks → Add build hook → Name it "News Pal" → Copy the URL
+- Give me the URL so I can paste it back into News Pal.`
+                          return <>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(netlifyPrompt)
+                                showNotification({ type: 'success', title: 'Copied', message: 'Prompt copied — paste it in your AI code editor', duration: 3000 })
+                              }}
+                              className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-teal-500 hover:bg-teal-600 transition-colors"
+                            >
+                              <Copy className="w-3 h-3 mr-1.5" />Copy prompt
+                            </button>
+                            <details className="mt-2">
+                              <summary className="text-[11px] text-slate-400 cursor-pointer hover:text-slate-600">View prompt</summary>
+                              <div className="mt-1.5">
+                                <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">{netlifyPrompt}</pre>
+                              </div>
+                            </details>
+                          </>
+                        })()}
                       </div>
                     </div>
                     <div className="flex gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
-                      <div className="text-xs text-slate-600">
-                        <p className="font-medium text-slate-700">Create a deploy webhook in Netlify</p>
-                        <p className="mt-0.5">Open your Netlify dashboard → select your site → <strong>Site configuration</strong> → <strong>Build & deploy</strong> → <strong>Build hooks</strong> → click <strong>Add build hook</strong>. Name it "News Pal" and click Save. Copy the URL.</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
+                      {automation.deploy_webhook_url ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3" /></div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
+                      )}
                       <div className="text-xs text-slate-600 flex-1">
-                        <p className="font-medium text-slate-700 mb-1.5">Paste your webhook URL here</p>
-                        <div className="flex gap-2">
-                          <input
-                            type="url"
-                            placeholder="https://api.netlify.com/build_hooks/..."
-                            value={automation.deploy_webhook_url}
-                            onChange={(e) => update('deploy_webhook_url', e.target.value)}
-                            className="flex-1 border border-teal-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                          />
-                          <button
-                            onClick={triggerDeploy}
-                            disabled={!automation.deploy_webhook_url}
-                            className="inline-flex items-center px-3 py-1.5 border border-emerald-200 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-30 shrink-0"
-                          >
-                            Deploy now
-                          </button>
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-1">Rebuilds <strong>your Netlify site</strong> so articles are in the static HTML (important for SEO). Triggered automatically once per day after new articles are published. "Deploy now" triggers a manual rebuild. Costs 1 build credit per trigger.</p>
+                        <p className="font-medium text-slate-700 mb-1.5">Paste your Netlify Build Hook URL here</p>
+                        <p className="mb-1.5">Your AI assistant will tell you how to create this. Paste the URL below so News Pal can trigger a rebuild when new articles are ready.</p>
+                        <input
+                          type="url"
+                          placeholder="https://api.netlify.com/build_hooks/..."
+                          value={automation.deploy_webhook_url}
+                          onChange={(e) => update('deploy_webhook_url', e.target.value)}
+                          className="w-full border border-teal-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                        />
                       </div>
                     </div>
                     <div className="flex items-center gap-2 mt-1 ml-7">
                       <Check className="w-4 h-4 text-emerald-500" />
-                      <span className="text-xs font-medium text-emerald-700">That's it! Save your settings and you're done.</span>
+                      <span className="text-xs font-medium text-emerald-700">Done! Save settings and articles will appear automatically.</span>
                     </div>
                   </div>
                 </div>
@@ -1163,39 +1343,180 @@ export default function AutomationEditPage() {
               )}
               {expandedGuide === 'replit' && (
                 <div className="ml-7 mt-3 p-4 bg-orange-50/50 rounded-lg border border-orange-100">
-                  <p className="text-xs text-slate-600 mb-3">Articles are fetched fresh on every page load — no extra setup needed.</p>
+                  <p className="text-xs text-slate-600 mb-3">News Pal <strong>pushes articles directly</strong> to your Replit site — fully automatic. New articles appear on your site without any manual work.</p>
                   <div className="space-y-3">
                     <div className="flex gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
-                      <div className="text-xs text-slate-600">
-                        <p className="font-medium text-slate-700">Open your Replit project</p>
-                        <p className="mt-0.5">Open the HTML file where you want articles to appear (e.g. <code className="bg-orange-100 px-1 rounded">index.html</code> or a dedicated news page).</p>
+                      {automation.site_api_key ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3" /></div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
+                      )}
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Generate your API key</p>
+                        <p className="mb-2">This key secures the connection between News Pal and your Replit site.</p>
+                        <div className="flex items-center gap-2">
+                          {automation.site_api_key ? (
+                            <>
+                              <code className="flex-1 text-xs bg-slate-900 text-emerald-400 rounded-lg px-3 py-1.5 font-mono truncate">{automation.site_api_key}</code>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(automation.site_api_key)
+                                  showNotification({ type: 'success', title: 'Copied', message: 'API key copied', duration: 2000 })
+                                }}
+                                className="inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shrink-0"
+                              >
+                                <Copy className="w-3 h-3 mr-1" />Copy
+                              </button>
+                              <button
+                                onClick={generateApiKey}
+                                className="inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-medium text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors shrink-0"
+                              >
+                                Regenerate
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={generateApiKey}
+                              className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 transition-colors"
+                            >
+                              Generate API key
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
                       <div className="text-xs text-slate-600 flex-1">
-                        <p className="font-medium text-slate-700 mb-1.5">Paste this code into your HTML</p>
-                        <div className="relative">
-                          <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto"><code>{`<div id="newspal-articles"></div>
-<script src="${typeof window !== 'undefined' ? window.location.origin : 'https://newspal.vercel.app'}/embed/newspal-loader.js"
-  data-automation-id="${id}"
-  data-limit="20"></script>`}</code></pre>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(`<div id="newspal-articles"></div>\n<script src="${window.location.origin}/embed/newspal-loader.js"\n  data-automation-id="${id}"\n  data-limit="20"></script>`)
-                              showNotification({ type: 'success', title: 'Copied', message: 'Embed snippet copied to clipboard', duration: 2000 })
-                            }}
-                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-400 bg-slate-800/90 hover:bg-slate-700 transition-colors"
-                          >
-                            <Copy className="w-3 h-3 mr-1" />Copy
-                          </button>
-                        </div>
+                        <p className="font-medium text-slate-700 mb-1.5">Copy this prompt and paste it in Replit AI</p>
+                        <p className="mb-1.5">Open your Replit project, open the AI chat, and paste this prompt. It will set everything up for you.</p>
+                        {(() => {
+                            const prompt = `Add a News Pal integration to my project. This receives articles via a POST endpoint and serves them as pages on my site.
+
+Requirements:
+- Create a file called newspal.js that exports a function taking an Express app
+- POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against process.env.NEWSPAL_API_KEY. Store articles in a JSON file (newspal-articles.json). Deduplicate by slug. Return { success, received, total }.
+- GET /news — renders an article listing page with cards (image, category badge, title linking to /news/:slug, description, date). Style it to match the existing site design.
+- GET /news/:slug — renders a full article detail page with title, subtitle, meta info, image, HTML content, and FAQ section (collapsible). Style it to match the existing site.
+- In my main server file, add: app.use(express.json()); require('./newspal')(app);
+- Add NEWSPAL_API_KEY to my Replit Secrets with value: ${automation.site_api_key || '(generate key in News Pal first)'}
+
+Each article object has: { slug, title, description, content_html, category, source, sourceUrl, imageUrl, subtitle, publishedAt, faq (JSON string of [{q,a}]) }`
+                            return <>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(prompt)
+                                  showNotification({ type: 'success', title: 'Copied', message: 'Prompt copied — paste it in Replit AI', duration: 3000 })
+                                }}
+                                className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 transition-colors"
+                              >
+                                <Copy className="w-3 h-3 mr-1.5" />Copy prompt
+                              </button>
+                              <details className="mt-2">
+                                <summary className="text-[11px] text-slate-400 cursor-pointer hover:text-slate-600">View prompt</summary>
+                                <div className="mt-1.5 relative">
+                                  <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 pr-16 text-xs leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">{prompt}</pre>
+                                </div>
+                              </details>
+                            </>
+                          })()}
+                        <details className="mt-2">
+                          <summary className="text-[11px] text-slate-400 cursor-pointer hover:text-slate-600">View the code manually</summary>
+                          <div className="mt-2 relative">
+                            <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto max-h-48 overflow-y-auto"><code id="replit-snippet-code">{`// newspal.js — News Pal auto-publish receiver
+const fs = require('fs');
+const path = require('path');
+const DATA_FILE = path.join(__dirname, 'newspal-articles.json');
+
+function loadArticles() {
+  try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
+  catch { return []; }
+}
+
+module.exports = function(app) {
+  app.post('/newspal/receive', (req, res) => {
+    const key = req.headers['x-newspal-key'];
+    if (key !== process.env.NEWSPAL_API_KEY) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+    const existing = loadArticles();
+    const existingSlugs = new Set(existing.map(a => a.slug));
+    const newArticles = (req.body.articles || [])
+      .filter(a => !existingSlugs.has(a.slug));
+    const merged = [...newArticles, ...existing];
+    fs.writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2));
+    res.json({ success: true, received: newArticles.length, total: merged.length });
+  });
+
+  app.get('/news', (req, res) => {
+    const articles = loadArticles();
+    const cards = articles.map(a => \`
+      <article style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:1.5rem;">
+        \${a.imageUrl ? \`<img src="\${a.imageUrl}" style="width:100%;height:200px;object-fit:cover;">\` : ''}
+        <div style="padding:1.25rem;">
+          <span style="font-size:11px;color:#6366f1;font-weight:600;text-transform:uppercase;">\${a.category}</span>
+          <h2 style="margin:0.5rem 0;font-size:1.15rem;"><a href="/news/\${a.slug}" style="color:#1e293b;text-decoration:none;">\${a.title}</a></h2>
+          <p style="color:#64748b;font-size:0.875rem;">\${a.description}</p>
+          <time style="font-size:12px;color:#94a3b8;">\${new Date(a.publishedAt).toLocaleDateString()}</time>
+        </div>
+      </article>\`).join('');
+    res.send(\`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>News</title>
+      <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#f8fafc;padding:2rem}.container{max-width:720px;margin:0 auto}</style></head>
+      <body><div class="container"><h1 style="margin-bottom:2rem">Latest News</h1>\${cards}</div></body></html>\`);
+  });
+
+  app.get('/news/:slug', (req, res) => {
+    const a = loadArticles().find(a => a.slug === req.params.slug);
+    if (!a) return res.status(404).send('Not found');
+    const faqHtml = a.faq ? JSON.parse(a.faq).map(f =>
+      \`<details style="margin-bottom:.75rem"><summary style="cursor:pointer;font-weight:600">\${f.q}</summary><p style="padding:.5rem 0;color:#64748b">\${f.a}</p></details>\`
+    ).join('') : '';
+    res.send(\`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>\${a.title}</title>
+      <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#f8fafc;padding:2rem}.container{max-width:720px;margin:0 auto}.content{line-height:1.8}</style></head>
+      <body><div class="container"><a href="/news" style="color:#6366f1;font-size:13px">&larr; Back</a>
+      <h1 style="margin-top:1rem;font-size:1.75rem">\${a.title}</h1>
+      \${a.subtitle ? \`<p style="font-size:1.1rem;color:#64748b;margin:1rem 0">\${a.subtitle}</p>\` : ''}
+      <div style="font-size:13px;color:#94a3b8;margin-bottom:1.5rem">\${a.category} &middot; \${new Date(a.publishedAt).toLocaleDateString()} &middot; \${a.source}</div>
+      \${a.imageUrl ? \`<img src="\${a.imageUrl}" style="width:100%;border-radius:12px;margin-bottom:1.5rem">\` : ''}
+      <div class="content">\${a.content_html || a.description}</div>
+      \${faqHtml ? \`<div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid #e2e8f0"><h2 style="font-size:1.25rem;margin-bottom:1rem">FAQ</h2>\${faqHtml}</div>\` : ''}
+      </div></body></html>\`);
+  });
+};`}</code></pre>
+                            <button
+                              onClick={() => {
+                                const snippetEl = document.getElementById('replit-snippet-code')
+                                navigator.clipboard.writeText(snippetEl?.textContent || '')
+                                showNotification({ type: 'success', title: 'Copied', message: 'Code copied', duration: 2000 })
+                              }}
+                              className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-400 bg-slate-800/90 hover:bg-slate-700 transition-colors"
+                            >
+                              <Copy className="w-3 h-3 mr-1" />Copy
+                            </button>
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Test the connection</p>
+                        <p className="mb-2">Make sure your Replit site is running, then click the button to send a test article.</p>
+                        <button
+                          onClick={testPush}
+                          disabled={pushingTest || !automation.site_url || !automation.site_api_key}
+                          className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 transition-colors disabled:opacity-40"
+                        >
+                          {pushingTest ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Sending test article...</> : 'Send test article'}
+                        </button>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 mt-1 ml-7">
                       <Check className="w-4 h-4 text-emerald-500" />
-                      <span className="text-xs font-medium text-emerald-700">That's it! Save your settings and you're done.</span>
+                      <span className="text-xs font-medium text-emerald-700">Done! Save settings and articles will be pushed automatically.</span>
+                    </div>
+                    <div className="ml-7 mt-1 p-2.5 bg-orange-100/50 rounded-lg">
+                      <p className="text-[11px] text-orange-700">Articles will appear at <strong>{automation.site_url ? new URL(automation.site_url).origin : 'your-site'}/news</strong> after the next pipeline run. Individual articles at <strong>/news/article-slug</strong>.</p>
                     </div>
                   </div>
                 </div>
@@ -1305,14 +1626,60 @@ const { articles } = await res.json();
               </button>
             )}
 
-            {/* Extra options */}
+            {/* Step 3: Match your site's design */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold">{expandedGuide === 'other' || showAdvancedIntegration ? '4' : '3'}</div>
-                <span className="text-sm font-medium text-slate-800">Extra options</span>
-                <span className="text-xs text-slate-400">optional</span>
+                {automation.site_template || automation.site_detail_template ? (
+                  <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><Check className="w-3 h-3" /></div>
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shrink-0">3</div>
+                )}
+                <span className="text-sm font-medium text-slate-800">Match your site's design</span>
               </div>
-              <div className="ml-7 space-y-4">
+              <div className="ml-7 space-y-2">
+                <p className="text-xs text-slate-500">Paste a link to an existing article or page on your site, then click <strong>Analyze</strong>. AI scans the HTML, CSS, and layout so new articles look exactly like your site — same fonts, colors, and spacing.</p>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    placeholder="https://yoursite.com/news/example-article"
+                    value={automation.site_example_url}
+                    onChange={(e) => update('site_example_url', e.target.value)}
+                    className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                  <button
+                    onClick={analyzeTemplate}
+                    disabled={analyzing || !automation.site_example_url}
+                    className={`inline-flex items-center px-4 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 shrink-0 ${
+                      automation.site_template || automation.site_detail_template
+                        ? 'border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                        : 'text-white bg-indigo-600 hover:bg-indigo-700'
+                    }`}
+                  >
+                    {analyzing
+                      ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Analyzing...</>
+                      : automation.site_template || automation.site_detail_template
+                        ? <><Check className="w-3 h-3 mr-1.5" />Re-analyze</>
+                        : <><Search className="w-3 h-3 mr-1.5" />Analyze</>
+                    }
+                  </button>
+                </div>
+                {(automation.site_template || automation.site_detail_template) && (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Template extracted — new articles will match your site's styling</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Extra options — collapsed by default */}
+            <details>
+              <summary className="flex items-center gap-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                <ChevronDown className="w-4 h-4 text-slate-400 transition-transform [[open]>&]:rotate-180" />
+                <span className="text-sm font-medium text-slate-500">Extra options</span>
+                <span className="text-xs text-slate-400">optional</span>
+              </summary>
+              <div className="ml-7 mt-3 space-y-4">
                 {/* Deploy webhook — only show here if NOT already in Netlify guide */}
                 {expandedGuide !== 'netlify' && (
                   <div>
@@ -1333,45 +1700,15 @@ const { articles } = await res.json();
                         Deploy now
                       </button>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">Triggers a rebuild of <strong>your website</strong> (not News Pal). Happens automatically when new articles are published. Use "Deploy now" to manually rebuild your site.</p>
+                    <p className="text-xs text-slate-400 mt-1">Triggers a rebuild of <strong>your website</strong> (not News Pal). Happens automatically when new articles are published.</p>
                   </div>
                 )}
-
-                {/* Match your site's design */}
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Match your site's design</label>
-                  <p className="text-xs text-slate-500 mb-2">Paste a URL to an existing article on your site. AI will visit the page, analyze the HTML structure and CSS classes, and create a template so new articles look exactly like your existing ones — same fonts, colors, layout, and spacing.</p>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      placeholder="https://yoursite.com/news/example-article"
-                      value={automation.site_example_url}
-                      onChange={(e) => update('site_example_url', e.target.value)}
-                      className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                    <button
-                      onClick={analyzeTemplate}
-                      disabled={analyzing || !automation.site_example_url}
-                      className="inline-flex items-center px-3 py-1.5 border border-indigo-200 rounded-lg text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors disabled:opacity-50 shrink-0"
-                    >
-                      {analyzing ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Analyzing...</> : <><Search className="w-3 h-3 mr-1" />Analyze</>}
-                    </button>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">Without this, articles use a clean default design. With this, they blend seamlessly into your site.</p>
-                  {(automation.site_template || automation.site_detail_template) && (
-                    <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Template extracted — new articles will match your site's styling</span>
-                    </div>
-                  )}
-                </div>
 
                 {/* API URL + Test */}
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">Diagnostics</label>
-                  <p className="text-xs text-slate-500 mb-2">This is the API URL that your site uses to fetch articles. The embed script uses this automatically — you only need it if you're building a custom integration. Use "Test" to verify that News Pal can find your automation and articles.</p>
                   <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-xs font-medium text-slate-500 shrink-0">Your API:</span>
+                    <span className="text-xs font-medium text-slate-500 shrink-0">API:</span>
                     <code className="flex-1 text-xs text-slate-700 font-mono truncate">
                       {typeof window !== 'undefined' ? window.location.origin : ''}/api/articles/public?automation_id={id}
                     </code>
@@ -1379,8 +1716,7 @@ const { articles } = await res.json();
                       onClick={copyApiUrl}
                       className="inline-flex items-center px-2.5 py-1 border border-slate-200 rounded-md text-xs text-slate-600 bg-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors shrink-0"
                     >
-                      <Copy className="w-3 h-3 mr-1" />
-                      Copy
+                      <Copy className="w-3 h-3 mr-1" />Copy
                     </button>
                     <button
                       onClick={testConnection}
@@ -1392,22 +1728,53 @@ const { articles } = await res.json();
                   </div>
                 </div>
               </div>
-            </div>
+            </details>
           </div>
         </div>
 
         {/* Save bar */}
-        <div className="bg-white rounded-lg border border-slate-200 p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-400">Save your category, feed, and keyword changes.</p>
+        <div className="bg-white rounded-lg border border-slate-200 p-5 flex items-center gap-3">
+          <button
+            onClick={() => save()}
+            disabled={saving}
+            className="inline-flex items-center px-6 py-2 bg-indigo-600 text-white hover:bg-white hover:text-indigo-600 border border-indigo-600 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save Settings'}
+          </button>
+          {automation.enabled ? (
+            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Automation is active
+            </span>
+          ) : (
             <button
-              onClick={() => save()}
+              onClick={async () => {
+                setAutomation(prev => prev ? { ...prev, enabled: true } : prev)
+                await save({ enabled: true })
+                // Auto-trigger pipeline after activation
+                setRunningPipeline(true)
+                try {
+                  const res = await fetch('/api/cron/auto-pipeline', { method: 'POST' })
+                  const data = await res.json()
+                  const result = data.automations?.find((a: any) => a.automation_id === id)
+                  if (result?.rewritten > 0) {
+                    showNotification({ type: 'success', title: 'Pipeline complete', message: `${result.rewritten} article(s) published`, duration: 4000 })
+                  } else {
+                    showNotification({ type: 'warning', title: 'Pipeline complete', message: result?.message || 'No new articles found', duration: 4000 })
+                  }
+                  loadArticles()
+                } catch {
+                  showNotification({ type: 'error', title: 'Error', message: 'Pipeline failed' })
+                } finally {
+                  setRunningPipeline(false)
+                }
+              }}
               disabled={saving}
-              className="inline-flex items-center px-5 py-2 bg-indigo-600 text-white hover:bg-white hover:text-indigo-600 border border-indigo-600 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              className="inline-flex items-center px-6 py-2 bg-white text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-600 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
             >
-              {saving ? 'Saving...' : 'Save Settings'}
+              {saving ? 'Saving...' : 'Save Settings & Activate'}
             </button>
-          </div>
+          )}
         </div>
       </div>
     </div>

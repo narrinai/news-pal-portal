@@ -61,6 +61,8 @@ export interface Automation {
   site_detail_template?: string
   integration_type?: 'script-tag' | 'fetch-api' | 'build-time' | 'netlify-function'
   deploy_webhook_url?: string
+  site_platform?: 'netlify' | 'wordpress' | 'replit' | 'other'
+  site_api_key?: string
 }
 
 export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt'>) {
@@ -189,9 +191,9 @@ export async function updateArticle(id: string, updates: Partial<NewsArticle>): 
       id: record.id,
       ...record.fields,
     } as NewsArticle
-  } catch (error) {
-    console.error(`❌ Error updating article ${id} in Airtable, falling back to mock:`, error)
-    return await mockAirtable.updateArticle(id, updates)
+  } catch (error: any) {
+    console.error(`❌ Error updating article ${id} in Airtable:`, error?.message || error)
+    throw new Error(`Failed to update article in Airtable: ${error?.message || 'Unknown error'}`)
   }
 }
 
@@ -244,6 +246,8 @@ function recordToAutomation(record: any): Automation {
     site_detail_template: (f.site_detail_template as string) || '',
     integration_type: (f.integration_type as Automation['integration_type']) || undefined,
     deploy_webhook_url: (f.deploy_webhook_url as string) || '',
+    site_platform: (f.site_platform as Automation['site_platform']) || undefined,
+    site_api_key: (f.site_api_key as string) || '',
   }
 }
 
@@ -284,7 +288,7 @@ export async function createAutomation(data: Omit<Automation, 'id'>): Promise<Au
   try {
     // Clean empty strings for singleSelect and url fields
     const cleaned: Record<string, any> = { ...data }
-    const selectFields = ['integration_type', 'publish_frequency']
+    const selectFields = ['integration_type', 'publish_frequency', 'site_platform']
     const urlFields = ['site_url', 'site_example_url', 'deploy_webhook_url']
     for (const key of [...selectFields, ...urlFields]) {
       if (key in cleaned && cleaned[key] === '') {
@@ -308,7 +312,7 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
     const { id: _id, ...fields } = data
     // Airtable requires null (not empty string) to clear singleSelect and url fields
     const cleaned: Record<string, any> = { ...fields }
-    const selectFields = ['integration_type', 'publish_frequency']
+    const selectFields = ['integration_type', 'publish_frequency', 'site_platform']
     const urlFields = ['site_url', 'site_example_url', 'deploy_webhook_url']
     for (const key of [...selectFields, ...urlFields]) {
       if (key in cleaned && cleaned[key] === '') {

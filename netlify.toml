@@ -14,6 +14,9 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+[functions]
+  directory = "netlify/functions"
+
 # Environment variables you need to set in Netlify dashboard:
 # AIRTABLE_API_KEY - Your Airtable API key
 # AIRTABLE_BASE_ID - Your Airtable base ID  

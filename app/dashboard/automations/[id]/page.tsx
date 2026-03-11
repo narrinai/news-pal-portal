@@ -1232,24 +1232,46 @@ export default function AutomationEditPage() {
                         <p className="font-medium text-slate-700 mb-1.5">Copy this prompt and paste it in your code editor AI</p>
                         <p className="mb-1.5">Works with Claude Code, Cursor, Replit AI, or any AI assistant with access to your project.</p>
                         {(() => {
-                          const netlifyPrompt = `Add a News Pal news feed to my site. This loads articles automatically from the News Pal API and displays them on a news page.
+                          const apiBase = 'https://newspal.netlify.app'
+                          const netlifyPrompt = `Add a News Pal news feed to my site. Fetch articles from the News Pal API and display them on my existing news/blog page, matching my site's current design.
 
-Requirements:
-- Add the following embed snippet to my site on the page where news articles should appear (e.g. /news or /blog):
+## API Endpoint
+GET ${apiBase}/api/articles/public?automation_id=${id}&limit=20
 
-<div id="newspal-articles"></div>
-<script src="${typeof window !== 'undefined' ? window.location.origin : 'https://newspal.vercel.app'}/embed/newspal-loader.js"
-  data-automation-id="${id}"
-  data-limit="20"></script>
+## Response format
+{
+  "success": true,
+  "articles": [
+    {
+      "id": "recXXX",
+      "title": "Article title",
+      "description": "Short summary of the article",
+      "content_html": "<section>...</section>",
+      "category": "AI Companion",
+      "source": "Original Source",
+      "sourceUrl": "https://original-article-url.com",
+      "imageUrl": "https://...",
+      "subtitle": "A one-line subtitle",
+      "publishedAt": "2026-03-11T07:00:00.000Z",
+      "faq": "[{\\"question\\":\\"..\\",\\"answer\\":\\"..\\"}]"
+    }
+  ]
+}
 
-- The script automatically fetches and renders articles. No backend code needed.
-- Make sure the page has proper meta tags for SEO (title, description).
-- Style the surrounding page to match the existing site design.
-- The articles container will be populated automatically by the script.
+## Requirements
+- Fetch articles from the API above at BUILD TIME (not client-side) so they are included in the static HTML for SEO
+- Display articles in my site's existing news/article grid style — they should look like native content
+- Each article needs: a list/card view (title, description, category badge, date, image) and a detail page with the full content_html
+- Generate a slug from the title for the detail page URL (e.g. /news/article-title-here)
+- On the detail page, render content_html directly (it's already formatted HTML with <section>, <h2>, <p> tags)
+- If faq is present (JSON string), parse it and render as a collapsible FAQ section
+- Add proper meta tags (og:title, og:description, og:image) on detail pages for SEO
+- Make sure all styling matches my existing site design — fonts, colors, spacing, layout
 
+## Deploy hook
 Also set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
-- In Netlify dashboard → Site configuration → Build & deploy → Build hooks → Add build hook → Name it "News Pal" → Copy the URL
-- Give me the URL so I can paste it back into News Pal.`
+- Go to Netlify dashboard → Site configuration → Build & deploy → Build hooks → Add build hook → Name it "News Pal" → Copy the URL
+- Give me the webhook URL so I can paste it back into News Pal settings`
                           return <>
                             <button
                               onClick={() => {
@@ -1391,9 +1413,12 @@ Also set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                         <p className="font-medium text-slate-700 mb-1.5">Copy this prompt and paste it in Replit AI</p>
                         <p className="mb-1.5">Open your Replit project, open the AI chat, and paste this prompt. It will set everything up for you.</p>
                         {(() => {
-                            const prompt = `Add a News Pal integration to my project. This receives articles via a POST endpoint and serves them as pages on my site.
+                            const prompt = `Add a News Pal integration to my project. This receives articles via a POST endpoint and serves them as pages on my site, matching my site's existing design.
 
-Requirements:
+## How it works
+News Pal pushes articles to your site daily via POST. Your site stores them and serves them as pages.
+
+## Requirements
 - Create a file called newspal.js that exports a function taking an Express app
 - POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against process.env.NEWSPAL_API_KEY. Store articles in a JSON file (newspal-articles.json). Deduplicate by slug. Return { success, received, total }.
 - GET /news — renders an article listing page with cards (image, category badge, title linking to /news/:slug, description, date). Style it to match the existing site design.
@@ -1401,7 +1426,26 @@ Requirements:
 - In my main server file, add: app.use(express.json()); require('./newspal')(app);
 - Add NEWSPAL_API_KEY to my Replit Secrets with value: ${automation.site_api_key || '(generate key in News Pal first)'}
 
-Each article object has: { slug, title, description, content_html, category, source, sourceUrl, imageUrl, subtitle, publishedAt, faq (JSON string of [{q,a}]) }`
+## Article data format
+Each article object has these fields:
+{
+  "slug": "article-title-here",
+  "title": "Article title",
+  "description": "Short summary",
+  "content_html": "<section class=\\"content-section\\">...</section>",
+  "category": "AI Companion",
+  "source": "Original Source",
+  "sourceUrl": "https://original-url.com",
+  "imageUrl": "https://...",
+  "subtitle": "One-line subtitle",
+  "publishedAt": "2026-03-11T07:00:00.000Z",
+  "faq": "[{\\"question\\":\\"..\\",\\"answer\\":\\"..\\"}]"
+}
+
+## Important
+- The content_html is already formatted with <section>, <h2>, <p>, <ul> tags — render it directly
+- If faq exists, parse the JSON string and render as collapsible Q&A items
+- All pages must match my existing site's design (fonts, colors, layout, spacing)`
                             return <>
                               <button
                                 onClick={() => {

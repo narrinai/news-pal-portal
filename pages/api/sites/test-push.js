@@ -34,6 +34,8 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'x-newspal-key': site_api_key,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Origin': origin,
       },
       body: JSON.stringify({ articles: [testArticle] }),
     })

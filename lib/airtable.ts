@@ -63,6 +63,7 @@ export interface Automation {
   deploy_webhook_url?: string
   site_platform?: 'netlify' | 'wordpress' | 'replit' | 'other'
   site_api_key?: string
+  replit_url?: string
 }
 
 export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt'>) {
@@ -218,11 +219,11 @@ export async function deleteArticle(id: string): Promise<void> {
 const defaultAutomation: Omit<Automation, 'id'> = {
   name: 'Default Automation',
   enabled: false,
-  articles_per_day: 2,
+  articles_per_day: 1,
   categories: 'cybersecurity,ai-companion',
   style: 'news',
-  length: 'medium',
-  language: 'nl',
+  length: 'extra-long',
+  language: 'en',
 }
 
 function recordToAutomation(record: any): Automation {
@@ -231,11 +232,11 @@ function recordToAutomation(record: any): Automation {
     id: record.id,
     name: (f.name as string) || 'Unnamed',
     enabled: !!f.enabled,
-    articles_per_day: (f.articles_per_day as number) || 2,
+    articles_per_day: (f.articles_per_day as number) || 1,
     categories: (f.categories as string) || '',
     style: (f.style as string) || 'news',
-    length: (f.length as string) || 'medium',
-    language: (f.language as string) || 'nl',
+    length: (f.length as string) || 'extra-long',
+    language: (f.language as string) || 'en',
     publish_frequency: (f.publish_frequency as Automation['publish_frequency']) || 'daily',
     keywords: (f.keywords as string) || '',
     feeds: (f.feeds as string) || '',
@@ -248,6 +249,7 @@ function recordToAutomation(record: any): Automation {
     deploy_webhook_url: (f.deploy_webhook_url as string) || '',
     site_platform: (f.site_platform as Automation['site_platform']) || undefined,
     site_api_key: (f.site_api_key as string) || '',
+    replit_url: (f.replit_url as string) || '',
   }
 }
 
@@ -289,7 +291,7 @@ export async function createAutomation(data: Omit<Automation, 'id'>): Promise<Au
     // Clean empty strings for singleSelect and url fields
     const cleaned: Record<string, any> = { ...data }
     const selectFields = ['integration_type', 'publish_frequency', 'site_platform']
-    const urlFields = ['site_url', 'site_example_url', 'deploy_webhook_url']
+    const urlFields = ['site_url', 'site_example_url', 'deploy_webhook_url', 'replit_url']
     for (const key of [...selectFields, ...urlFields]) {
       if (key in cleaned && cleaned[key] === '') {
         delete cleaned[key]
@@ -313,7 +315,7 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
     // Airtable requires null (not empty string) to clear singleSelect and url fields
     const cleaned: Record<string, any> = { ...fields }
     const selectFields = ['integration_type', 'publish_frequency', 'site_platform']
-    const urlFields = ['site_url', 'site_example_url', 'deploy_webhook_url']
+    const urlFields = ['site_url', 'site_example_url', 'deploy_webhook_url', 'replit_url']
     for (const key of [...selectFields, ...urlFields]) {
       if (key in cleaned && cleaned[key] === '') {
         cleaned[key] = null

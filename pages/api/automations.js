@@ -20,11 +20,11 @@ export default async function handler(req, res) {
       const automation = await createAutomation({
         name,
         enabled: !!enabled,
-        articles_per_day: articles_per_day || 2,
+        articles_per_day: articles_per_day || 1,
         categories: categories || '',
         style: style || 'news',
-        length: length || 'medium',
-        language: language || 'nl',
+        length: length || 'extra-long',
+        language: language || 'en',
       })
       return res.status(201).json(automation)
     } catch (error) {

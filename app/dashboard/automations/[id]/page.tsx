@@ -26,6 +26,7 @@ interface Automation {
   deploy_webhook_url: string
   site_platform: string
   site_api_key: string
+  replit_url: string
 }
 
 interface Feed {
@@ -69,6 +70,7 @@ export default function AutomationEditPage() {
   const [activeArticleTab] = useState<'all'>('all')
   const [editingDateId, setEditingDateId] = useState<string | null>(null)
   const [pushingTest, setPushingTest] = useState(false)
+  const [pushSuccess, setPushSuccess] = useState(false)
   const [runningPipeline, setRunningPipeline] = useState(false)
 
   const id = params?.id as string
@@ -101,6 +103,7 @@ export default function AutomationEditPage() {
           deploy_webhook_url: data.deploy_webhook_url || '',
           site_platform: data.site_platform || '',
           site_api_key: data.site_api_key || '',
+          replit_url: data.replit_url || '',
         })
         if (data.site_platform) {
           setExpandedGuide(data.site_platform)
@@ -216,6 +219,19 @@ export default function AutomationEditPage() {
     try { return JSON.parse(automation.keywords) } catch { return {} }
   }
 
+  const getKeywordsEnabled = (): boolean => {
+    const map = getKeywordsMap()
+    return (map as any)._enabled !== false
+  }
+
+  const setKeywordsEnabled = async (enabled: boolean) => {
+    const map = getKeywordsMap();
+    (map as any)._enabled = enabled
+    const newKeywords = JSON.stringify(map)
+    update('keywords', newKeywords)
+    await save({ keywords: newKeywords }, true)
+  }
+
   const getKeywordsForCategory = (cat: string): string[] => {
     const map = getKeywordsMap()
     return map[cat] || globalKeywords[cat] || []
@@ -283,11 +299,12 @@ export default function AutomationEditPage() {
     } : prev)
   }
 
-  const save = async (overrides?: Partial<Automation>) => {
+  const save = async (overrides?: Partial<Automation>, silent = false) => {
     if (!automation) return
     setSaving(true)
     try {
       const merged = overrides ? { ...automation, ...overrides } : automation
+      if (!merged.articles_per_day || merged.articles_per_day < 1) merged.articles_per_day = 1
       // Auto-fill site_name from automation name
       if (merged.site_url && !merged.site_name) merged.site_name = merged.name
       const { id: _id, ...fields } = merged
@@ -297,8 +314,10 @@ export default function AutomationEditPage() {
         body: JSON.stringify(fields),
       })
       if (res.ok) {
-        showNotification({ type: 'success', title: 'Saved', message: 'Automation settings saved', duration: 3000 })
-        window.scrollTo({ top: 0, behavior: 'smooth' })
+        if (!silent) {
+          showNotification({ type: 'success', title: 'Saved', message: 'Automation settings saved', duration: 3000 })
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
       } else {
         showNotification({ type: 'error', title: 'Save failed', message: 'Could not save automation' })
       }
@@ -419,15 +438,16 @@ export default function AutomationEditPage() {
     }
   }
 
-  const generateApiKey = () => {
+  const generateApiKey = async () => {
     const key = 'npk_' + Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, '0')).join('')
     update('site_api_key', key)
-    showNotification({ type: 'success', title: 'API key generated', message: 'Save your settings to activate the key', duration: 3000 })
+    await save({ site_api_key: key }, true)
   }
 
   const testPush = async () => {
-    if (!automation?.site_url || !automation?.site_api_key) {
-      showNotification({ type: 'error', title: 'Missing info', message: 'Enter your Replit site URL and generate an API key first' })
+    const pushUrl = automation?.replit_url || automation?.site_url
+    if (!pushUrl || !automation?.site_api_key) {
+      showNotification({ type: 'error', title: 'Missing info', message: 'Enter your Replit app URL and generate an API key first' })
       return
     }
     setPushingTest(true)
@@ -436,17 +456,20 @@ export default function AutomationEditPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          site_url: automation.site_url,
+          site_url: pushUrl,
           site_api_key: automation.site_api_key,
         }),
       })
       const data = await res.json()
       if (data.success) {
+        setPushSuccess(true)
         showNotification({ type: 'success', title: 'Push successful', message: `Your Replit site received the test article`, duration: 4000 })
       } else {
+        setPushSuccess(false)
         showNotification({ type: 'error', title: 'Push failed', message: data.error || 'Could not reach your Replit site' })
       }
     } catch {
+      setPushSuccess(false)
       showNotification({ type: 'error', title: 'Error', message: 'Could not test push connection' })
     } finally {
       setPushingTest(false)
@@ -906,8 +929,8 @@ export default function AutomationEditPage() {
               <label className="block text-xs font-medium text-slate-400 mb-1">Articles</label>
               <input
                 type="number" min="1" max="10"
-                value={automation.articles_per_day}
-                onChange={(e) => update('articles_per_day', parseInt(e.target.value) || 1)}
+                value={automation.articles_per_day || ''}
+                onChange={(e) => update('articles_per_day', e.target.value === '' ? 0 : parseInt(e.target.value))}
                 className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
@@ -1083,9 +1106,20 @@ export default function AutomationEditPage() {
         {/* Keywords per active category — always visible */}
         {activeCats.length > 0 && (
           <div className="bg-white rounded-lg border border-slate-200 p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <h3 className="text-sm font-semibold text-slate-900">Keywords</h3>
-              <span className="text-xs text-slate-400">Per category — click X to remove, + to add</span>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-slate-900">Keywords</h3>
+                <span className="text-xs text-slate-400">Per category — click X to remove, + to add</span>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <span className="text-xs text-slate-500">{getKeywordsEnabled() ? 'Filter on' : 'Filter off'}</span>
+                <button
+                  onClick={() => setKeywordsEnabled(!getKeywordsEnabled())}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${getKeywordsEnabled() ? 'bg-indigo-500' : 'bg-slate-200'}`}
+                >
+                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${getKeywordsEnabled() ? 'translate-x-4' : 'translate-x-1'}`} />
+                </button>
+              </label>
             </div>
 
             <div className="space-y-4">
@@ -1405,10 +1439,35 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                             </button>
                           )}
                         </div>
+                        {automation.site_api_key && (
+                          <div className="flex items-center gap-1.5 text-xs text-emerald-600 mt-1.5">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>API key saved — ready to use</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
+                      {automation.replit_url ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3" /></div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
+                      )}
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Enter your Replit app URL</p>
+                        <p className="mb-2">The URL of your running Replit project — find it in the Replit webview.</p>
+                        <input
+                          type="url"
+                          value={automation.replit_url || ''}
+                          onChange={e => update('replit_url', e.target.value)}
+                          onBlur={() => save({ replit_url: automation.replit_url }, true)}
+                          placeholder="https://your-project.username.repl.co"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-300"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
                       <div className="text-xs text-slate-600 flex-1">
                         <p className="font-medium text-slate-700 mb-1.5">Copy this prompt and paste it in Replit AI</p>
                         <p className="mb-1.5">Open your Replit project, open the AI chat, and paste this prompt. It will set everything up for you.</p>
@@ -1433,7 +1492,7 @@ Each article object has these fields:
   "title": "Article title",
   "description": "Short summary",
   "content_html": "<section class=\\"content-section\\">...</section>",
-  "category": "AI Companion",
+  "category": "${categoryMeta[automation.categories]?.label || automation.categories || 'your-category'}",
   "source": "Original Source",
   "sourceUrl": "https://original-url.com",
   "imageUrl": "https://...",
@@ -1445,7 +1504,9 @@ Each article object has these fields:
 ## Important
 - The content_html is already formatted with <section>, <h2>, <p>, <ul> tags — render it directly
 - If faq exists, parse the JSON string and render as collapsible Q&A items
-- All pages must match my existing site's design (fonts, colors, layout, spacing)`
+- All pages must match my existing site's design (fonts, colors, layout, spacing)
+- Do NOT add CSRF protection, referrer checks, or origin validation to /newspal/receive — it uses x-newspal-key for authentication instead
+- Do NOT use helmet() or any middleware that validates Referer/Origin headers on this route`
                             return <>
                               <button
                                 onClick={() => {
@@ -1542,23 +1603,63 @@ module.exports = function(app) {
                       </div>
                     </div>
                     <div className="flex gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
+                      {automation.site_template || automation.site_detail_template ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3" /></div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">4</div>
+                      )}
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Match your site's design</p>
+                        <p className="mb-2">Paste a link to an existing page on your site, then click <strong>Analyze</strong>. AI scans the HTML so new articles match your site's fonts, colors, and layout.</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            placeholder="https://yoursite.com/news/example-article"
+                            value={automation.site_example_url}
+                            onChange={(e) => update('site_example_url', e.target.value)}
+                            className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-300"
+                          />
+                          <button
+                            onClick={analyzeTemplate}
+                            disabled={analyzing || !automation.site_example_url}
+                            className={analyzing || (!automation.site_template && !automation.site_detail_template) ? 'inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 transition-colors disabled:opacity-40 shrink-0' : 'inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-40 shrink-0'}
+                          >
+                            {analyzing
+                              ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Analyzing...</>
+                              : automation.site_template || automation.site_detail_template
+                                ? <><Check className="w-3 h-3 mr-1.5" />Re-analyze</>
+                                : <><Search className="w-3 h-3 mr-1.5" />Analyze</>
+                            }
+                          </button>
+                        </div>
+                        {(automation.site_template || automation.site_detail_template) && (
+                          <div className="flex items-center gap-1.5 text-xs text-emerald-600 mt-1.5">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Template extracted — new articles will match your site's styling</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">5</div>
                       <div className="text-xs text-slate-600 flex-1">
                         <p className="font-medium text-slate-700 mb-1.5">Test the connection</p>
                         <p className="mb-2">Make sure your Replit site is running, then click the button to send a test article.</p>
                         <button
                           onClick={testPush}
-                          disabled={pushingTest || !automation.site_url || !automation.site_api_key}
+                          disabled={pushingTest || (!automation.replit_url && !automation.site_url) || !automation.site_api_key}
                           className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 transition-colors disabled:opacity-40"
                         >
                           {pushingTest ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Sending test article...</> : 'Send test article'}
                         </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-1 ml-7">
-                      <Check className="w-4 h-4 text-emerald-500" />
-                      <span className="text-xs font-medium text-emerald-700">Done! Save settings and articles will be pushed automatically.</span>
-                    </div>
+                    {pushSuccess && (
+                      <div className="flex items-center gap-2 mt-1 ml-7">
+                        <Check className="w-4 h-4 text-emerald-500" />
+                        <span className="text-xs font-medium text-emerald-700">Done! Save settings and articles will be pushed automatically.</span>
+                      </div>
+                    )}
                     <div className="ml-7 mt-1 p-2.5 bg-orange-100/50 rounded-lg">
                       <p className="text-[11px] text-orange-700">Articles will appear at <strong>{automation.site_url ? new URL(automation.site_url).origin : 'your-site'}/news</strong> after the next pipeline run. Individual articles at <strong>/news/article-slug</strong>.</p>
                     </div>
@@ -1671,6 +1772,7 @@ const { articles } = await res.json();
             )}
 
             {/* Step 3: Match your site's design */}
+            {expandedGuide !== 'replit' && (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 {automation.site_template || automation.site_detail_template ? (
@@ -1715,6 +1817,7 @@ const { articles } = await res.json();
                 )}
               </div>
             </div>
+            )}
 
             {/* Extra options — collapsed by default */}
             <details>

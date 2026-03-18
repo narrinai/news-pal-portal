@@ -29,11 +29,10 @@ export async function rewriteArticle(
   originalUrl?: string
 ): Promise<{ title: string; content: string; content_html: string; subtitle?: string; faq?: { question: string; answer: string }[] }> {
   const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
-  const systemPrompt = customInstructions || `Je bent een professionele Nederlandse tech journalist gespecialiseerd in cybersecurity.
-
-Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, waarbij je de kernboodschap behoudt.
-
-BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk alleen met de informatie die je krijgt.`
+  const isEnglishLang = options.language === 'en'
+  const systemPrompt = customInstructions || (isEnglishLang
+    ? `You are a professional tech journalist. Your task is to rewrite news articles for an English-speaking audience, preserving the core message. IMPORTANT: You do NOT have access to web browsing or external sources. Work only with the information provided.`
+    : `Je bent een professionele Nederlandse tech journalist. Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, waarbij je de kernboodschap behoudt. BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk alleen met de informatie die je krijgt.`)
 
   const refusalPatterns = [
     /^I('m| am) sorry/im,
@@ -213,49 +212,23 @@ function createRewritePrompt(
 
   if (isEnglish) {
     return `
-Rewrite the following cybersecurity news article for an English-speaking audience:
+Rewrite the following news article for an English-speaking audience:
 
 ORIGINAL TITLE: ${title}
 ORIGINAL CONTENT: ${content}
 ${originalUrl ? `ORIGINAL URL: ${originalUrl}` : ''}
 
 INSTRUCTIONS:
-STEP 1 - RESEARCH:
-- First search online for 2-3 related sources on this topic
-- Check vendor websites, security advisories, NIST, CISA for updates
-- Look for additional context, impact, or solutions
-- Verify and update information from the original article if needed
-
-STEP 2 - REWRITING:
+STEP 1 - REWRITING:
 - ${styleInstructions[options.style]}
 - ${lengthInstructions[options.length]}
 - ${toneInstructions[options.tone]}
-- Write in English as a news article/press release
-- Integrate information from your online research naturally into the story
-- Maintain the core message but enrich with found sources
+- Write in English as a news article
+- Maintain the core message of the original article
 - ORIGINAL HEADINGS: Create unique headings based on actual content - NEVER standard formulas
 - QUOTES: If people are mentioned, generate 1 relevant quote based on context
 - Avoid corporate jargon like 'Executive Summary' or 'Business Impact'
-- Use specific, context-related headings (e.g., "Microsoft patch fixes Exchange vulnerability")
 - Make it informative but readable for a broad audience
-- Add relevant context for English readers
-
-STEP 2B - INTERNAL LINKS:
-- Naturally weave in 5-8 internal links to relevant CompanionGuide.ai pages throughout the article
-- Link generic terms to overview/category pages using natural anchor text:
-  * "AI chatbot(s)" or "AI chat" → <a href="/companions">AI chatbots</a>
-  * "AI girlfriend" → <a href="/categories/best-ai-girlfriend">AI girlfriend</a>
-  * "AI boyfriend" → <a href="/categories/ai-boyfriend-companions">AI boyfriend</a>
-  * "AI companion(s)" → <a href="/companions">AI companions</a>
-  * "roleplay" or "character chat" → <a href="/categories/roleplay-character-chat-companions">roleplay</a>
-  * "AI voice" or "voice chat" → <a href="/categories/ai-voice-companions">voice chat</a>
-  * "NSFW AI" or "adult AI" → <a href="/categories/best-ai-nsfw-chat">NSFW AI chat</a>
-  * "AI anime" → <a href="/categories/ai-anime-companions">AI anime</a>
-  * "romantic AI" → <a href="/categories/ai-romantic-companions">romantic AI</a>
-- Link to specific AI companion reviews when mentioning platforms: /companions/[slug] (e.g. /companions/secrets-ai, /companions/nomi-ai, /companions/joi-ai, /companions/ourdream-ai, /companions/soulkyn-ai, /companions/girlfriendgpt, /companions/darlink-ai)
-- Use descriptive anchor text that fits naturally in the sentence
-- Do NOT group all internal links together - spread them throughout the article
-- Do NOT link the same term more than once
 
 STEP 3 - SOURCES AND URL VALIDATION:
 - Test all URLs before adding them - use ONLY working links

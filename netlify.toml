@@ -1,6 +1,6 @@
 [dev]
   framework = "#custom"
-  command = "npm run dev"
+  command = "./node_modules/.bin/next dev"
   targetPort = 3000
   autoLaunch = false
 

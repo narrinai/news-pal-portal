@@ -27,8 +27,13 @@ export default async function handler(req, res) {
       })
     }
 
-    // Step 2: Fetch articles from RSS feeds (once, shared across automations)
-    const articles = await fetchAllFeeds()
+    // Step 2: Fetch articles from RSS feeds
+    // Fetch unfiltered version if any automation has keywords disabled
+    const hasKeywordsDisabled = enabled.some(a => {
+      try { return JSON.parse(a.keywords || '{}')._enabled === false } catch { return false }
+    })
+    const articles = await fetchAllFeeds(false)
+    const allArticlesUnfiltered = hasKeywordsDisabled ? await fetchAllFeeds(true) : null
     console.log(`[AUTO-PIPELINE] Fetched ${articles.length} articles from RSS feeds`)
 
     // Step 3: Get existing articles to avoid duplicates
@@ -100,8 +105,14 @@ export default async function handler(req, res) {
         ? automation.categories.split(',').map(c => c.trim()).filter(Boolean)
         : []
 
+      // Use unfiltered articles if keywords are disabled for this automation
+      const keywordsEnabled = (() => {
+        try { return JSON.parse(automation.keywords || '{}')._enabled !== false } catch { return true }
+      })()
+      const sourceArticles = (!keywordsEnabled && allArticlesUnfiltered) ? allArticlesUnfiltered : articles
+
       // Step 4: Filter for this automation
-      let newArticles = articles.filter(a => !existingUrls.has(a.url))
+      let newArticles = sourceArticles.filter(a => !existingUrls.has(a.url))
 
       if (enabledCategories.length > 0) {
         newArticles = newArticles.filter(a => enabledCategories.includes(a.category))
@@ -191,7 +202,7 @@ export default async function handler(req, res) {
             content_rewritten: rewritten.content,
             content_html: rewritten.content_html,
             subtitle: rewritten.subtitle || '',
-            faq: rewritten.faq || '',
+            faq: (Array.isArray(rewritten.faq) && rewritten.faq.length > 0) ? JSON.stringify(rewritten.faq) : '',
             status: 'selected',
           })
 
@@ -260,7 +271,8 @@ export default async function handler(req, res) {
               faq: a.faq || null,
             }))
 
-          const origin = new URL(automation.site_url).origin
+          const targetUrl = automation.replit_url || automation.site_url
+          const origin = new URL(targetUrl).origin
           const pushUrl = `${origin}/newspal/receive`
 
           const pushRes = await fetch(pushUrl, {
@@ -268,6 +280,8 @@ export default async function handler(req, res) {
             headers: {
               'Content-Type': 'application/json',
               'x-newspal-key': automation.site_api_key,
+              'X-Requested-With': 'XMLHttpRequest',
+              'Origin': origin,
             },
             body: JSON.stringify({ articles: publishedArticles }),
           })

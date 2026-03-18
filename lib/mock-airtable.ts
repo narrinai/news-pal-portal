@@ -37,6 +37,7 @@ export interface Automation {
   site_detail_template?: string
   integration_type?: 'script-tag' | 'fetch-api' | 'build-time' | 'netlify-function'
   deploy_webhook_url?: string
+  replit_url?: string
 }
 
 // In-memory storage for development

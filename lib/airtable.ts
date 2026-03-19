@@ -64,6 +64,10 @@ export interface Automation {
   site_platform?: 'netlify' | 'wordpress' | 'replit' | 'other'
   site_api_key?: string
   replit_url?: string
+  tags?: string
+  target_audience?: string
+  extra_context?: string
+  analyze_urls?: string
 }
 
 export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt'>) {
@@ -250,6 +254,10 @@ function recordToAutomation(record: any): Automation {
     site_platform: (f.site_platform as Automation['site_platform']) || undefined,
     site_api_key: (f.site_api_key as string) || '',
     replit_url: (f.replit_url as string) || '',
+    tags: (f.tags as string) || '',
+    target_audience: (f.target_audience as string) || '',
+    extra_context: (f.extra_context as string) || '',
+    analyze_urls: (f.analyze_urls as string) || '',
   }
 }
 
@@ -291,7 +299,7 @@ export async function createAutomation(data: Omit<Automation, 'id'>): Promise<Au
     // Clean empty strings for singleSelect and url fields
     const cleaned: Record<string, any> = { ...data }
     const selectFields = ['integration_type', 'publish_frequency', 'site_platform']
-    const urlFields = ['site_url', 'site_example_url', 'deploy_webhook_url', 'replit_url']
+    const urlFields = ['site_url', 'deploy_webhook_url', 'replit_url']
     for (const key of [...selectFields, ...urlFields]) {
       if (key in cleaned && cleaned[key] === '') {
         delete cleaned[key]
@@ -315,7 +323,7 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
     // Airtable requires null (not empty string) to clear singleSelect and url fields
     const cleaned: Record<string, any> = { ...fields }
     const selectFields = ['integration_type', 'publish_frequency', 'site_platform']
-    const urlFields = ['site_url', 'site_example_url', 'deploy_webhook_url', 'replit_url']
+    const urlFields = ['site_url', 'deploy_webhook_url', 'replit_url']
     for (const key of [...selectFields, ...urlFields]) {
       if (key in cleaned && cleaned[key] === '') {
         cleaned[key] = null

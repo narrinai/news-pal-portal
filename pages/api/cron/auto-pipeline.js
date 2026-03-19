@@ -1,6 +1,8 @@
 import { fetchAllFeeds } from '../../../lib/rss-parser'
 import { createArticle, getArticles, updateArticle, getAutomations } from '../../../lib/airtable'
 import { rewriteArticle } from '../../../lib/ai-rewriter'
+import { findHeaderImage } from '../../../lib/image-search'
+import { discoverFromTags } from '../../../lib/tag-feed-mapping'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -27,13 +29,9 @@ export default async function handler(req, res) {
       })
     }
 
-    // Step 2: Fetch articles from RSS feeds
-    // Fetch unfiltered version if any automation has keywords disabled
-    const hasKeywordsDisabled = enabled.some(a => {
-      try { return JSON.parse(a.keywords || '{}')._enabled === false } catch { return false }
-    })
-    const articles = await fetchAllFeeds(false)
-    const allArticlesUnfiltered = hasKeywordsDisabled ? await fetchAllFeeds(true) : null
+    // Step 2: Fetch articles from RSS feeds (once, shared across automations)
+    // Disable built-in keyword filtering — each automation does its own filtering
+    const articles = await fetchAllFeeds(true)
     console.log(`[AUTO-PIPELINE] Fetched ${articles.length} articles from RSS feeds`)
 
     // Step 3: Get existing articles to avoid duplicates
@@ -101,21 +99,88 @@ export default async function handler(req, res) {
       console.log(`[AUTO-PIPELINE] Processing automation: ${automation.name} (${automation.id})`)
 
       const maxArticles = automation.articles_per_day || 2
-      const enabledCategories = automation.categories
-        ? automation.categories.split(',').map(c => c.trim()).filter(Boolean)
+
+      // Parse tags if available
+      let automationTags = []
+      try {
+        if (automation.tags) automationTags = JSON.parse(automation.tags)
+      } catch { /* ignore parse errors */ }
+
+      // Parse target audience
+      let targetAudienceStr = ''
+      try {
+        if (automation.target_audience) {
+          const audiences = JSON.parse(automation.target_audience)
+          targetAudienceStr = Array.isArray(audiences) ? audiences.join(', ') : ''
+        }
+      } catch { /* ignore parse errors */ }
+
+      // Determine filtering strategy from tags or legacy categories
+      let enabledCategories = []
+      let tagKeywords = []
+      let tagFeedIds = []
+      const isTagBased = automationTags.length > 0
+
+      if (isTagBased) {
+        // Tag-based: derive feeds and keywords from tag mappings
+        const discovered = discoverFromTags(automationTags)
+        enabledCategories = discovered.categories
+        tagKeywords = discovered.keywords
+        tagFeedIds = discovered.feeds
+      } else {
+        // Legacy: use categories field directly
+        enabledCategories = automation.categories
+          ? automation.categories.split(',').map(c => c.trim()).filter(Boolean)
+          : []
+      }
+
+      // Also include manually selected feeds from the automation
+      const manualFeedIds = automation.feeds
+        ? automation.feeds.split(',').filter(Boolean)
         : []
 
-      // Use unfiltered articles if keywords are disabled for this automation
-      const keywordsEnabled = (() => {
-        try { return JSON.parse(automation.keywords || '{}')._enabled !== false } catch { return true }
-      })()
-      const sourceArticles = (!keywordsEnabled && allArticlesUnfiltered) ? allArticlesUnfiltered : articles
+      // Step 4: Filter for this automation — dedup only within this automation
+      const automationUrls = new Set(
+        existingArticles.filter(a => a.automation_id === automation.id).map(a => a.url)
+      )
+      let newArticles = articles.filter(a => !automationUrls.has(a.url))
 
-      // Step 4: Filter for this automation
-      let newArticles = sourceArticles.filter(a => !existingUrls.has(a.url))
+      if (isTagBased) {
+        // Tag-based: filter by selected feeds AND keyword match
+        const allSelectedFeedIds = new Set([...tagFeedIds, ...manualFeedIds])
 
-      if (enabledCategories.length > 0) {
-        newArticles = newArticles.filter(a => enabledCategories.includes(a.category))
+        // Build a lookup: feed ID → feed name (articles carry source name, not feed ID)
+        const { getFeedConfigs, DEFAULT_RSS_FEEDS } = require('../../../lib/feed-manager')
+        const allFeedConfigs = await getFeedConfigs()
+        // Merge both sources for name lookup
+        const feedIdToName = new Map()
+        for (const f of [...DEFAULT_RSS_FEEDS, ...allFeedConfigs]) {
+          feedIdToName.set(f.id, f.name)
+        }
+        const selectedFeedNames = new Set()
+        for (const id of allSelectedFeedIds) {
+          const name = feedIdToName.get(id)
+          if (name) selectedFeedNames.add(name)
+        }
+        console.log(`[AUTO-PIPELINE] [${automation.name}] Selected feed names: ${[...selectedFeedNames].join(', ')}`)
+
+        newArticles = newArticles.filter(a => {
+          // Must be from a selected feed
+          const fromSelectedFeed = selectedFeedNames.has(a.source)
+          if (!fromSelectedFeed) return false
+
+          // Must match at least one keyword (unless keyword filtering is disabled)
+          const kwDisabled = (() => { try { return JSON.parse(automation.keywords || '{}')?._disabled } catch { return false } })()
+          if (kwDisabled) return true
+
+          const content = ((a.title || '') + ' ' + (a.description || '')).toLowerCase()
+          return tagKeywords.some(kw => content.includes(kw.toLowerCase()))
+        })
+      } else {
+        // Legacy: filter by category
+        if (enabledCategories.length > 0) {
+          newArticles = newArticles.filter(a => enabledCategories.includes(a.category))
+        }
       }
 
       console.log(`[AUTO-PIPELINE] [${automation.name}] ${newArticles.length} new articles after filter`)
@@ -137,8 +202,38 @@ export default async function handler(req, res) {
         .map(a => ({ ...a, keywordCount: a.matchedKeywords ? a.matchedKeywords.length : 0 }))
         .sort((a, b) => b.keywordCount - a.keywordCount)
 
-      const toProcess = ranked.slice(0, maxArticles)
-      console.log(`[AUTO-PIPELINE] [${automation.name}] Selected ${toProcess.length} articles`)
+      // Pipeline candidates: fetch more articles (up to 10) for the user to choose from
+      const pipelineSize = Math.max(30, maxArticles * 5)
+      const allCandidates = ranked.slice(0, pipelineSize)
+      console.log(`[AUTO-PIPELINE] [${automation.name}] ${ranked.length} total after ranking, taking ${allCandidates.length} candidates (pipeline size ${pipelineSize})`)
+      // Auto-schedule: only the top `maxArticles` get rewritten and scheduled
+      const toAutoSchedule = allCandidates.slice(0, maxArticles)
+      // The rest are saved as pending (pipeline candidates)
+      const toPending = allCandidates.slice(maxArticles)
+
+      console.log(`[AUTO-PIPELINE] [${automation.name}] ${allCandidates.length} candidates: ${toAutoSchedule.length} to auto-schedule, ${toPending.length} as pending`)
+
+      // Save pending candidates first (no AI rewrite, fast)
+      for (const article of toPending) {
+        try {
+          await createArticle({
+            title: article.title,
+            description: article.description,
+            url: article.url,
+            source: article.source,
+            publishedAt: new Date().toISOString(),
+            status: 'pending',
+            category: article.category,
+            originalContent: article.originalContent || '',
+            imageUrl: article.imageUrl || '',
+            matchedKeywords: article.matchedKeywords || [],
+            automation_id: automation.id,
+          })
+          existingUrls.add(article.url)
+        } catch (err) {
+          console.error(`[AUTO-PIPELINE] [${automation.name}] Failed to save pending: ${article.title}:`, err.message)
+        }
+      }
 
       // Calculate scheduled dates: one article per day starting tomorrow
       const existingScheduled = existingArticles
@@ -161,7 +256,7 @@ export default async function handler(req, res) {
 
       const results = []
 
-      for (const article of toProcess) {
+      for (const article of toAutoSchedule) {
         let articleId = null
         try {
           const scheduledDate = getNextAvailableDate(nextDate)
@@ -192,10 +287,19 @@ export default async function handler(req, res) {
               length: automation.length || 'medium',
               language: automation.language || 'nl',
               tone: 'informative',
+              targetAudience: targetAudienceStr || undefined,
             },
-            undefined,
+            automation.extra_context || undefined,
             article.url
           )
+
+          // Find header image if missing
+          let headerImage = article.imageUrl
+          if (!headerImage) {
+            try {
+              headerImage = await findHeaderImage(rewritten.title, article.matchedKeywords)
+            } catch { /* silent */ }
+          }
 
           await updateArticle(articleId, {
             title: rewritten.title,
@@ -203,6 +307,7 @@ export default async function handler(req, res) {
             content_html: rewritten.content_html,
             subtitle: rewritten.subtitle || '',
             faq: (Array.isArray(rewritten.faq) && rewritten.faq.length > 0) ? JSON.stringify(rewritten.faq) : '',
+            ...(headerImage ? { imageUrl: headerImage } : {}),
             status: 'selected',
           })
 
@@ -233,9 +338,10 @@ export default async function handler(req, res) {
       automationResults.push({
         automation_id: automation.id,
         automation_name: automation.name,
-        selected: toProcess.length,
+        selected: toAutoSchedule.length,
         rewritten: successful,
         failed,
+        pending: toPending.length,
         articles: results,
       })
     }
@@ -260,12 +366,12 @@ export default async function handler(req, res) {
               id: a.id,
               slug: (a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
               title: a.title,
-              description: a.description,
-              content_html: a.content_html || a.content_rewritten || '',
-              category: a.category,
+              description: (a.description || '').replace(/<[^>]+>/g, '').substring(0, 200).trim() + ((a.description || '').length > 200 ? '...' : ''),
+              content_html: a.content_html || a.content_rewritten || `<p>${(a.description || '').replace(/<[^>]+>/g, '')}</p>`,
+              category: { 'cybersecurity': 'Security', 'ai-companion': 'AI', 'ai-learning': 'AI', 'marketingtoolz': 'Marketing', 'europeanpurpose': 'European Tech', 'bouwcertificaten': 'Construction' }[a.category] || a.category,
               source: a.source,
               sourceUrl: a.url,
-              imageUrl: a.imageUrl || '',
+              imageUrl: a.imageUrl || `https://placehold.co/1200x630/4f46e5/ffffff?text=${encodeURIComponent((a.title || 'Article').substring(0, 30))}`,
               subtitle: a.subtitle || '',
               publishedAt: a.publishedAt,
               faq: a.faq || null,

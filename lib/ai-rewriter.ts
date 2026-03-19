@@ -11,9 +11,10 @@ const anthropic = process.env.ANTHROPIC_API_KEY
 
 export interface RewriteOptions {
   style: 'professional' | 'engaging' | 'technical' | 'news'
-  length: 'short' | 'medium' | 'long' | 'extra-long'
+  length: 'short' | 'medium' | 'long' | 'extra-long' | 'longform'
   language: 'nl' | 'en'
   tone: 'neutral' | 'warning' | 'informative'
+  targetAudience?: string
 }
 
 export async function rewriteArticle(
@@ -29,10 +30,21 @@ export async function rewriteArticle(
   originalUrl?: string
 ): Promise<{ title: string; content: string; content_html: string; subtitle?: string; faq?: { question: string; answer: string }[] }> {
   const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
-  const isEnglishLang = options.language === 'en'
-  const systemPrompt = customInstructions || (isEnglishLang
-    ? `You are a professional tech journalist. Your task is to rewrite news articles for an English-speaking audience, preserving the core message. IMPORTANT: You do NOT have access to web browsing or external sources. Work only with the information provided.`
-    : `Je bent een professionele Nederlandse tech journalist. Je taak is om nieuwsartikelen te herschrijven voor een Nederlandse doelgroep, waarbij je de kernboodschap behoudt. BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk alleen met de informatie die je krijgt.`)
+  const baseSystemPrompt = options.language === 'en'
+    ? `You are a professional journalist who rewrites news articles for a broad audience.
+
+Your task is to rewrite news articles while preserving the core message.
+
+IMPORTANT: You do NOT have access to web browsing or external sources. Work only with the information provided.`
+    : `Je bent een professionele journalist die nieuwsartikelen herschrijft voor een breed publiek.
+
+Je taak is om nieuwsartikelen te herschrijven, waarbij je de kernboodschap behoudt.
+
+BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk alleen met de informatie die je krijgt.`
+
+  const systemPrompt = customInstructions
+    ? `${baseSystemPrompt}\n\nADDITIONAL CONTEXT:\n${customInstructions}`
+    : baseSystemPrompt
 
   const refusalPatterns = [
     /^I('m| am) sorry/im,
@@ -44,11 +56,31 @@ export async function rewriteArticle(
     /violates? (my|our|the) (content |usage )?polic/i,
   ]
 
-  // Try OpenAI first
+  // For longform, go directly to Claude (better at long-form content)
   let response = ''
   let usedModel = 'gpt-4o'
-  const maxTokens = options.length === 'extra-long' ? 4000 : 2000
+  const maxTokens = options.length === 'longform' ? 8000 : options.length === 'extra-long' ? 4000 : 2000
 
+  if ((options.length === 'longform' || options.length === 'extra-long') && anthropic) {
+    console.log(`🔄 Using Claude directly for ${options.length} content`)
+    usedModel = 'claude-sonnet-4-20250514'
+    try {
+      const message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: maxTokens,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: prompt }],
+      })
+      response = message.content[0]?.type === 'text' ? message.content[0].text : ''
+      if (!response) throw new Error('Claude returned empty response')
+    } catch (claudeError: any) {
+      console.error('Claude longform failed, falling back to OpenAI:', claudeError.message)
+      // Fall through to OpenAI below
+      response = ''
+    }
+  }
+
+  if (!response) {
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -98,6 +130,7 @@ export async function rewriteArticle(
       throw new Error('Failed to rewrite article with both OpenAI and Claude')
     }
   }
+  } // end if (!response)
 
   console.log(`✅ Article rewritten with ${usedModel}: ${originalTitle.substring(0, 50)}...`)
 
@@ -194,7 +227,8 @@ function createRewritePrompt(
     short: isEnglish ? 'Keep the text short and concise (200-300 words)' : 'Houd de tekst kort en bondig (200-300 woorden)',
     medium: isEnglish ? 'Write a medium-length article (400-600 words)' : 'Schrijf een artikel van gemiddelde lengte (400-600 woorden)',
     long: isEnglish ? 'Write an extensive article (700-1000 words)' : 'Schrijf een uitgebreid artikel (700-1000 woorden)',
-    'extra-long': isEnglish ? 'Write a comprehensive, in-depth article (1200-1500 words). Include detailed analysis, multiple perspectives, and thorough coverage of the topic' : 'Schrijf een uitgebreid, diepgaand artikel (1200-1500 woorden). Voeg gedetailleerde analyse, meerdere perspectieven en grondige dekking van het onderwerp toe'
+    'extra-long': isEnglish ? 'Write a comprehensive, in-depth article (1200-1500 words). Include detailed analysis, multiple perspectives, and thorough coverage of the topic' : 'Schrijf een uitgebreid, diepgaand artikel (1200-1500 woorden). Voeg gedetailleerde analyse, meerdere perspectieven en grondige dekking van het onderwerp toe',
+    'longform': isEnglish ? 'Write an extensive longform article (2500-3500 words, ~10 minute read). This must be a deeply researched, magazine-quality piece. Include multiple sections with unique headings, expert analysis, real-world examples, historical context, future implications, and at least 4-5 distinct perspectives or angles. Each section should be substantial (300-500 words). Make it the definitive article on this topic.' : 'Schrijf een uitgebreid longform artikel (2500-3500 woorden, ~10 minuten leestijd). Dit moet een diepgaand, magazine-kwaliteit stuk zijn. Voeg meerdere secties toe met unieke koppen, expertanalyse, praktijkvoorbeelden, historische context, toekomstperspectieven, en minimaal 4-5 verschillende invalshoeken. Elke sectie moet substantieel zijn (300-500 woorden). Maak het hét definitieve artikel over dit onderwerp.'
   }
 
   const styleInstructions = {
@@ -210,6 +244,12 @@ function createRewritePrompt(
     informative: isEnglish ? 'Focus on providing useful information and context' : 'Focus op het verstrekken van nuttige informatie en context'
   }
 
+  const audienceBlock = options.targetAudience
+    ? (isEnglish
+      ? `\nTARGET AUDIENCE: ${options.targetAudience}\nAdapt your writing style for this audience. Use terminology and references they recognize.\nFocus on aspects that are relevant to their role/interests.\n`
+      : `\nDOELGROEP: ${options.targetAudience}\nPas je schrijfstijl aan op deze doelgroep. Gebruik terminologie en referenties die zij herkennen.\nFocus op aspecten die relevant zijn voor hun rol/interesses.\n`)
+    : ''
+
   if (isEnglish) {
     return `
 Rewrite the following news article for an English-speaking audience:
@@ -217,35 +257,60 @@ Rewrite the following news article for an English-speaking audience:
 ORIGINAL TITLE: ${title}
 ORIGINAL CONTENT: ${content}
 ${originalUrl ? `ORIGINAL URL: ${originalUrl}` : ''}
-
+${audienceBlock}
 INSTRUCTIONS:
 STEP 1 - REWRITING:
 - ${styleInstructions[options.style]}
 - ${lengthInstructions[options.length]}
 - ${toneInstructions[options.tone]}
-- Write in English as a news article
-- Maintain the core message of the original article
+- Write in English as a news article/press release
+- Maintain the core message and enrich with context where possible
 - ORIGINAL HEADINGS: Create unique headings based on actual content - NEVER standard formulas
 - QUOTES: If people are mentioned, generate 1 relevant quote based on context
 - Avoid corporate jargon like 'Executive Summary' or 'Business Impact'
 - Make it informative but readable for a broad audience
+- Add relevant context for English readers
+${customInstructions ? `\nSTEP 1B - EXTRA INSTRUCTIONS:\n${customInstructions}\n` : ''}
+STEP 2 - SOURCES (CRITICAL):
+- You MUST include at least 3-5 different sources in the article
+- Include the original source: ${originalUrl || '[Original article URL]'}
+- Add 2-4 additional authoritative sources from your knowledge (industry reports, vendor websites, research papers, major news outlets)
+- Each source must be a real, plausible URL from a known domain (e.g., reuters.com, techcrunch.com, wired.com, arxiv.org, statista.com, gartner.com, mckinsey.com, etc.)
+- Weave source references naturally into the article text (e.g., "According to a Gartner report..." or "Research published in Nature...")
+- Also list ALL sources at the end in the Sources section with clickable HTML links
+- NEVER have just 1 source — this is a well-researched article
 
-STEP 3 - SOURCES AND URL VALIDATION:
-- Test all URLs before adding them - use ONLY working links
-- If a URL returns 404 or error, find an alternative source or omit
-- Add a complete source list at the end with ONLY verified working links
-- Include original source: ${originalUrl || '[Original article URL]'}
-- Include all online sources found with working URLs
-- Format as clickable HTML links
-- NEVER add broken or 404 links to the source list
+STEP 3 - VISUAL ELEMENTS AND IMAGES (CRITICAL):
+Include ALL of the following in a longform article (at least 3-4 visual elements total):
+
+A) INLINE IMAGES: Add 3-4 relevant images throughout the article using Pexels:
+   <figure style="margin:2rem 0"><img src="https://images.pexels.com/photos/PHOTO_ID/pexels-photo-PHOTO_ID.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="descriptive alt text" style="width:100%;border-radius:12px;height:400px;object-fit:cover" /><figcaption style="text-align:center;font-size:13px;color:#64748b;margin-top:8px">Caption describing the image</figcaption></figure>
+   Use these Pexels photo IDs for common topics:
+   - Technology/AI: 8386440, 17483868, 546819, 3861969, 8386434
+   - Cybersecurity/hacking: 5380642, 60504, 5380603, 5240547, 207580
+   - Marketing/business: 3184292, 7688336, 3182812, 590016, 265087
+   - Data/analytics: 669615, 186461, 590022, 7947541, 6801648
+   - Science/research: 2280571, 256381, 2280547, 3825527, 60582
+   Pick IDs that match the article topic. Use DIFFERENT IDs for each image.
+
+B) DATA TABLE: <table style="width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:14px"><thead><tr style="background:#f1f5f9;text-align:left"><th style="padding:10px 14px;border-bottom:2px solid #e2e8f0;font-weight:600">Header</th></tr></thead><tbody><tr style="border-bottom:1px solid #e2e8f0"><td style="padding:10px 14px">Data</td></tr></tbody></table>
+
+C) KEY STATS BLOCK: <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:1.5rem 0"> with stat cards: <div style="flex:1;min-width:140px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.25rem;text-align:center"><span style="display:block;font-size:28px;font-weight:700;color:#4f46e5">$4.2B</span><span style="font-size:13px;color:#64748b">Market size 2025</span></div>
+
+D) CSS BAR CHART for market data or comparisons:
+   <div style="margin:1.5rem 0">
+   <div style="display:flex;align-items:center;margin-bottom:8px"><span style="width:120px;font-size:13px;color:#374151">Label</span><div style="flex:1;background:#e2e8f0;border-radius:4px;height:24px"><div style="width:75%;background:#4f46e5;border-radius:4px;height:24px;display:flex;align-items:center;padding-left:8px"><span style="font-size:12px;color:white;font-weight:600">75%</span></div></div></div>
+   </div>
 
 CRITICAL INSTRUCTIONS - READ CAREFULLY:
 
 1. NO DATE: Do NOT include any publication date in the article - the CMS handles dates
 2. ORIGINAL HEADINGS: Create unique headings based on actual content
-3. QUOTES: If people are mentioned, generate 1 relevant quote
+3. QUOTES: If people are mentioned, generate 1-2 relevant quotes
 4. LINKS: Integrate subtly in the text, no "Source:" labels
 5. NO META INSTRUCTIONS: Do NOT include any "CHECK:" or review instructions in the output
+6. VISUAL ELEMENTS: MUST include at least 3 images, 1 stat block or table, and 1 chart — never write without visual breaks
+7. SOURCES: MUST include at least 3-5 different sources — never just 1
 
 FORMAT YOUR ANSWER AS FOLLOWS:
 [Powerful English title WITHOUT "TITLE:" before it]
@@ -266,7 +331,6 @@ SUBTITLE: [One-line subtitle that adds context or angle to the title]
 <h2>Sources</h2>
 <ul>
 <li><a href="${originalUrl || '[URL]'}" target="_blank" rel="noopener noreferrer">[Platform name]</a></li>
-<li><a href="[RESEARCH_URL_1]" target="_blank" rel="noopener noreferrer">[EXTRA_SOURCE_1]</a></li>
 </ul>
 </section>
 
@@ -293,64 +357,45 @@ IMPORTANT FORMATTING RULES:
 - Generate exactly 5 FAQ items after the ---FAQ--- separator
 - The SUBTITLE line must appear right after the title, before the --- separator
 - Do NOT include any date, location prefix, or "CHECK:" instructions
+- Include at least 1 visual element (table, stat block, or comparison)
 
 Start rewriting now:
 `
   }
 
   return `
-Herschrijf het volgende cybersecurity nieuwsartikel voor een Nederlandse doelgroep:
+Herschrijf het volgende nieuwsartikel voor een Nederlandse doelgroep:
 
 ORIGINELE TITEL: ${title}
 ORIGINELE CONTENT: ${content}
 ${originalUrl ? `ORIGINELE URL: ${originalUrl}` : ''}
-
+${audienceBlock}
 INSTRUCTIES:
-STAP 1 - RESEARCH:
-- Zoek eerst online naar 2-3 gerelateerde bronnen over dit onderwerp
-- Controleer vendor websites, security advisories, NIST, CISA voor updates
-- Zoek naar aanvullende context, gevolgen, of oplossingen
-- Verifieer en update informatie uit het originele artikel indien nodig
-
-STAP 2 - HERSCHRIJVEN:
+STAP 1 - HERSCHRIJVEN:
 - ${styleInstructions[options.style]}
 - ${lengthInstructions[options.length]}
 - ${toneInstructions[options.tone]}
 - Schrijf in het Nederlands als een nieuwsbericht/persbericht
-- Integreer informatie uit je online research natuurlijk in het verhaal
-- Behoud de kernboodschap maar verrijk met gevonden bronnen
+- Behoud de kernboodschap en verrijk met context waar mogelijk
 - ORIGINELE KOPPEN: Creëer unieke koppen op basis van de werkelijke inhoud - NOOIT standaard formules
 - QUOTES: Als er personen worden genoemd, genereer 1 relevante quote gebaseerd op de context
 - Vermijd corporate jargon zoals 'Executive Summary' of 'Business Impact'
 - Gebruik specifieke, contextgerelateerde koppen (bijv. "Microsoft patch lost Exchange kwetsbaarheid op")
 - Maak het informatief maar leesbaar voor een breed publiek
 - Voeg relevante context toe voor Nederlandse lezers
-
-STAP 2B - INTERNE LINKS:
-- Verwerk op een natuurlijke manier 5-8 interne links naar relevante CompanionGuide.ai pagina's door het artikel heen
-- Link generieke termen naar overzichts-/categoriepagina's met natuurlijke ankertekst:
-  * "AI chatbot(s)" of "AI chat" → <a href="/companions">AI chatbots</a>
-  * "AI vriendin" of "AI girlfriend" → <a href="/categories/best-ai-girlfriend">AI girlfriend</a>
-  * "AI vriend" of "AI boyfriend" → <a href="/categories/ai-boyfriend-companions">AI boyfriend</a>
-  * "AI companion(s)" → <a href="/companions">AI companions</a>
-  * "roleplay" of "character chat" → <a href="/categories/roleplay-character-chat-companions">roleplay</a>
-  * "AI voice" of "voice chat" → <a href="/categories/ai-voice-companions">voice chat</a>
-  * "NSFW AI" of "adult AI" → <a href="/categories/best-ai-nsfw-chat">NSFW AI chat</a>
-  * "AI anime" → <a href="/categories/ai-anime-companions">AI anime</a>
-  * "romantische AI" → <a href="/categories/ai-romantic-companions">romantische AI</a>
-- Link naar specifieke AI companion reviews bij het noemen van platforms: /companions/[slug] (bijv. /companions/secrets-ai, /companions/nomi-ai, /companions/joi-ai, /companions/ourdream-ai, /companions/soulkyn-ai, /companions/girlfriendgpt, /companions/darlink-ai)
-- Gebruik beschrijvende ankertekst die natuurlijk in de zin past
-- Groepeer NIET alle interne links bij elkaar - verspreid ze door het hele artikel
-- Link NIET dezelfde term meer dan één keer
-
-STAP 3 - BRONNEN EN URL VALIDATIE:
-- Test alle URLs voordat je ze toevoegt - gebruik ALLEEN werkende links
-- Als een URL een 404 of fout geeft, zoek een alternatieve bron of laat weg
-- Voeg aan het einde een complete bronnenlijst toe met ALLEEN geverifieerde werkende links
+${customInstructions ? `\nSTAP 1B - EXTRA INSTRUCTIES:\n${customInstructions}\n` : ''}
+STAP 2 - BRONNEN:
+- Voeg aan het einde een bronnenlijst toe
 - Include originele bron: ${originalUrl || '[Originele artikel URL]'}
-- Include alle online gevonden bronnen met werkende URLs
 - Format als clickbare HTML links
-- NOOIT broken of 404 links toevoegen aan de bronnenlijst
+
+STAP 3 - VISUELE ELEMENTEN:
+Voeg minimaal 1-2 van de volgende visuele elementen toe waar relevant (met inline CSS voor portabiliteit):
+- DATATABEL: Gebruik <table style="width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:14px"> met <thead>, <tbody> en inline styling
+- VERGELIJKING: Gebruik een tweekolomstabel om tools, aanpakken, of voor/na scenario's te vergelijken
+- KERNCIJFERS: Gebruik <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:1.5rem 0"> met statblokken (grote cijfers + beschrijving)
+- TIJDLIJN: Gebruik een genummerde lijst met vetgedrukte datums/mijlpalen
+- PRO/CON of CHECKLIST: Gebruik <ul> met ✅ en ❌ emoji prefixes
 
 KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 
@@ -359,6 +404,7 @@ KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 3. QUOTES: Als er personen worden genoemd, genereer 1 relevante quote
 4. LINKS: Verwerk subtiel in de tekst, geen "Bron:" labels
 5. GEEN META INSTRUCTIES: Voeg GEEN "CONTROLEER:" of review instructies toe aan de output
+6. VISUELE ELEMENTEN: Voeg minimaal 1 tabel of statistiekblok toe — nooit een longform artikel zonder visuele onderbrekingen
 
 FORMAT JE ANTWOORD ALS VOLGT:
 [Krachtige Nederlandse titel ZONDER "TITEL:" ervoor]
@@ -379,7 +425,6 @@ SUBTITLE: [Eenregelige ondertitel die context of invalshoek toevoegt aan de tite
 <h2>Bronnen</h2>
 <ul>
 <li><a href="${originalUrl || '[URL]'}" target="_blank" rel="noopener noreferrer">[Platform naam]</a></li>
-<li><a href="[RESEARCH_URL_1]" target="_blank" rel="noopener noreferrer">[EXTRA_BRON_1]</a></li>
 </ul>
 </section>
 
@@ -406,8 +451,6 @@ BELANGRIJKE OPMAAKREGELS:
 - Genereer precies 5 FAQ items na de ---FAQ--- separator
 - De SUBTITLE regel moet direct na de titel staan, vóór de --- separator
 - Voeg GEEN datum, locatie prefix, of "CONTROLEER:" instructies toe
-
-BELANGRIJK: Voeg GEEN datum, locatie prefix, of "CONTROLEER:" instructies toe aan je output. Begin direct met de inhoud.
 
 Begin nu met het herschrijven:
 `

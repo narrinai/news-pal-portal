@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useNotifications } from '../../../../components/NotificationSystem'
-import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown, FileText, Calendar, Clock, ArrowRightLeft, PenLine, Activity, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown, ChevronRight, ChevronUp, FileText, Calendar, Clock, ArrowRightLeft, ArrowUp, ArrowDown, PenLine, Activity, AlertTriangle, Sparkles, Users, Tag } from 'lucide-react'
 
 interface Automation {
   id: string
@@ -27,6 +27,10 @@ interface Automation {
   site_platform: string
   site_api_key: string
   replit_url: string
+  tags: string
+  target_audience: string
+  extra_context: string
+  analyze_urls: string
 }
 
 interface Feed {
@@ -47,6 +51,10 @@ interface Article {
   createdAt?: string
   source: string
   matchedKeywords?: string[]
+  content_html?: string
+  content_rewritten?: string
+  imageUrl?: string
+  description?: string
 }
 
 export default function AutomationEditPage() {
@@ -72,6 +80,17 @@ export default function AutomationEditPage() {
   const [pushingTest, setPushingTest] = useState(false)
   const [pushSuccess, setPushSuccess] = useState(false)
   const [runningPipeline, setRunningPipeline] = useState(false)
+  const [analyzingUrl, setAnalyzingUrl] = useState(false)
+  const [discoveringFeeds, setDiscoveringFeeds] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [analyzeUrls, setAnalyzeUrls] = useState<string[]>([''])
+  const [showSetup, setShowSetup] = useState(false)
+  const [hasMorePublished, setHasMorePublished] = useState(false)
+  const [publishedOffset, setPublishedOffset] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [showAllPending, setShowAllPending] = useState(false)
+  const [publishedBanner, setPublishedBanner] = useState<{ title: string; siteUrl?: string } | null>(null)
+  const [rewritingArticleIds, setRewritingArticleIds] = useState<Set<string>>(new Set())
 
   const id = params?.id as string
 
@@ -104,7 +123,16 @@ export default function AutomationEditPage() {
           site_platform: data.site_platform || '',
           site_api_key: data.site_api_key || '',
           replit_url: data.replit_url || '',
+          tags: data.tags || '',
+          target_audience: data.target_audience || '',
+          extra_context: data.extra_context || '',
+          analyze_urls: data.analyze_urls || '',
         })
+        // Initialize analyzeUrls from analyze_urls field
+        if (data.analyze_urls) {
+          const urls = data.analyze_urls.split('\n').map((u: string) => u.trim()).filter(Boolean)
+          if (urls.length > 0) setAnalyzeUrls(urls)
+        }
         if (data.site_platform) {
           setExpandedGuide(data.site_platform)
         }
@@ -141,19 +169,32 @@ export default function AutomationEditPage() {
     }
   }
 
-  const loadArticles = async () => {
-    setArticlesLoading(true)
+  const loadArticles = async (append = false) => {
+    if (!append) setArticlesLoading(true)
+    else setLoadingMore(true)
     try {
-      const res = await fetch(`/api/articles/by-automation?automation_id=${id}`)
+      const offset = append ? publishedOffset : 0
+      const res = await fetch(`/api/articles/by-automation?automation_id=${id}&limit=20&offset=${offset}`)
       if (res.ok) {
         const data = await res.json()
-        setArticles(data.articles)
+        if (append) {
+          // Append only new published articles (avoid duplicating scheduled/pending)
+          const existingIds = new Set(articles.map(a => a.id))
+          const newArticles = data.articles.filter((a: Article) => !existingIds.has(a.id))
+          setArticles(prev => [...prev, ...newArticles])
+        } else {
+          setArticles(data.articles)
+          setPublishedOffset(0)
+        }
         setArticleCounts(data.counts)
+        setHasMorePublished(data.pagination?.hasMore || false)
+        setPublishedOffset((data.pagination?.publishedOffset || 0) + (data.pagination?.publishedLimit || 20))
       }
     } catch (error) {
       console.error('Error loading articles:', error)
     } finally {
       setArticlesLoading(false)
+      setLoadingMore(false)
     }
   }
 
@@ -267,6 +308,132 @@ export default function AutomationEditPage() {
     setKeywordsForCategory(cat, getKeywordsForCategory(cat).filter(k => k !== keyword))
   }
 
+  // Tags helpers
+  const getTags = (): string[] => {
+    if (!automation?.tags) return []
+    try { return JSON.parse(automation.tags) } catch { return [] }
+  }
+
+  const setTags = (tags: string[]) => {
+    update('tags', JSON.stringify(tags))
+  }
+
+  const addTag = (tag: string) => {
+    const current = getTags()
+    const normalized = tag.trim().toLowerCase()
+    if (normalized && !current.map(t => t.toLowerCase()).includes(normalized)) {
+      setTags([...current, normalized])
+    }
+  }
+
+  const removeTag = (tag: string) => {
+    setTags(getTags().filter(t => t !== tag))
+  }
+
+  // Audience helpers
+  const getAudience = (): string[] => {
+    if (!automation?.target_audience) return []
+    try { return JSON.parse(automation.target_audience) } catch { return [] }
+  }
+
+  const setAudience = (audience: string[]) => {
+    update('target_audience', JSON.stringify(audience))
+  }
+
+  const addAudienceSegment = (segment: string) => {
+    const current = getAudience()
+    const normalized = segment.trim().toLowerCase()
+    if (normalized && !current.map(a => a.toLowerCase()).includes(normalized)) {
+      setAudience([...current, normalized])
+    }
+  }
+
+  const removeAudienceSegment = (segment: string) => {
+    setAudience(getAudience().filter(a => a !== segment))
+  }
+
+  // Analyze URL handler — supports up to 3 URLs, merges results
+  const handleAnalyzeUrl = async () => {
+    const urls = analyzeUrls.filter(u => u.trim())
+    if (urls.length === 0) {
+      showNotification({ type: 'error', title: 'Missing URL', message: 'Enter at least one URL to analyze' })
+      return
+    }
+    setAnalyzingUrl(true)
+    try {
+      // Analyze all URLs in parallel
+      const results = await Promise.all(
+        urls.map(url =>
+          fetch('/api/automations/analyze-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, extraContext: automation?.extra_context || '' }),
+          }).then(r => r.json()).catch(() => null)
+        )
+      )
+
+      // Merge tags and audience from all results (deduplicated)
+      const allTags = new Set<string>()
+      const allAudience = new Set<string>()
+      let suggestedName = ''
+
+      for (const data of results) {
+        if (!data?.success) continue
+        data.tags?.forEach((t: string) => allTags.add(t))
+        data.audience?.forEach((a: string) => allAudience.add(a))
+        if (!suggestedName && data.suggestedName) suggestedName = data.suggestedName
+      }
+
+      const mergedTags = Array.from(allTags)
+      const mergedAudience = Array.from(allAudience)
+
+      if (mergedTags.length === 0 && mergedAudience.length === 0) {
+        showNotification({ type: 'error', title: 'Analysis failed', message: 'Could not extract tags from the given URL(s)' })
+        return
+      }
+
+      if (mergedTags.length) setTags(mergedTags)
+      if (mergedAudience.length) setAudience(mergedAudience)
+      if (suggestedName && automation && !automation.name) update('name', suggestedName)
+      if (automation && !automation.site_url) update('site_url', urls[0])
+
+      showNotification({ type: 'success', title: 'Analysis complete', message: `Found ${mergedTags.length} tags and ${mergedAudience.length} audience segments from ${urls.length} URL(s)`, duration: 4000 })
+
+      if (mergedTags.length) {
+        handleDiscoverFeeds(mergedTags)
+      }
+    } catch {
+      showNotification({ type: 'error', title: 'Error', message: 'Could not reach analysis endpoint' })
+    } finally {
+      setAnalyzingUrl(false)
+    }
+  }
+
+  // Discover feeds from tags
+  const handleDiscoverFeeds = async (tagsOverride?: string[]) => {
+    const tags = tagsOverride || getTags()
+    if (tags.length === 0) return
+    setDiscoveringFeeds(true)
+    try {
+      const res = await fetch('/api/automations/discover-feeds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        // Update feeds and categories
+        if (data.feedIds?.length) update('feeds', data.feedIds.join(','))
+        if (data.categories?.length) update('categories', data.categories.join(','))
+        showNotification({ type: 'success', title: 'Feeds found', message: `${data.summary?.totalFeeds || 0} feeds from ${tags.length} tags`, duration: 3000 })
+      }
+    } catch {
+      showNotification({ type: 'error', title: 'Error', message: 'Could not discover feeds' })
+    } finally {
+      setDiscoveringFeeds(false)
+    }
+  }
+
   // Feeds helpers
   const getSelectedFeedIds = (): string[] => {
     if (!automation?.feeds) return []
@@ -357,8 +524,33 @@ export default function AutomationEditPage() {
     }
   }
 
+  // Auto-save: debounce 1.5s after last change
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null)
+  const automationRef = useRef(automation)
+  automationRef.current = automation
+
+  const autoSave = useCallback(() => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(async () => {
+      const current = automationRef.current
+      if (!current) return
+      try {
+        const { id: _id, ...fields } = current
+        await fetch(`/api/automations/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fields),
+        })
+        console.log('[auto-save] saved')
+      } catch (err) {
+        console.error('[auto-save] failed:', err)
+      }
+    }, 1500)
+  }, [id])
+
   const update = (key: keyof Automation, value: any) => {
     setAutomation(prev => prev ? { ...prev, [key]: value } : prev)
+    autoSave()
   }
 
   const copyApiUrl = () => {
@@ -482,6 +674,11 @@ export default function AutomationEditPage() {
   const activeCats = automation.categories.split(',').map(c => c.trim()).filter(Boolean)
   const selectedFeedIds = getSelectedFeedIds()
 
+  // Determine if automation is configured (setup complete) or still needs setup
+  const hasTags = getTags().length > 0
+  const hasFeeds = selectedFeedIds.length > 0 || activeCats.length > 0
+  const isConfigured = (hasTags || hasFeeds) && automation.enabled
+
   // Category metadata for better visual design
   const categoryMeta: Record<string, { icon: any, color: string, label: string }> = {
     'cybersecurity': { icon: Shield, color: 'red', label: 'Cybersecurity' },
@@ -555,7 +752,8 @@ export default function AutomationEditPage() {
       </div>
 
       <div className="space-y-5">
-        {/* Articles overview */}
+        {/* Articles overview — only shown prominently when configured (pipeline mode) */}
+        {isConfigured && (
         <div className="bg-white rounded-lg border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -571,8 +769,11 @@ export default function AutomationEditPage() {
                     const res = await fetch('/api/cron/auto-pipeline', { method: 'POST' })
                     const data = await res.json()
                     const result = data.automations?.find((a: any) => a.automation_id === id)
-                    if (result?.rewritten > 0) {
-                      showNotification({ type: 'success', title: 'Pipeline complete', message: `${result.rewritten} article(s) scheduled`, duration: 4000 })
+                    if (result?.rewritten > 0 || result?.pending > 0) {
+                      const parts = []
+                      if (result.rewritten > 0) parts.push(`${result.rewritten} scheduled`)
+                      if (result.pending > 0) parts.push(`${result.pending} in pipeline`)
+                      showNotification({ type: 'success', title: 'Pipeline complete', message: parts.join(', '), duration: 4000 })
                     } else {
                       showNotification({ type: 'warning', title: 'Pipeline complete', message: result?.message || 'No new articles found', duration: 4000 })
                     }
@@ -599,6 +800,40 @@ export default function AutomationEditPage() {
               </button>
             </div>
           </div>
+
+          {/* Published success banner */}
+          {publishedBanner && (
+            <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                  <Check className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-emerald-900">Article published!</p>
+                  <p className="text-xs text-emerald-700 mt-0.5">"{publishedBanner.title}" is now live{publishedBanner.siteUrl ? ' on your site' : ''}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {publishedBanner.siteUrl && (
+                  <a
+                    href={publishedBanner.siteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    View on site
+                  </a>
+                )}
+                <button
+                  onClick={() => setPublishedBanner(null)}
+                  className="p-1 text-emerald-400 hover:text-emerald-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Pipeline running indicator */}
           {runningPipeline && (
@@ -682,7 +917,9 @@ export default function AutomationEditPage() {
               .sort((a, b) => new Date(a.publishedAt || 0).getTime() - new Date(b.publishedAt || 0).getTime())
             const published = filtered.filter(a => a.status === 'published')
               .sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime())
-            const planningSlots = scheduled.slice(0, 3)
+            const pending = filtered.filter(a => a.status === 'pending')
+              .sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime())
+            const planningSlots = scheduled
             const slotDates = planningSlots.map((_, i) => {
               const d = new Date()
               d.setDate(d.getDate() + i)
@@ -690,7 +927,8 @@ export default function AutomationEditPage() {
             })
             const planningIds = new Set(planningSlots.map(a => a.id))
             const publishedIds = new Set(published.map(a => a.id))
-            const rest = filtered.filter(a => !planningIds.has(a.id) && !publishedIds.has(a.id))
+            const pendingIds = new Set(pending.map(a => a.id))
+            const rest = filtered.filter(a => !planningIds.has(a.id) && !publishedIds.has(a.id) && !pendingIds.has(a.id))
 
             const renderArticleRow = (article: Article, isSlot: boolean, slotDate?: Date) => {
               const meta = categoryMeta[article.category]
@@ -733,18 +971,18 @@ export default function AutomationEditPage() {
                         ))}
                     </div>
                   </div>
-                  {meta && colors && (
-                    <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${colors.badge}`}>
-                      {meta.label}
+                  {article.source && (
+                    <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500">
+                      {article.source}
                     </span>
                   )}
                   {editingDateId === article.id ? (
                     <input
-                      type="date"
-                      defaultValue={article.publishedAt ? article.publishedAt.split('T')[0] : ''}
+                      type="datetime-local"
+                      defaultValue={article.publishedAt ? article.publishedAt.slice(0, 16) : ''}
                       onBlur={(e) => {
                         if (e.target.value) {
-                          handleUpdateArticleDate(article.id, e.target.value + 'T07:00:00.000Z')
+                          handleUpdateArticleDate(article.id, new Date(e.target.value).toISOString())
                         } else {
                           setEditingDateId(null)
                         }
@@ -763,19 +1001,26 @@ export default function AutomationEditPage() {
                       title={article.status === 'selected' ? 'Click to change date' : undefined}
                     >
                       {article.publishedAt
-                        ? new Date(article.publishedAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+                        ? new Date(article.publishedAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' ' + new Date(article.publishedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
                         : '—'}
                     </span>
                   )}
-                  <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                    article.status === 'published'
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : article.status === 'selected'
-                        ? 'bg-indigo-50 text-indigo-700'
-                        : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {article.status === 'published' ? 'Published' : article.status === 'selected' ? 'Scheduled' : article.status}
-                  </span>
+                  {rewritingArticleIds.has(article.id) ? (
+                    <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Rewriting...
+                    </span>
+                  ) : (
+                    <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                      article.status === 'published'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : article.status === 'selected'
+                          ? 'bg-indigo-50 text-indigo-700'
+                          : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {article.status === 'published' ? 'Published' : article.status === 'selected' ? 'Scheduled' : article.status}
+                    </span>
+                  )}
                   {article.status === 'published' && automation.site_url && (
                     <a
                       href={automation.site_url}
@@ -803,74 +1048,114 @@ export default function AutomationEditPage() {
                     {!isSlot && article.status !== 'published' && article.status !== 'selected' && (
                       <button
                         onClick={async () => {
+                          // Optimistic: move to scheduled immediately
+                          setArticles(prev => prev.map(a => a.id === article.id ? { ...a, status: 'selected' } : a))
+                          setRewritingArticleIds(prev => new Set([...prev, article.id]))
                           try {
+                            // Rewrite first if no content
+                            if (!article.content_html && !article.content_rewritten) {
+                              await fetch('/api/articles/rewrite', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  id: article.id,
+                                  options: { style: automation.style || 'news', length: automation.length || 'medium', language: automation.language || 'nl', tone: 'informative', targetAudience: (() => { try { const a = JSON.parse(automation.target_audience || '[]'); return a.join(', ') } catch { return '' } })() || undefined },
+                                  customInstructions: automation.extra_context || undefined,
+                                }),
+                              })
+                            }
+                            // Calculate next available schedule date (at least 1 hour in the future)
+                            const scheduledDates = articles
+                              .filter(a => a.status === 'selected' && a.publishedAt)
+                              .map(a => new Date(a.publishedAt).toISOString().split('T')[0])
+                            const takenDates = new Set(scheduledDates)
+                            const nextDate = new Date()
+                            nextDate.setHours(nextDate.getHours() + 1, 0, 0, 0) // at least 1 hour from now
+                            // If today's slot is taken, move to next day at 07:00
+                            while (takenDates.has(nextDate.toISOString().split('T')[0])) {
+                              nextDate.setDate(nextDate.getDate() + 1)
+                              nextDate.setHours(7, 0, 0, 0)
+                            }
+
                             await fetch(`/api/articles/${article.id}`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ status: 'selected' }),
+                              body: JSON.stringify({ status: 'selected', publishedAt: nextDate.toISOString() }),
                             })
-                            showNotification({ type: 'success', title: 'Scheduled', message: `"${article.title}" added to planning` })
+                            setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
+                            showNotification({ type: 'success', title: 'Scheduled', message: `"${article.title}" scheduled for ${nextDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ${nextDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` })
                             loadArticles()
                           } catch {
+                            setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
+                            setArticles(prev => prev.map(a => a.id === article.id ? { ...a, status: 'pending' } : a))
                             showNotification({ type: 'error', title: 'Error', message: 'Could not schedule article' })
                           }
                         }}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                        disabled={rewritingArticleIds.has(article.id)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
                         title="Schedule this article"
                       >
                         <Calendar className="w-3 h-3" />
                         Schedule
                       </button>
                     )}
-                    {article.status === 'selected' && (
+                    {(article.status === 'selected' || article.status === 'pending') && (
                       <button
                         onClick={async () => {
+                          setRewritingArticleIds(prev => new Set([...prev, article.id]))
                           try {
+                            // Rewrite first if no content
+                            if (!article.content_html && !article.content_rewritten) {
+                              await fetch('/api/articles/rewrite', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  id: article.id,
+                                  options: { style: automation.style || 'news', length: automation.length || 'medium', language: automation.language || 'nl', tone: 'informative', targetAudience: (() => { try { const a = JSON.parse(automation.target_audience || '[]'); return a.join(', ') } catch { return '' } })() || undefined },
+                                  customInstructions: automation.extra_context || undefined,
+                                }),
+                              })
+                            }
                             await fetch(`/api/articles/${article.id}`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ status: 'published' }),
                             })
+                            setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
                             showNotification({ type: 'success', title: 'Published', message: `"${article.title}" is now published` })
+                            setPublishedBanner({ title: article.title, siteUrl: automation.site_url || undefined })
                             loadArticles()
+                            // Push to connected site immediately
+                            if (automation.site_platform === 'replit' && automation.site_api_key && automation.site_url) {
+                              try {
+                                const pushRes = await fetch('/api/sites/push-articles', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ automation_id: id }),
+                                })
+                                const pushData = await pushRes.json()
+                                if (pushData.success) {
+                                  showNotification({ type: 'success', title: 'Pushed to site', message: `${pushData.pushed || 0} article(s) sent to your site`, duration: 3000 })
+                                }
+                              } catch { /* silent — non-critical */ }
+                            }
+                            // Trigger deploy webhook if configured
+                            if (automation.deploy_webhook_url) {
+                              try {
+                                await fetch(automation.deploy_webhook_url, { method: 'POST' })
+                                showNotification({ type: 'success', title: 'Deploy triggered', message: 'Your site is rebuilding', duration: 3000 })
+                              } catch { /* silent */ }
+                            }
                           } catch {
+                            setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
                             showNotification({ type: 'error', title: 'Error', message: 'Could not publish article' })
                           }
                         }}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                        disabled={rewritingArticleIds.has(article.id)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
                         title="Publish now"
                       >
                         Publish now
-                      </button>
-                    )}
-                    {!isSlot && article.status !== 'published' && planningSlots.some(s => s.status === 'selected') && (
-                      <button
-                        onClick={async () => {
-                          const lastSlot = [...planningSlots].reverse().find(s => s.status === 'selected')
-                          if (!lastSlot) return
-                          try {
-                            await Promise.all([
-                              fetch(`/api/articles/${article.id}`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ status: 'selected' }),
-                              }),
-                              fetch(`/api/articles/${lastSlot.id}`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ status: 'pending' }),
-                              }),
-                            ])
-                            showNotification({ type: 'success', title: 'Swapped', message: `"${article.title}" replaced "${lastSlot.title}"` })
-                            loadArticles()
-                          } catch {
-                            showNotification({ type: 'error', title: 'Error', message: 'Could not swap articles' })
-                          }
-                        }}
-                        className="p-1 rounded text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
-                        title="Swap with last scheduled article"
-                      >
-                        <ArrowRightLeft className="w-3.5 h-3.5" />
                       </button>
                     )}
                     {(article.status === 'selected' || article.status === 'published') && (
@@ -888,35 +1173,133 @@ export default function AutomationEditPage() {
             }
 
             return (
-              <div className="space-y-1">
+              <div>
                 {planningSlots.length > 0 && (
-                  <>
+                  <div className="mb-5">
                     <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wide mb-1.5 px-1">
-                      Up next
+                      Planning — scheduled ({planningSlots.length})
                     </p>
-                    {planningSlots.map((a, i) => renderArticleRow(a, true, slotDates[i]))}
-                  </>
+                    <div className="space-y-2">
+                    {planningSlots.map((a, i) => (
+                      <div key={a.id} className="flex items-center gap-1">
+                        {planningSlots.length > 1 && (
+                          <div className="flex flex-col shrink-0 w-5">
+                            {i > 0 && (
+                              <button
+                                onClick={() => {
+                                  // Optimistic reorder — swap in local state
+                                  const prev = planningSlots[i - 1]
+                                  const prevDate = prev.publishedAt
+                                  const thisDate = a.publishedAt
+                                  setArticles(arts => arts.map(art => {
+                                    if (art.id === a.id) return { ...art, publishedAt: prevDate }
+                                    if (art.id === prev.id) return { ...art, publishedAt: thisDate }
+                                    return art
+                                  }))
+                                  // Persist in background
+                                  Promise.all([
+                                    fetch(`/api/articles/${a.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publishedAt: prevDate }) }),
+                                    fetch(`/api/articles/${prev.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publishedAt: thisDate }) }),
+                                  ]).catch(() => loadArticles())
+                                }}
+                                className="p-0.5 text-slate-400 hover:text-indigo-600 transition-colors"
+                                title="Move up"
+                              >
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {i < planningSlots.length - 1 && (
+                              <button
+                                onClick={() => {
+                                  const next = planningSlots[i + 1]
+                                  const nextDate = next.publishedAt
+                                  const thisDate = a.publishedAt
+                                  setArticles(arts => arts.map(art => {
+                                    if (art.id === a.id) return { ...art, publishedAt: nextDate }
+                                    if (art.id === next.id) return { ...art, publishedAt: thisDate }
+                                    return art
+                                  }))
+                                  Promise.all([
+                                    fetch(`/api/articles/${a.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publishedAt: nextDate }) }),
+                                    fetch(`/api/articles/${next.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publishedAt: thisDate }) }),
+                                  ]).catch(() => loadArticles())
+                                }}
+                                className="p-0.5 text-slate-400 hover:text-indigo-600 transition-colors"
+                                title="Move down"
+                              >
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex-1">{renderArticleRow(a, true, slotDates[i])}</div>
+                      </div>
+                    ))}
+                    </div>
+                  </div>
+                )}
+                {pending.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-amber-500 uppercase tracking-wide mb-1.5 px-1">
+                      Pipeline — available to schedule <span className="text-slate-400 normal-case font-normal">({pending.length})</span>
+                    </p>
+                    {(showAllPending ? pending : pending.slice(0, 10)).map((a, i, arr) => (
+                      <div key={a.id} className={i < arr.length - 1 ? 'border-b border-slate-100' : ''}>
+                        {renderArticleRow(a, false)}
+                      </div>
+                    ))}
+                    {pending.length > 10 && !showAllPending && (
+                      <button
+                        onClick={() => setShowAllPending(true)}
+                        className="w-full mt-2 py-2 text-xs font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200 transition-colors"
+                      >
+                        Show {pending.length - 10} more articles
+                      </button>
+                    )}
+                    {showAllPending && pending.length > 10 && (
+                      <button
+                        onClick={() => setShowAllPending(false)}
+                        className="w-full mt-2 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+                      >
+                        Show less
+                      </button>
+                    )}
+                  </div>
                 )}
                 {published.length > 0 && (
-                  <>
-                    <p className="text-[11px] font-semibold text-emerald-500 uppercase tracking-wide mt-4 mb-1.5 px-1">
-                      Published
+                  <div className="mt-5">
+                    <p className="text-[11px] font-semibold text-emerald-500 uppercase tracking-wide mb-1.5 px-1">
+                      Published ({published.length})
                     </p>
-                    {published.map(a => renderArticleRow(a, false))}
-                  </>
+                    {published.map((a, i, arr) => (
+                      <div key={a.id} className={i < arr.length - 1 ? 'border-b border-slate-100' : ''}>
+                        {renderArticleRow(a, false)}
+                      </div>
+                    ))}
+                    {hasMorePublished && (
+                      <button
+                        onClick={() => loadArticles(true)}
+                        disabled={loadingMore}
+                        className="w-full mt-2 py-2 text-xs font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200 transition-colors disabled:opacity-50"
+                      >
+                        {loadingMore ? 'Loading...' : 'Load more published articles'}
+                      </button>
+                    )}
+                  </div>
                 )}
                 {rest.length > 0 && (
-                  <>
-                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mt-4 mb-1.5 px-1">
-                      Alternatives
+                  <div className="mt-5">
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 px-1">
+                      Other
                     </p>
                     {rest.map(a => renderArticleRow(a, false))}
-                  </>
+                  </div>
                 )}
               </div>
             )
           })()}
         </div>
+        )}
 
         {/* Settings — 4 cols */}
         <div className="bg-white rounded-lg border border-slate-200 p-5">
@@ -961,6 +1344,7 @@ export default function AutomationEditPage() {
                 <option value="medium">Medium (400-600 words)</option>
                 <option value="long">Long (700-1000 words)</option>
                 <option value="extra-long">Extra Long (1200-1500 words)</option>
+                <option value="longform">Longform ~10 min read (2500-3500 words)</option>
               </select>
             </div>
             <div>
@@ -974,155 +1358,379 @@ export default function AutomationEditPage() {
           </div>
         </div>
 
-        {/* Categories — visual cards */}
-        <div className="bg-white rounded-lg border border-slate-200 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-sm font-semibold text-slate-900">Topics</h3>
-            <span className="text-xs text-slate-400">{activeCats.length} active — pick which topics this automation should find and rewrite articles for</span>
+        {/* Section 4: Advanced — collapsible */}
+        <div className="bg-white rounded-lg border border-slate-200">
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="w-full flex items-center gap-2 p-5 text-left hover:bg-slate-50 transition-colors"
+          >
+            {showAdvanced ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+            <h3 className="text-sm font-semibold text-slate-900">Content Settings</h3>
+            <span className="text-xs text-slate-400">Tags, audience, categories, keywords, and RSS feeds</span>
+          </button>
+
+          {(showAdvanced || !isConfigured) && (
+          <div className="px-5 pb-5 space-y-5 border-t border-slate-100 pt-4">
+
+        {/* ── Step 1: Analyze your site ── */}
+        <div>
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-6 h-6 rounded-full bg-indigo-900 text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>
+            <span className="text-sm font-medium text-slate-800">Analyze your site</span>
+            <span className="text-xs text-slate-400">up to 3 URLs for better context</span>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {allCategories.map((cat) => {
-              const isActive = activeCats.includes(cat)
-              const feedCount = allFeeds.filter(f => f.category === cat).length
-              const kwCount = getKeywordsForCategory(cat).length
-              const meta = categoryMeta[cat] || { icon: Rss, color: 'blue', label: cat }
-              const colors = colorClasses[meta.color] || colorClasses.blue
-              const Icon = meta.icon
-
-              return (
+          <div className="ml-8 space-y-2">
+            {analyzeUrls.map((url, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  type="url"
+                  placeholder={i === 0 ? 'https://yoursite.com' : 'https://yoursite.com/another-page'}
+                  value={url}
+                  onChange={(e) => {
+                    const updated = [...analyzeUrls]
+                    updated[i] = e.target.value
+                    setAnalyzeUrls(updated)
+                    // Save analyze URLs
+                    update('analyze_urls', updated.filter(u => u.trim()).join('\n'))
+                  }}
+                  className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                {i > 0 && (
+                  <button
+                    onClick={() => {
+                      const updated = analyzeUrls.filter((_, j) => j !== i)
+                      setAnalyzeUrls(updated)
+                      update('analyze_urls', updated.filter(u => u.trim()).join('\n'))
+                    }}
+                    className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+            <div className="flex gap-2">
+              {analyzeUrls.length < 3 && (
                 <button
-                  key={cat}
-                  onClick={() => toggleCategory(cat)}
-                  className={`relative flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all text-left ${
-                    isActive
-                      ? `${colors.active} ring-2 shadow-sm`
-                      : `${colors.inactive} hover:border-slate-300 hover:shadow-sm`
-                  }`}
+                  onClick={() => setAnalyzeUrls([...analyzeUrls, ''])}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-500 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors"
                 >
-                  {/* Active indicator */}
-                  {isActive && (
-                    <div className="absolute top-2.5 right-2.5">
-                      <div className={`w-5 h-5 rounded-full ${colors.badge} flex items-center justify-center`}>
-                        <Check className="w-3 h-3" />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Icon */}
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${isActive ? colors.badge : 'bg-slate-100 text-slate-400'}`}>
-                    <Icon className="w-4.5 h-4.5" />
-                  </div>
-
-                  {/* Content */}
-                  <div className="min-w-0 flex-1 pr-5">
-                    <div className={`text-sm font-semibold truncate ${isActive ? 'text-slate-900' : 'text-slate-600'}`}>
-                      {meta.label}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`inline-flex items-center gap-1 text-xs ${isActive ? 'text-slate-600' : 'text-slate-400'}`}>
-                        <Rss className="w-3 h-3" />
-                        {feedCount} feeds
-                      </span>
-                      <span className={`text-xs ${isActive ? 'text-slate-400' : 'text-slate-300'}`}>&middot;</span>
-                      <span className={`text-xs ${isActive ? 'text-slate-600' : 'text-slate-400'}`}>
-                        {kwCount} keywords
-                      </span>
-                    </div>
-                  </div>
+                  <Plus className="w-3 h-3" />
+                  Add URL
                 </button>
-              )
-            })}
+              )}
+            </div>
+            <textarea
+              placeholder="Extra context (optional) — e.g. your existing ChatGPT prompt, a description of your site, or specific instructions for the AI..."
+              value={automation?.extra_context || ''}
+              onChange={(e) => update('extra_context', e.target.value)}
+              rows={2}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
+            />
           </div>
         </div>
 
-        {/* Feeds — grouped by category with select-all per category */}
-        <div className="bg-white rounded-lg border border-slate-200 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-sm font-semibold text-slate-900">RSS Feeds</h3>
+        {/* ── Step 2: Analyze ── */}
+        <div>
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-6 h-6 rounded-full bg-indigo-900 text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
+            <span className="text-sm font-medium text-slate-800">Analyze</span>
+            <span className="text-xs text-slate-400">auto-detect tags, audience, and select feeds</span>
+          </div>
+          <div className="ml-8">
+            <button
+              onClick={handleAnalyzeUrl}
+              disabled={analyzingUrl || !analyzeUrls.some(u => u.trim())}
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-40 shadow-sm"
+            >
+              {analyzingUrl
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Analyzing...</>
+                : <><Sparkles className="w-4 h-4" />Analyze &amp; auto-configure</>
+              }
+            </button>
+
+            {/* Tags result */}
+            {getTags().length > 0 && (
+              <div className="mt-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Tag className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="text-xs font-medium text-slate-600">Detected tags</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {getTags().map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-700 rounded-full px-3 py-1 text-xs font-medium">
+                      {tag}
+                      <button onClick={() => removeTag(tag)} className="text-indigo-400 hover:text-indigo-700 transition-colors">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <button
+                    onClick={async () => {
+                      const input = await showPrompt({ title: 'Add tag', message: 'Enter a topic tag:', promptPlaceholder: 'tag name', confirmText: 'Add', cancelText: 'Cancel' })
+                      if (input) addTag(input)
+                    }}
+                    className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 rounded-full px-3 py-1 text-xs font-medium transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />Add
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Audience result */}
+            {getAudience().length > 0 && (
+              <div className="mt-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Users className="w-3.5 h-3.5 text-violet-500" />
+                  <span className="text-xs font-medium text-slate-600">Target audience</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {getAudience().map((segment) => (
+                    <span key={segment} className="inline-flex items-center gap-1 bg-violet-100 text-violet-700 rounded-full px-3 py-1 text-xs font-medium">
+                      {segment}
+                      <button onClick={() => removeAudienceSegment(segment)} className="text-violet-400 hover:text-violet-700 transition-colors">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <button
+                    onClick={async () => {
+                      const input = await showPrompt({ title: 'Add audience segment', message: 'Enter a target audience:', promptPlaceholder: 'audience segment', confirmText: 'Add', cancelText: 'Cancel' })
+                      if (input) addAudienceSegment(input)
+                    }}
+                    className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 hover:bg-violet-50 hover:text-violet-600 rounded-full px-3 py-1 text-xs font-medium transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />Add
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Step 3: Feed selection ── */}
+        <div>
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-6 h-6 rounded-full bg-indigo-900 text-white flex items-center justify-center text-xs font-bold shrink-0">3</div>
+            <span className="text-sm font-medium text-slate-800">Feed selection</span>
             <span className="text-xs text-slate-400">{selectedFeedIds.length} / {allFeeds.length} selected</span>
           </div>
+          <div className="ml-8">
 
           {allFeeds.length === 0 ? (
             <p className="text-sm text-slate-400 py-2">No feeds configured yet.</p>
-          ) : (
-            <div className="space-y-4">
-              {[...allCategories.filter(c => activeCats.includes(c)), ...allCategories.filter(c => !activeCats.includes(c))].map((cat) => {
-                const catFeeds = allFeeds.filter(f => f.category === cat)
-                if (catFeeds.length === 0) return null
-                const isCatActive = activeCats.includes(cat)
-                const selectedCount = catFeeds.filter(f => selectedFeedIds.includes(f.id)).length
-                const allCatSelected = catFeeds.length > 0 && selectedCount === catFeeds.length
-                const someCatSelected = selectedCount > 0 && selectedCount < catFeeds.length
-                const meta = categoryMeta[cat] || { icon: Rss, color: 'blue', label: cat }
-                const colors = colorClasses[meta.color] || colorClasses.blue
+          ) : (() => {
+            // Group feeds by user-friendly display categories instead of internal category names
+            const displayGroups: Record<string, { label: string, feedIds: string[] }> = {
+              'security': { label: 'Security', feedIds: [] },
+              'ai': { label: 'AI & Technology', feedIds: [] },
+              'marketing': { label: 'Marketing', feedIds: [] },
+              'european': { label: 'European Tech & Privacy', feedIds: [] },
+              'dutch-tech': { label: 'Dutch Tech & News', feedIds: [] },
+              'other': { label: 'Other', feedIds: [] },
+            }
 
-                return (
-                  <div key={cat}>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      {/* Select-all checkbox */}
-                      <div
-                        onClick={() => toggleAllCategoryFeeds(cat)}
-                        className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
-                          allCatSelected ? 'bg-indigo-600 border-indigo-600' : someCatSelected ? 'bg-indigo-300 border-indigo-400' : 'border-slate-300 hover:border-slate-400'
-                        }`}
-                      >
-                        {(allCatSelected || someCatSelected) && <Check className="w-2.5 h-2.5 text-white" />}
+            // Map internal categories to display groups
+            const categoryToGroup: Record<string, string> = {
+              'cybersecurity': 'security',
+              'ai-companion': 'ai',
+              'ai-learning': 'ai',
+              'marketingtoolz': 'marketing',
+              'europeanpurpose': 'european',
+              'bouwcertificaten': 'dutch-tech',
+            }
+
+            // Some feeds should be in specific groups based on their name/content
+            const dutchFeedIds = new Set(['security-nl-default', 'tweakers', 'nu-tech', 'tweakers-bouw', 'computable', 'iculture', 'tweakers-eu'])
+
+            for (const feed of allFeeds) {
+              if (dutchFeedIds.has(feed.id)) {
+                displayGroups['dutch-tech'].feedIds.push(feed.id)
+              } else {
+                const group = categoryToGroup[feed.category] || 'other'
+                displayGroups[group].feedIds.push(feed.id)
+              }
+            }
+
+            // Sort: groups with selected feeds first
+            const sortedGroups = Object.entries(displayGroups)
+              .filter(([, g]) => g.feedIds.length > 0)
+              .sort((a, b) => {
+                const aSelected = a[1].feedIds.some(id => selectedFeedIds.includes(id)) ? 0 : 1
+                const bSelected = b[1].feedIds.some(id => selectedFeedIds.includes(id)) ? 0 : 1
+                return aSelected - bSelected
+              })
+
+            const feedMap = new Map(allFeeds.map(f => [f.id, f]))
+
+            return (
+              <div className="space-y-4">
+                {sortedGroups.map(([groupKey, group]) => {
+                  const groupFeeds = group.feedIds.map(id => feedMap.get(id)).filter(Boolean) as Feed[]
+                  const selectedCount = groupFeeds.filter(f => selectedFeedIds.includes(f.id)).length
+                  const allGroupSelected = groupFeeds.length > 0 && selectedCount === groupFeeds.length
+                  const someGroupSelected = selectedCount > 0 && selectedCount < groupFeeds.length
+
+                  const toggleAllGroupFeeds = () => {
+                    const ids = groupFeeds.map(f => f.id)
+                    const current = getSelectedFeedIds()
+                    const updated = allGroupSelected
+                      ? current.filter(id => !ids.includes(id))
+                      : Array.from(new Set([...current, ...ids]))
+                    update('feeds', updated.join(','))
+                  }
+
+                  return (
+                    <div key={groupKey}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div
+                          onClick={toggleAllGroupFeeds}
+                          className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
+                            allGroupSelected ? 'bg-indigo-600 border-indigo-600' : someGroupSelected ? 'bg-indigo-300 border-indigo-400' : 'border-slate-300 hover:border-slate-400'
+                          }`}
+                        >
+                          {(allGroupSelected || someGroupSelected) && <Check className="w-2.5 h-2.5 text-white" />}
+                        </div>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                          {group.label}
+                        </span>
+                        <span className="text-xs text-slate-400">{selectedCount}/{groupFeeds.length}</span>
                       </div>
-                      <span className={`text-xs font-semibold uppercase tracking-wide ${isCatActive ? colors.icon : 'text-slate-400'}`}>
-                        {meta.label}
-                      </span>
-                      <span className="text-xs text-slate-400">{selectedCount}/{catFeeds.length}</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1.5 ml-6">
-                      {catFeeds.map((feed) => {
-                        const isSelected = selectedFeedIds.includes(feed.id)
-                        return (
-                          <div
-                            key={feed.id}
-                            onClick={() => toggleFeed(feed.id)}
-                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer transition-all ${
-                              isSelected
-                                ? 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100'
-                                : 'bg-white border-slate-100 hover:bg-slate-50 hover:border-slate-200'
-                            }`}
-                          >
-                            <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                              isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'
-                            }`}>
-                              {isSelected && <Check className="w-2 h-2 text-white" />}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1.5 ml-6">
+                        {groupFeeds.map((feed) => {
+                          const isSelected = selectedFeedIds.includes(feed.id)
+                          return (
+                            <div
+                              key={feed.id}
+                              onClick={() => toggleFeed(feed.id)}
+                              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100'
+                                  : 'bg-white border-slate-100 hover:bg-slate-50 hover:border-slate-200'
+                              }`}
+                            >
+                              <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'
+                              }`}>
+                                {isSelected && <Check className="w-2 h-2 text-white" />}
+                              </div>
+                              <span className="text-xs font-medium text-slate-700 truncate">{feed.name}</span>
                             </div>
-                            <span className="text-xs font-medium text-slate-700 truncate">{feed.name}</span>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
+            )
+          })()}
+
+            {/* Add custom feed */}
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <p className="text-xs font-medium text-slate-600 mb-2">Add your own RSS feed</p>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  placeholder="https://example.com/feed.xml"
+                  id="custom-feed-url"
+                  className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <input
+                  type="text"
+                  placeholder="Feed name"
+                  id="custom-feed-name"
+                  className="w-40 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <button
+                  onClick={async () => {
+                    const urlInput = document.getElementById('custom-feed-url') as HTMLInputElement
+                    const nameInput = document.getElementById('custom-feed-name') as HTMLInputElement
+                    const feedUrl = urlInput?.value?.trim()
+                    const feedName = nameInput?.value?.trim()
+                    if (!feedUrl) {
+                      showNotification({ type: 'error', title: 'Missing URL', message: 'Enter a feed URL' })
+                      return
+                    }
+                    try {
+                      const res = await fetch('/api/feeds', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          url: feedUrl,
+                          name: feedName || new URL(feedUrl).hostname,
+                          category: activeCats[0] || 'other',
+                          enabled: true,
+                        }),
+                      })
+                      if (res.ok) {
+                        const newFeed = await res.json()
+                        showNotification({ type: 'success', title: 'Feed added', message: `${newFeed.name || feedName} has been added`, duration: 3000 })
+                        // Add to selected feeds
+                        if (newFeed.id) {
+                          const current = getSelectedFeedIds()
+                          update('feeds', [...current, newFeed.id].join(','))
+                        }
+                        urlInput.value = ''
+                        nameInput.value = ''
+                        loadFeeds()
+                      } else {
+                        showNotification({ type: 'error', title: 'Failed', message: 'Could not add feed' })
+                      }
+                    } catch {
+                      showNotification({ type: 'error', title: 'Error', message: 'Could not add feed' })
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shrink-0"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add
+                </button>
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Keywords per active category — always visible */}
+        {/* ── Step 4: Keywords ── */}
         {activeCats.length > 0 && (
-          <div className="bg-white rounded-lg border border-slate-200 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-slate-900">Keywords</h3>
-                <span className="text-xs text-slate-400">Per category — click X to remove, + to add</span>
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <span className="text-xs text-slate-500">{getKeywordsEnabled() ? 'Filter on' : 'Filter off'}</span>
-                <button
-                  onClick={() => setKeywordsEnabled(!getKeywordsEnabled())}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${getKeywordsEnabled() ? 'bg-indigo-500' : 'bg-slate-200'}`}
-                >
-                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${getKeywordsEnabled() ? 'translate-x-4' : 'translate-x-1'}`} />
-                </button>
-              </label>
-            </div>
+        <div>
+          <details>
+            <summary className="flex items-center gap-2.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              <div className="w-6 h-6 rounded-full bg-indigo-900 text-white flex items-center justify-center text-xs font-bold shrink-0">4</div>
+              <span className="text-sm font-medium text-slate-800">Keywords</span>
+              <span className="text-xs text-slate-400">optional — fine-tune article filtering</span>
+              <ChevronRight className="w-4 h-4 text-slate-400 transition-transform [[open]>&]:rotate-90" />
+            </summary>
 
-            <div className="space-y-4">
+            <div className="ml-8 space-y-4 mt-3">
+              {/* Keyword filtering toggle */}
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Keyword filtering</p>
+                  <p className="text-xs text-slate-400 mt-0.5">When off, all articles from selected feeds are accepted without keyword matching</p>
+                </div>
+                <button
+                  onClick={() => {
+                    const current = getKeywordsMap()
+                    const isDisabled = current._disabled === true
+                    if (isDisabled) {
+                      delete current._disabled
+                    } else {
+                      current._disabled = true as any
+                    }
+                    update('keywords', JSON.stringify(current))
+                  }}
+                  className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors shrink-0 ${
+                    !(getKeywordsMap() as any)._disabled ? 'bg-indigo-600' : 'bg-slate-300'
+                  }`}
+                  role="switch"
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    !(getKeywordsMap() as any)._disabled ? 'translate-x-5' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
               {activeCats.map((cat) => {
                 const keywords = getKeywordsForCategory(cat)
                 const meta = categoryMeta[cat] || { icon: Rss, color: 'blue', label: cat }
@@ -1160,10 +1768,55 @@ export default function AutomationEditPage() {
                 )
               })}
             </div>
-          </div>
+          </details>
+        </div>
         )}
 
-        {/* Connected Site — combined platform + integration + setup */}
+        {/* ── Step 5: Save ── */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-full bg-indigo-900 text-white flex items-center justify-center text-xs font-bold shrink-0">5</div>
+          <button
+            onClick={async () => {
+              await save()
+              // Auto-enable if not yet enabled
+              if (!automation.enabled) {
+                setAutomation(prev => prev ? { ...prev, enabled: true } : prev)
+                await save({ enabled: true })
+              }
+              // Auto-fetch articles after saving content settings
+              setRunningPipeline(true)
+              try {
+                const res = await fetch('/api/cron/auto-pipeline', { method: 'POST' })
+                const data = await res.json()
+                const result = data.automations?.find((a: any) => a.automation_id === id)
+                if (result?.rewritten > 0 || result?.pending > 0) {
+                  const parts = []
+                  if (result.rewritten > 0) parts.push(`${result.rewritten} scheduled`)
+                  if (result.pending > 0) parts.push(`${result.pending} in pipeline`)
+                  showNotification({ type: 'success', title: 'Articles fetched', message: parts.join(', '), duration: 4000 })
+                } else {
+                  showNotification({ type: 'warning', title: 'No articles found', message: result?.message || 'Try adding more feeds or broader keywords', duration: 4000 })
+                }
+                loadArticles()
+              } catch {
+                showNotification({ type: 'error', title: 'Error', message: 'Pipeline failed' })
+              } finally {
+                setRunningPipeline(false)
+              }
+            }}
+            disabled={saving || runningPipeline}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
+          >
+            {saving ? 'Saving...' : runningPipeline ? <><Loader2 className="w-4 h-4 animate-spin" />Fetching articles...</> : 'Save & Fetch Articles'}
+          </button>
+        </div>
+
+          </div>
+          )}
+        </div>
+
+        {/* Section 5: Connected Site — shown in setup mode, or when showSetup toggled */}
+        {(!isConfigured || showSetup) && (
         <div className="bg-white rounded-lg border border-slate-200 p-5">
           <div className="flex items-center gap-2 mb-4">
             <Link className="w-4 h-4 text-indigo-500" />
@@ -1878,6 +2531,7 @@ const { articles } = await res.json();
             </details>
           </div>
         </div>
+        )}
 
         {/* Save bar */}
         <div className="bg-white rounded-lg border border-slate-200 p-5 flex items-center gap-3">

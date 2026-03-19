@@ -1,5 +1,6 @@
 import { updateArticle, getArticles } from '../../../lib/airtable'
 import { rewriteArticle } from '../../../lib/ai-rewriter'
+import { findHeaderImage } from '../../../lib/image-search'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -28,6 +29,17 @@ export default async function handler(req, res) {
       article.url
     )
 
+    // Find a header image if the article doesn't have one
+    let imageUrl = article.imageUrl
+    if (!imageUrl) {
+      try {
+        imageUrl = await findHeaderImage(rewritten.title, article.matchedKeywords)
+        console.log('Found header image:', imageUrl?.substring(0, 80))
+      } catch (err) {
+        console.warn('Image search failed:', err.message)
+      }
+    }
+
     // Update the article in Airtable
     const updatedArticle = await updateArticle(id, {
       content_rewritten: rewritten.content,
@@ -35,6 +47,7 @@ export default async function handler(req, res) {
       title: rewritten.title,
       subtitle: rewritten.subtitle || '',
       faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
+      ...(imageUrl ? { imageUrl } : {}),
       status: 'rewritten'
     })
 

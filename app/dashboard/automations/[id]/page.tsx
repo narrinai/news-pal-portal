@@ -968,7 +968,7 @@ export default function AutomationEditPage() {
               /I('m| am) sorry|I('m| am) unable to|I can'?t (perform|assist|help)|Unfortunately,? I cannot/i.test(title)
             const filtered = articles
               .filter(a => !isRefusal(a.title))
-            const scheduled = filtered.filter(a => a.status === 'selected')
+            const scheduled = filtered.filter(a => a.status === 'selected' || (a.status === 'rewritten' && rewritingArticleIds.has(a.id)))
               .sort((a, b) => new Date(a.publishedAt || 0).getTime() - new Date(b.publishedAt || 0).getTime())
             const published = filtered.filter(a => a.status === 'published')
               .sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime())
@@ -1061,7 +1061,7 @@ export default function AutomationEditPage() {
                     </span>
                   )}
                   {rewritingArticleIds.has(article.id) ? (
-                    <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700">
+                    <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 cursor-help" title="AI is rewriting this article — this usually takes about 1 minute">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       Rewriting...
                     </span>
@@ -1103,11 +1103,32 @@ export default function AutomationEditPage() {
                     {!isSlot && article.status !== 'published' && article.status !== 'selected' && (
                       <button
                         onClick={async () => {
-                          // Optimistic: move to scheduled immediately
-                          setArticles(prev => prev.map(a => a.id === article.id ? { ...a, status: 'selected' } : a))
+                          // Calculate schedule date upfront for optimistic update
+                          const pipelineHour = automation.pipeline_hour ?? 7
+                          const scheduledDates = articles
+                            .filter(a => a.status === 'selected' && a.publishedAt)
+                            .map(a => new Date(a.publishedAt).toISOString().split('T')[0])
+                          const takenDates = new Set(scheduledDates)
+                          const nextDate = new Date()
+                          nextDate.setDate(nextDate.getDate() + 1) // always start from tomorrow
+                          nextDate.setHours(pipelineHour, 0, 0, 0)
+                          while (takenDates.has(nextDate.toISOString().split('T')[0])) {
+                            nextDate.setDate(nextDate.getDate() + 1)
+                            nextDate.setHours(pipelineHour, 0, 0, 0)
+                          }
+                          const scheduledIso = nextDate.toISOString()
+
+                          // Optimistic: move to scheduled with date immediately
+                          setArticles(prev => prev.map(a => a.id === article.id ? { ...a, status: 'selected', publishedAt: scheduledIso } : a))
                           setRewritingArticleIds(prev => { const next = new Set(Array.from(prev)); next.add(article.id); return next })
                           try {
-                            // Rewrite first if no content
+                            // Set status + date first so it appears in scheduled even during rewrite
+                            await fetch(`/api/articles/${article.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ status: 'selected', publishedAt: scheduledIso }),
+                            })
+                            // Then rewrite if no content
                             if (!article.content_html && !article.content_rewritten) {
                               await fetch('/api/articles/rewrite', {
                                 method: 'POST',
@@ -1118,25 +1139,13 @@ export default function AutomationEditPage() {
                                   customInstructions: automation.extra_context || undefined,
                                 }),
                               })
+                              // Re-set status to selected after rewrite (rewrite sets it to 'rewritten')
+                              await fetch(`/api/articles/${article.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: 'selected' }),
+                              })
                             }
-                            // Calculate next available schedule date (at least 1 hour in the future)
-                            const scheduledDates = articles
-                              .filter(a => a.status === 'selected' && a.publishedAt)
-                              .map(a => new Date(a.publishedAt).toISOString().split('T')[0])
-                            const takenDates = new Set(scheduledDates)
-                            const nextDate = new Date()
-                            nextDate.setHours(nextDate.getHours() + 1, 0, 0, 0) // at least 1 hour from now
-                            // If today's slot is taken, move to next day at 07:00
-                            while (takenDates.has(nextDate.toISOString().split('T')[0])) {
-                              nextDate.setDate(nextDate.getDate() + 1)
-                              nextDate.setHours(7, 0, 0, 0)
-                            }
-
-                            await fetch(`/api/articles/${article.id}`, {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ status: 'selected', publishedAt: nextDate.toISOString() }),
-                            })
                             setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
                             showNotification({ type: 'success', title: 'Scheduled', message: `"${article.title}" scheduled for ${nextDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ${nextDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` })
                             loadArticles()

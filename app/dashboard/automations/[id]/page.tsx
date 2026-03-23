@@ -1238,11 +1238,25 @@ export default function AutomationEditPage() {
 
             return (
               <div>
-                {planningSlots.length > 0 && (
+                {planningSlots.length > 0 && (() => {
+                  const todayStr = new Date().toISOString().split('T')[0]
+                  const publishedToday = published.filter(a => a.publishedAt && a.publishedAt.startsWith(todayStr)).length
+                  const scheduledToday = scheduled.filter(a => a.publishedAt && a.publishedAt.startsWith(todayStr)).length
+                  const totalToday = publishedToday + scheduledToday
+                  const limit = automation.articles_per_day || 1
+                  const overLimit = totalToday > limit
+                  return (
                   <div className="mb-5">
-                    <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wide mb-1.5 px-1">
-                      Planning — scheduled ({planningSlots.length})
-                    </p>
+                    <div className="flex items-center justify-between mb-1.5 px-1">
+                      <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wide">
+                        Planning — scheduled ({planningSlots.length})
+                      </p>
+                      {overLimit && (
+                        <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium" title={`Output setting: ${limit}/day. Today: ${publishedToday} published + ${scheduledToday} scheduled = ${totalToday}`}>
+                          {totalToday}/{limit} today — exceeds daily limit
+                        </span>
+                      )}
+                    </div>
                     <div className="space-y-2">
                     {planningSlots.map((a, i) => (
                       <div key={a.id} className="flex items-center gap-1">
@@ -1301,7 +1315,7 @@ export default function AutomationEditPage() {
                     ))}
                     </div>
                   </div>
-                )}
+                  )})()}
                 {pending.length > 0 && (
                   <div>
                     <p className="text-[11px] font-semibold text-amber-500 uppercase tracking-wide mb-1.5 px-1">

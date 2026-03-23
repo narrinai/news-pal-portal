@@ -14,6 +14,9 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
+  // Manual trigger from dashboard bypasses hour/frequency checks
+  const force = req.body?.force === true || req.query?.force === 'true'
+
   try {
     // Step 1: Get all enabled automations
     const automations = await getAutomations()
@@ -88,22 +91,24 @@ export default async function handler(req, res) {
     const nowHour = parseInt(currentHour, 10)
 
     for (const automation of enabled) {
-      // Check if this is the right hour for this automation
-      const pipelineHour = automation.pipeline_hour ?? 7
-      if (nowHour !== pipelineHour) {
-        console.log(`[AUTO-PIPELINE] Skipping ${automation.name} (pipeline_hour: ${pipelineHour}, current: ${nowHour})`)
-        automationResults.push({
-          automation_id: automation.id,
-          automation_name: automation.name,
-          selected: 0,
-          rewritten: 0,
-          failed: 0,
-          message: `Skipped (pipeline_hour: ${pipelineHour}, current hour: ${nowHour})`,
-        })
-        continue
+      // Check if this is the right hour for this automation (skip check if forced)
+      if (!force) {
+        const pipelineHour = automation.pipeline_hour ?? 7
+        if (nowHour !== pipelineHour) {
+          console.log(`[AUTO-PIPELINE] Skipping ${automation.name} (pipeline_hour: ${pipelineHour}, current: ${nowHour})`)
+          automationResults.push({
+            automation_id: automation.id,
+            automation_name: automation.name,
+            selected: 0,
+            rewritten: 0,
+            failed: 0,
+            message: `Skipped (pipeline_hour: ${pipelineHour}, current hour: ${nowHour})`,
+          })
+          continue
+        }
       }
 
-      if (!shouldRunToday(automation)) {
+      if (!force && !shouldRunToday(automation)) {
         console.log(`[AUTO-PIPELINE] Skipping ${automation.name} (frequency: ${automation.publish_frequency || 'daily'}, not scheduled today)`)
         automationResults.push({
           automation_id: automation.id,

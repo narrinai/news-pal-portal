@@ -809,7 +809,7 @@ export default function AutomationEditPage() {
                 onClick={async () => {
                   setRunningPipeline(true)
                   try {
-                    const res = await fetch('/api/cron/auto-pipeline', { method: 'POST' })
+                    const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true }) })
                     const data = await res.json()
                     const result = data.automations?.find((a: any) => a.automation_id === id)
                     if (result?.rewritten > 0 || result?.pending > 0) {
@@ -1864,7 +1864,7 @@ export default function AutomationEditPage() {
               // Auto-fetch articles after saving content settings
               setRunningPipeline(true)
               try {
-                const res = await fetch('/api/cron/auto-pipeline', { method: 'POST' })
+                const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true }) })
                 const data = await res.json()
                 const result = data.automations?.find((a: any) => a.automation_id === id)
                 if (result?.rewritten > 0 || result?.pending > 0) {
@@ -2633,7 +2633,7 @@ const { articles } = await res.json();
                 // Auto-trigger pipeline after activation
                 setRunningPipeline(true)
                 try {
-                  const res = await fetch('/api/cron/auto-pipeline', { method: 'POST' })
+                  const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true }) })
                   const data = await res.json()
                   const result = data.automations?.find((a: any) => a.automation_id === id)
                   if (result?.rewritten > 0) {

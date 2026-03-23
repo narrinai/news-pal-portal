@@ -40,17 +40,37 @@ export default async function handler(req, res) {
       }
     }
 
-    // Update the article in Airtable
-    const updatedArticle = await updateArticle(id, {
-      content_rewritten: rewritten.content,
-      content_html: rewritten.content_html,
-      title: rewritten.title,
-      subtitle: rewritten.subtitle || '',
-      faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
-      ...(imageUrl ? { imageUrl } : {}),
-      ...(rewritten.category ? { category: rewritten.category } : {}),
-      status: 'rewritten'
-    })
+    // Clean AI-generated category (strip quotes, trim)
+    const cleanCategory = rewritten.category
+      ? rewritten.category.replace(/^["']+|["']+$/g, '').trim()
+      : null
+
+    // Update the article in Airtable (skip category if it fails — it's a singleSelect field)
+    let updatedArticle
+    try {
+      updatedArticle = await updateArticle(id, {
+        content_rewritten: rewritten.content,
+        content_html: rewritten.content_html,
+        title: rewritten.title,
+        subtitle: rewritten.subtitle || '',
+        faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
+        ...(imageUrl ? { imageUrl } : {}),
+        ...(cleanCategory ? { category: cleanCategory } : {}),
+        status: 'rewritten'
+      })
+    } catch (updateErr) {
+      // If update fails (likely category singleSelect issue), retry without category
+      console.warn('[rewrite] Update failed, retrying without category:', updateErr.message)
+      updatedArticle = await updateArticle(id, {
+        content_rewritten: rewritten.content,
+        content_html: rewritten.content_html,
+        title: rewritten.title,
+        subtitle: rewritten.subtitle || '',
+        faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
+        ...(imageUrl ? { imageUrl } : {}),
+        status: 'rewritten'
+      })
+    }
 
     return res.status(200).json({
       success: true,

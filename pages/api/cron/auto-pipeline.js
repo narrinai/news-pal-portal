@@ -321,16 +321,31 @@ export default async function handler(req, res) {
             } catch { /* silent */ }
           }
 
-          await updateArticle(articleId, {
-            title: rewritten.title,
-            content_rewritten: rewritten.content,
-            content_html: rewritten.content_html,
-            subtitle: rewritten.subtitle || '',
-            faq: (Array.isArray(rewritten.faq) && rewritten.faq.length > 0) ? JSON.stringify(rewritten.faq) : '',
-            ...(headerImage ? { imageUrl: headerImage } : {}),
-            ...(rewritten.category ? { category: rewritten.category } : {}),
-            status: 'selected',
-          })
+          const cleanCat = rewritten.category ? rewritten.category.replace(/^["']+|["']+$/g, '').trim() : null
+          try {
+            await updateArticle(articleId, {
+              title: rewritten.title,
+              content_rewritten: rewritten.content,
+              content_html: rewritten.content_html,
+              subtitle: rewritten.subtitle || '',
+              faq: (Array.isArray(rewritten.faq) && rewritten.faq.length > 0) ? JSON.stringify(rewritten.faq) : '',
+              ...(headerImage ? { imageUrl: headerImage } : {}),
+              ...(cleanCat ? { category: cleanCat } : {}),
+              status: 'selected',
+            })
+          } catch (catErr) {
+            // Retry without category if singleSelect fails
+            console.warn(`[AUTO-PIPELINE] Category update failed, retrying without:`, catErr.message)
+            await updateArticle(articleId, {
+              title: rewritten.title,
+              content_rewritten: rewritten.content,
+              content_html: rewritten.content_html,
+              subtitle: rewritten.subtitle || '',
+              faq: (Array.isArray(rewritten.faq) && rewritten.faq.length > 0) ? JSON.stringify(rewritten.faq) : '',
+              ...(headerImage ? { imageUrl: headerImage } : {}),
+              status: 'selected',
+            })
+          }
 
           // Add to existingUrls so other automations don't duplicate
           existingUrls.add(article.url)

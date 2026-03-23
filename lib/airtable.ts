@@ -68,6 +68,7 @@ export interface Automation {
   target_audience?: string
   extra_context?: string
   analyze_urls?: string
+  pipeline_hour?: number
 }
 
 export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt'>) {

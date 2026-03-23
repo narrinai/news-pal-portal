@@ -31,6 +31,7 @@ interface Automation {
   target_audience: string
   extra_context: string
   analyze_urls: string
+  pipeline_hour: number
 }
 
 interface Feed {
@@ -167,6 +168,7 @@ export default function AutomationEditPage() {
           target_audience: data.target_audience || '',
           extra_context: data.extra_context || '',
           analyze_urls: data.analyze_urls || '',
+          pipeline_hour: data.pipeline_hour ?? 7,
         })
         // Initialize analyzeUrls from analyze_urls field
         if (data.analyze_urls) {
@@ -901,7 +903,19 @@ export default function AutomationEditPage() {
               </span>
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
-                Next run: daily at 7:00
+                Next run: daily at{' '}
+                <select
+                  value={automation.pipeline_hour ?? 7}
+                  onChange={(e) => {
+                    const hour = parseInt(e.target.value)
+                    update('pipeline_hour', hour)
+                  }}
+                  className="bg-transparent font-medium text-indigo-600 cursor-pointer hover:text-indigo-800 border-none outline-none text-xs p-0"
+                >
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
+                  ))}
+                </select>
               </span>
               {connectionHealth && (
                 <span className={`flex items-center gap-1 font-medium ${connectionHealth.healthy ? 'text-emerald-600' : 'text-amber-600'}`}>
@@ -947,7 +961,7 @@ export default function AutomationEditPage() {
             </div>
           ) : articles.length === 0 ? (
             <div className="text-sm text-slate-400 py-6 text-center">
-              No articles yet. The automation will process articles on the next scheduled run (daily at 7:00).
+              No articles yet. The automation will process articles on the next scheduled run (daily at {String(automation.pipeline_hour ?? 7).padStart(2, '0')}:00).
             </div>
           ) : (() => {
             const isRefusal = (title: string) =>

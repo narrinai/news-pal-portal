@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     // Step 3b: Publish scheduled articles whose date has arrived
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    let publishedCount = 0
+    const newlyPublishedArticles = []
     for (const article of existingArticles) {
       if (article.status === 'selected' && article.publishedAt) {
         const scheduledDate = new Date(article.publishedAt)
@@ -69,20 +69,40 @@ export default async function handler(req, res) {
         if (scheduledDate <= today) {
           try {
             await updateArticle(article.id, { status: 'published' })
-            publishedCount++
+            newlyPublishedArticles.push(article)
           } catch (err) {
             console.error(`[AUTO-PIPELINE] Failed to publish scheduled article ${article.id}:`, err.message)
           }
         }
       }
     }
+    const publishedCount = newlyPublishedArticles.length
     if (publishedCount > 0) {
       console.log(`[AUTO-PIPELINE] Published ${publishedCount} scheduled articles whose date arrived`)
     }
 
     const automationResults = []
 
+    // Current hour in Europe/Amsterdam timezone
+    const currentHour = new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'Europe/Amsterdam' })
+    const nowHour = parseInt(currentHour, 10)
+
     for (const automation of enabled) {
+      // Check if this is the right hour for this automation
+      const pipelineHour = automation.pipeline_hour ?? 7
+      if (nowHour !== pipelineHour) {
+        console.log(`[AUTO-PIPELINE] Skipping ${automation.name} (pipeline_hour: ${pipelineHour}, current: ${nowHour})`)
+        automationResults.push({
+          automation_id: automation.id,
+          automation_name: automation.name,
+          selected: 0,
+          rewritten: 0,
+          failed: 0,
+          message: `Skipped (pipeline_hour: ${pipelineHour}, current hour: ${nowHour})`,
+        })
+        continue
+      }
+
       if (!shouldRunToday(automation)) {
         console.log(`[AUTO-PIPELINE] Skipping ${automation.name} (frequency: ${automation.publish_frequency || 'daily'}, not scheduled today)`)
         automationResults.push({
@@ -349,68 +369,69 @@ export default async function handler(req, res) {
     const totalRewritten = automationResults.reduce((sum, r) => sum + r.rewritten, 0)
     const totalFailed = automationResults.reduce((sum, r) => sum + r.failed, 0)
 
-    // Push articles to Replit sites (push model)
+    // Push only newly published articles to Replit sites (no duplicates)
+    const newlyPublishedByAutomation = {}
+    for (const article of newlyPublishedArticles) {
+      if (!article.automation_id) continue
+      if (!newlyPublishedByAutomation[article.automation_id]) newlyPublishedByAutomation[article.automation_id] = []
+      newlyPublishedByAutomation[article.automation_id].push(article)
+    }
+
     const pushResults = []
     for (const automation of enabled) {
-      if (automation.site_platform === 'replit' && automation.site_api_key && automation.site_url) {
-        // Push if there are any published articles (either newly published scheduled ones or existing)
+      const toPush = newlyPublishedByAutomation[automation.id]
+      if (!toPush || toPush.length === 0) continue
+      if (automation.site_platform !== 'replit' || !automation.site_api_key || !automation.site_url) continue
 
+      try {
+        const publishedArticles = toPush.map(a => ({
+          id: a.id,
+          slug: (a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
+          title: a.title,
+          description: (a.description || '').replace(/<[^>]+>/g, '').substring(0, 200).trim() + ((a.description || '').length > 200 ? '...' : ''),
+          content_html: a.content_html || a.content_rewritten || `<p>${(a.description || '').replace(/<[^>]+>/g, '')}</p>`,
+          category: { 'cybersecurity': 'Security', 'ai-companion': 'AI', 'ai-learning': 'AI', 'marketingtoolz': 'Marketing', 'europeanpurpose': 'European Tech', 'bouwcertificaten': 'Construction' }[a.category] || a.category,
+          source: a.source,
+          sourceUrl: a.url,
+          imageUrl: a.imageUrl || `https://placehold.co/1200x630/4f46e5/ffffff?text=${encodeURIComponent((a.title || 'Article').substring(0, 30))}`,
+          subtitle: a.subtitle || '',
+          publishedAt: a.publishedAt,
+          faq: a.faq || null,
+        }))
 
-        try {
-          // Re-fetch articles to include newly published ones from this pipeline run
-          const latestArticles = await getArticles()
-          const allArticles = latestArticles.filter(a => a.automation_id === automation.id)
-          const publishedArticles = allArticles
-            .filter(a => a.status === 'published')
-            .map(a => ({
-              id: a.id,
-              slug: (a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
-              title: a.title,
-              description: (a.description || '').replace(/<[^>]+>/g, '').substring(0, 200).trim() + ((a.description || '').length > 200 ? '...' : ''),
-              content_html: a.content_html || a.content_rewritten || `<p>${(a.description || '').replace(/<[^>]+>/g, '')}</p>`,
-              category: { 'cybersecurity': 'Security', 'ai-companion': 'AI', 'ai-learning': 'AI', 'marketingtoolz': 'Marketing', 'europeanpurpose': 'European Tech', 'bouwcertificaten': 'Construction' }[a.category] || a.category,
-              source: a.source,
-              sourceUrl: a.url,
-              imageUrl: a.imageUrl || `https://placehold.co/1200x630/4f46e5/ffffff?text=${encodeURIComponent((a.title || 'Article').substring(0, 30))}`,
-              subtitle: a.subtitle || '',
-              publishedAt: a.publishedAt,
-              faq: a.faq || null,
-            }))
+        const targetUrl = automation.replit_url || automation.site_url
+        const origin = new URL(targetUrl).origin
+        const pushUrl = `${origin}/newspal/receive`
 
-          const targetUrl = automation.replit_url || automation.site_url
-          const origin = new URL(targetUrl).origin
-          const pushUrl = `${origin}/newspal/receive`
+        const pushRes = await fetch(pushUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-newspal-key': automation.site_api_key,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Origin': origin,
+          },
+          body: JSON.stringify({ articles: publishedArticles }),
+        })
 
-          const pushRes = await fetch(pushUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-newspal-key': automation.site_api_key,
-              'X-Requested-With': 'XMLHttpRequest',
-              'Origin': origin,
-            },
-            body: JSON.stringify({ articles: publishedArticles }),
-          })
-
-          const pushData = await pushRes.json().catch(() => ({}))
-          pushResults.push({
-            automation_id: automation.id,
-            automation_name: automation.name,
-            pushed: true,
-            status: pushRes.status,
-            received: pushData.received || 0,
-            total: pushData.total || 0,
-          })
-          console.log(`[AUTO-PIPELINE] Pushed ${pushData.received || 0} articles to ${automation.name} Replit site: ${pushRes.status}`)
-        } catch (pushError) {
-          pushResults.push({
-            automation_id: automation.id,
-            automation_name: automation.name,
-            pushed: false,
-            error: pushError.message,
-          })
-          console.error(`[AUTO-PIPELINE] Push failed for ${automation.name}:`, pushError.message)
-        }
+        const pushData = await pushRes.json().catch(() => ({}))
+        pushResults.push({
+          automation_id: automation.id,
+          automation_name: automation.name,
+          pushed: publishedArticles.length,
+          status: pushRes.status,
+          received: pushData.received || 0,
+          total: pushData.total || 0,
+        })
+        console.log(`[AUTO-PIPELINE] Pushed ${pushData.received || 0} new articles to ${automation.name}: ${pushRes.status}`)
+      } catch (pushError) {
+        pushResults.push({
+          automation_id: automation.id,
+          automation_name: automation.name,
+          pushed: false,
+          error: pushError.message,
+        })
+        console.error(`[AUTO-PIPELINE] Push failed for ${automation.name}:`, pushError.message)
       }
     }
 

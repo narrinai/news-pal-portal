@@ -3,30 +3,13 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import Logo from './Logo'
-import {
-  Newspaper, Zap, Tag, FileText, PenLine, Rss, LogOut
-} from 'lucide-react'
+import { Zap, LogOut } from 'lucide-react'
 
 const navGroups = [
   {
     label: 'AUTOMATIC',
     items: [
       { icon: Zap, label: 'Automations', href: '/dashboard/automations' },
-    ],
-  },
-  {
-    label: 'MANUAL',
-    items: [
-      { icon: Newspaper, label: 'Articles', href: '/dashboard/articles' },
-    ],
-  },
-  {
-    label: 'SETTINGS',
-    items: [
-      { icon: Tag, label: 'Categories', href: '/dashboard/settings/categories' },
-      { icon: FileText, label: 'Keywords', href: '/dashboard/settings/keywords' },
-      { icon: PenLine, label: 'AI Instructions', href: '/dashboard/settings/instructions' },
-      { icon: Rss, label: 'RSS Feeds', href: '/dashboard/settings/feeds' },
     ],
   },
 ]
@@ -37,8 +20,8 @@ export default function Sidebar() {
 
   const isActive = (href: string) => {
     if (!pathname) return false
-    if (href === '/dashboard/articles') {
-      return pathname === '/dashboard/articles' || pathname.startsWith('/dashboard/rewrite')
+    if (href === '/dashboard/automations') {
+      return pathname.startsWith('/dashboard/automations') || pathname.startsWith('/dashboard/rewrite')
     }
     return pathname.startsWith(href)
   }

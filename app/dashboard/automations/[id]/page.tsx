@@ -32,6 +32,7 @@ interface Automation {
   extra_context: string
   analyze_urls: string
   pipeline_hour: number
+  auto_schedule: boolean
 }
 
 interface Feed {
@@ -169,6 +170,7 @@ export default function AutomationEditPage() {
           extra_context: data.extra_context || '',
           analyze_urls: data.analyze_urls || '',
           pipeline_hour: data.pipeline_hour ?? 7,
+          auto_schedule: data.auto_schedule ?? false,
         })
         // Initialize analyzeUrls from analyze_urls field
         if (data.analyze_urls) {
@@ -1432,6 +1434,28 @@ export default function AutomationEditPage() {
                 <option value="nl">Dutch</option>
                 <option value="en">English</option>
               </select>
+            </div>
+          </div>
+
+          {/* Auto-schedule toggle */}
+          <div className="mt-4 flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <button
+              onClick={() => update('auto_schedule', !automation.auto_schedule)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 mt-0.5 ${
+                automation.auto_schedule ? 'bg-indigo-600' : 'bg-slate-300'
+              }`}
+              role="switch"
+            >
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${
+                automation.auto_schedule ? 'translate-x-[18px]' : 'translate-x-[3px]'
+              }`} />
+            </button>
+            <div>
+              <p className="text-sm font-medium text-slate-700">Auto-schedule articles</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                When enabled, the daily pipeline automatically selects, rewrites, and schedules the top articles based on your settings above.
+                When disabled, articles are only fetched into the pipeline — you choose which ones to schedule manually.
+              </p>
             </div>
           </div>
         </div>

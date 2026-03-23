@@ -233,10 +233,11 @@ export default async function handler(req, res) {
       const pipelineSize = Math.max(30, maxArticles * 5)
       const allCandidates = ranked.slice(0, pipelineSize)
       console.log(`[AUTO-PIPELINE] [${automation.name}] ${ranked.length} total after ranking, taking ${allCandidates.length} candidates (pipeline size ${pipelineSize})`)
-      // Auto-schedule: only the top `maxArticles` get rewritten and scheduled (unless fetchOnly)
-      const toAutoSchedule = fetchOnly ? [] : allCandidates.slice(0, maxArticles)
+      // Auto-schedule: only if automation has auto_schedule enabled and not fetchOnly
+      const shouldAutoSchedule = !fetchOnly && (automation.auto_schedule === true)
+      const toAutoSchedule = shouldAutoSchedule ? allCandidates.slice(0, maxArticles) : []
       // The rest are saved as pending (pipeline candidates)
-      const toPending = fetchOnly ? allCandidates : allCandidates.slice(maxArticles)
+      const toPending = shouldAutoSchedule ? allCandidates.slice(maxArticles) : allCandidates
 
       console.log(`[AUTO-PIPELINE] [${automation.name}] ${allCandidates.length} candidates: ${toAutoSchedule.length} to auto-schedule, ${toPending.length} as pending`)
 

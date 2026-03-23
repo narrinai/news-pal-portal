@@ -993,7 +993,7 @@ export default function AutomationEditPage() {
               return (
                 <div
                   key={article.id}
-                  className={`flex items-center gap-3 py-2.5 px-3 rounded-lg group transition-colors overflow-hidden ${
+                  className={`flex items-center gap-3 py-2.5 px-3 rounded-lg group transition-colors ${
                     isSlot
                       ? 'bg-indigo-50/50 border border-indigo-200/60 hover:bg-indigo-50'
                       : 'hover:bg-slate-50'
@@ -1009,9 +1009,10 @@ export default function AutomationEditPage() {
                       href={article.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm font-medium text-slate-800 hover:text-indigo-600 truncate block transition-colors"
+                      className="text-sm font-medium text-slate-800 hover:text-indigo-600 block transition-colors truncate"
+                      title={article.title}
                     >
-                      {article.title}
+                      {article.title.length > 70 ? article.title.slice(0, 70) + '...' : article.title}
                     </a>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[11px] text-slate-400">{article.source}</span>
@@ -1020,19 +1021,8 @@ export default function AutomationEditPage() {
                           {new Date(article.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                       )}
-                      {article.matchedKeywords && article.matchedKeywords.length > 0 &&
-                        Array.from(new Set(article.matchedKeywords.map(kw => kw.replace(/,\s*$/, '').trim()).filter(Boolean))).map(kw => (
-                          <span key={kw} className="inline-flex items-center px-1.5 py-0 rounded text-[10px] bg-slate-100 text-slate-500">
-                            {kw}
-                          </span>
-                        ))}
                     </div>
                   </div>
-                  {article.source && (
-                    <span className="shrink-0 hidden lg:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500">
-                      {article.source}
-                    </span>
-                  )}
                   {editingDateId === article.id ? (
                     <input
                       type="datetime-local"
@@ -1085,7 +1075,6 @@ export default function AutomationEditPage() {
                       rel="noopener noreferrer"
                       className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                       onClick={(e) => e.stopPropagation()}
-                      title="View on site"
                     >
                       <ExternalLink className="w-2.5 h-2.5" />
                       View

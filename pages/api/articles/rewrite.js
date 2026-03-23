@@ -48,6 +48,7 @@ export default async function handler(req, res) {
       subtitle: rewritten.subtitle || '',
       faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
       ...(imageUrl ? { imageUrl } : {}),
+      ...(rewritten.category ? { category: rewritten.category } : {}),
       status: 'rewritten'
     })
 

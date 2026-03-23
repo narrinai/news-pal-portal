@@ -85,7 +85,7 @@ export default async function handler(req, res) {
             title: a.title,
             description: (a.description || '').replace(/<[^>]+>/g, '').substring(0, 200).trim() + ((a.description || '').length > 200 ? '...' : ''),
             content_html: a.content_html || a.content_rewritten || `<p>${(a.description || '').replace(/<[^>]+>/g, '')}</p>`,
-            category: { 'cybersecurity': 'Security', 'ai-companion': 'AI', 'ai-learning': 'AI', 'marketingtoolz': 'Marketing', 'europeanpurpose': 'European Tech', 'bouwcertificaten': 'Construction' }[a.category] || a.category,
+            category: a.category,
             source: a.source,
             sourceUrl: a.url,
             imageUrl: a.imageUrl || `https://placehold.co/1200x630/4f46e5/ffffff?text=${encodeURIComponent((a.title || 'Article').substring(0, 30))}`,

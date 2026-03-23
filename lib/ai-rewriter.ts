@@ -28,7 +28,7 @@ export async function rewriteArticle(
   },
   customInstructions?: string,
   originalUrl?: string
-): Promise<{ title: string; content: string; content_html: string; subtitle?: string; faq?: { question: string; answer: string }[] }> {
+): Promise<{ title: string; content: string; content_html: string; subtitle?: string; category?: string; faq?: { question: string; answer: string }[] }> {
   const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
   const baseSystemPrompt = options.language === 'en'
     ? `You are a professional journalist who rewrites news articles for a broad audience.
@@ -158,9 +158,10 @@ function parseRewriteResponse(response: string, originalTitle: string) {
   let headerPart = sections[0]?.trim() || ''
   let content = sections[1]?.replace(/^CONTENT:\s*/i, '').trim() || (sections.length === 1 ? '' : '')
 
-  // Extract title and subtitle from header
+  // Extract title, subtitle, and category from header
   let title = originalTitle
   let subtitle = ''
+  let category = ''
 
   const headerLines = headerPart.split('\n').filter(l => l.trim())
   if (headerLines.length >= 1) {
@@ -170,6 +171,10 @@ function parseRewriteResponse(response: string, originalTitle: string) {
     const subMatch = line.match(/^SUBTITLE:\s*(.+)/i)
     if (subMatch) {
       subtitle = subMatch[1].trim()
+    }
+    const catMatch = line.match(/^CATEGORY:\s*(.+)/i)
+    if (catMatch) {
+      category = catMatch[1].trim()
     }
   }
 
@@ -211,7 +216,7 @@ function parseRewriteResponse(response: string, originalTitle: string) {
     content_html = generateWordPressHTML(title, content)
   }
 
-  return { title, content, content_html, subtitle, faq }
+  return { title, content, content_html, subtitle, category, faq }
 }
 
 function createRewritePrompt(
@@ -315,6 +320,7 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
 FORMAT YOUR ANSWER AS FOLLOWS:
 [Powerful English title WITHOUT "TITLE:" before it]
 SUBTITLE: [One-line subtitle that adds context or angle to the title]
+CATEGORY: [One or two word topic label for this article, e.g. "AI Security", "SEO", "Marketing", "Cybersecurity", "Enterprise AI", "Data Privacy". Be specific to the article content.]
 ---
 <section class="content-section" id="[slug-of-heading]">
 <h2>[Original heading based on content]</h2>
@@ -409,6 +415,7 @@ KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 FORMAT JE ANTWOORD ALS VOLGT:
 [Krachtige Nederlandse titel ZONDER "TITEL:" ervoor]
 SUBTITLE: [Eenregelige ondertitel die context of invalshoek toevoegt aan de titel]
+CATEGORY: [Een of twee woorden als onderwerp-label voor dit artikel, bijv. "AI Security", "SEO", "Marketing", "Cybersecurity", "Enterprise AI", "Data Privacy". Wees specifiek voor de inhoud van het artikel.]
 ---
 <section class="content-section" id="[slug-van-kop]">
 <h2>[Origineel kopje gebaseerd op inhoud]</h2>

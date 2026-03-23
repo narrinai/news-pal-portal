@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { NewsArticle } from '../../lib/airtable'
-import { LiveArticle } from '../../lib/article-manager'
-import { useNotifications } from '../../components/NotificationSystem'
+import { NewsArticle } from '../../../lib/airtable'
+import { LiveArticle } from '../../../lib/article-manager'
+import { useNotifications } from '../../../components/NotificationSystem'
 import {
   RefreshCw, Plus, ExternalLink, Check, Trash2,
   FileText, Filter, X, PenLine

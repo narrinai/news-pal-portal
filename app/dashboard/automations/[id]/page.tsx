@@ -296,7 +296,7 @@ export default function AutomationEditPage() {
   }
 
   // Keywords helpers
-  const getKeywordsMap = (): { [cat: string]: string[] } => {
+  const getKeywordsMap = (): Record<string, any> => {
     if (!automation?.keywords) return {}
     try { return JSON.parse(automation.keywords) } catch { return {} }
   }
@@ -811,7 +811,7 @@ export default function AutomationEditPage() {
                     const data = await res.json()
                     const result = data.automations?.find((a: any) => a.automation_id === id)
                     if (result?.rewritten > 0 || result?.pending > 0) {
-                      const parts = []
+                      const parts: string[] = []
                       if (result.rewritten > 0) parts.push(`${result.rewritten} scheduled`)
                       if (result.pending > 0) parts.push(`${result.pending} in pipeline`)
                       showNotification({ type: 'success', title: 'Pipeline complete', message: parts.join(', '), duration: 4000 })
@@ -1005,7 +1005,7 @@ export default function AutomationEditPage() {
                         </span>
                       )}
                       {article.matchedKeywords && article.matchedKeywords.length > 0 &&
-                        [...new Set(article.matchedKeywords.map(kw => kw.replace(/,\s*$/, '').trim()).filter(Boolean))].map(kw => (
+                        Array.from(new Set(article.matchedKeywords.map(kw => kw.replace(/,\s*$/, '').trim()).filter(Boolean))).map(kw => (
                           <span key={kw} className="inline-flex items-center px-1.5 py-0 rounded text-[10px] bg-slate-100 text-slate-500">
                             {kw}
                           </span>
@@ -1091,7 +1091,7 @@ export default function AutomationEditPage() {
                         onClick={async () => {
                           // Optimistic: move to scheduled immediately
                           setArticles(prev => prev.map(a => a.id === article.id ? { ...a, status: 'selected' } : a))
-                          setRewritingArticleIds(prev => new Set([...prev, article.id]))
+                          setRewritingArticleIds(prev => { const next = new Set(Array.from(prev)); next.add(article.id); return next })
                           try {
                             // Rewrite first if no content
                             if (!article.content_html && !article.content_rewritten) {
@@ -1143,7 +1143,7 @@ export default function AutomationEditPage() {
                     {(article.status === 'selected' || article.status === 'pending') && (
                       <button
                         onClick={async () => {
-                          setRewritingArticleIds(prev => new Set([...prev, article.id]))
+                          setRewritingArticleIds(prev => { const next = new Set(Array.from(prev)); next.add(article.id); return next })
                           try {
                             // Rewrite first if no content
                             if (!article.content_html && !article.content_rewritten) {
@@ -1831,7 +1831,7 @@ export default function AutomationEditPage() {
                 const data = await res.json()
                 const result = data.automations?.find((a: any) => a.automation_id === id)
                 if (result?.rewritten > 0 || result?.pending > 0) {
-                  const parts = []
+                  const parts: string[] = []
                   if (result.rewritten > 0) parts.push(`${result.rewritten} scheduled`)
                   if (result.pending > 0) parts.push(`${result.pending} in pipeline`)
                   showNotification({ type: 'success', title: 'Articles fetched', message: parts.join(', '), duration: 4000 })

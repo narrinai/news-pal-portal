@@ -28,7 +28,8 @@ export interface NewsArticle {
   source: string
   publishedAt: string
   status: 'pending' | 'selected' | 'rewritten' | 'published'
-  category: 'cybersecurity' | 'bouwcertificaten' | 'ai-companion' | 'ai-learning' | 'marketingtoolz' | 'europeanpurpose'
+  category: string
+  topic?: string
   originalContent?: string
   content_rewritten?: string
   content_html?: string

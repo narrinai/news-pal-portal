@@ -896,7 +896,7 @@ export default function AutomationEditPage() {
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />
-                Last processed: {(() => {
+                Last fetched: {(() => {
                   const sorted = [...articles].filter(a => a.createdAt).sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
                   return sorted.length > 0 ? formatRelativeTime(sorted[0].createdAt!) : 'never'
                 })()}

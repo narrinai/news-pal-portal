@@ -993,7 +993,7 @@ export default function AutomationEditPage() {
               return (
                 <div
                   key={article.id}
-                  className={`flex items-center gap-3 py-2.5 px-3 rounded-lg group transition-colors ${
+                  className={`flex items-center gap-3 py-2.5 px-3 rounded-lg group transition-colors overflow-hidden ${
                     isSlot
                       ? 'bg-indigo-50/50 border border-indigo-200/60 hover:bg-indigo-50'
                       : 'hover:bg-slate-50'
@@ -1029,7 +1029,7 @@ export default function AutomationEditPage() {
                     </div>
                   </div>
                   {article.source && (
-                    <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500">
+                    <span className="shrink-0 hidden lg:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500">
                       {article.source}
                     </span>
                   )}
@@ -1058,7 +1058,7 @@ export default function AutomationEditPage() {
                       title={article.status === 'selected' ? 'Click to change date' : undefined}
                     >
                       {article.publishedAt
-                        ? new Date(article.publishedAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' ' + new Date(article.publishedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                        ? new Date(article.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' + new Date(article.publishedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
                         : '—'}
                     </span>
                   )}
@@ -1088,7 +1088,7 @@ export default function AutomationEditPage() {
                       title="View on site"
                     >
                       <ExternalLink className="w-2.5 h-2.5" />
-                      View on site
+                      View
                     </a>
                   )}
                   <div className="shrink-0 flex items-center gap-0.5">
@@ -1221,7 +1221,7 @@ export default function AutomationEditPage() {
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
                         title="Publish now"
                       >
-                        Publish now
+                        Publish
                       </button>
                     )}
                     {(article.status === 'selected' || article.status === 'published') && (

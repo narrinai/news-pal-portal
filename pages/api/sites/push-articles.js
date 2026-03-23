@@ -46,31 +46,45 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, pushed: 0, message: 'No published articles to push' })
     }
 
-    const origin = new URL(automation.site_url).origin
+    const targetUrl = automation.replit_url || automation.site_url
+    const origin = new URL(targetUrl).origin
     const pushUrl = `${origin}/newspal/receive`
 
-    const pushRes = await fetch(pushUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-newspal-key': automation.site_api_key,
-      },
-      body: JSON.stringify({ articles: publishedArticles }),
-    })
+    // Push in batches of 3 to avoid 413 Payload Too Large
+    const BATCH_SIZE = 3
+    let totalReceived = 0
+    let totalOnSite = 0
 
-    const data = await pushRes.json().catch(() => ({}))
-
-    if (!pushRes.ok) {
-      return res.status(200).json({
-        success: false,
-        error: `Site returned ${pushRes.status}`,
+    for (let i = 0; i < publishedArticles.length; i += BATCH_SIZE) {
+      const batch = publishedArticles.slice(i, i + BATCH_SIZE)
+      const pushRes = await fetch(pushUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-newspal-key': automation.site_api_key,
+        },
+        body: JSON.stringify({ articles: batch }),
       })
+
+      const data = await pushRes.json().catch(() => ({}))
+
+      if (!pushRes.ok) {
+        console.error(`[push-articles] Batch ${i / BATCH_SIZE + 1} failed: ${pushRes.status}`)
+        return res.status(200).json({
+          success: false,
+          error: `Site returned ${pushRes.status} on batch ${Math.floor(i / BATCH_SIZE) + 1}`,
+          pushed: totalReceived,
+        })
+      }
+
+      totalReceived += data.received || batch.length
+      totalOnSite = data.total || totalOnSite
     }
 
     return res.status(200).json({
       success: true,
-      pushed: data.received || publishedArticles.length,
-      total: data.total || 0,
+      pushed: totalReceived,
+      total: totalOnSite,
     })
   } catch (error) {
     console.error('[push-articles] Error:', error.message)

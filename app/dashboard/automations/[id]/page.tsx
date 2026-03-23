@@ -809,7 +809,7 @@ export default function AutomationEditPage() {
                 onClick={async () => {
                   setRunningPipeline(true)
                   try {
-                    const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true }) })
+                    const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true }) })
                     const data = await res.json()
                     const result = data.automations?.find((a: any) => a.automation_id === id)
                     if (result?.rewritten > 0 || result?.pending > 0) {
@@ -831,7 +831,7 @@ export default function AutomationEditPage() {
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors disabled:opacity-50"
               >
                 <Loader2 className={`w-3 h-3 ${runningPipeline ? 'animate-spin' : ''}`} />
-                {runningPipeline ? 'Fetching & rewriting articles — this takes about 1 min...' : 'Fetch articles'}
+                {runningPipeline ? 'Fetching & rewriting articles — this takes about 3-4 min...' : 'Fetch articles'}
               </button>
               <button
                 onClick={() => loadArticles()}
@@ -886,7 +886,7 @@ export default function AutomationEditPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-indigo-900">Fetching and rewriting articles...</p>
-                <p className="text-xs text-indigo-600 mt-0.5">AI is selecting, filtering, and rewriting articles in your style. This usually takes about 1 minute.</p>
+                <p className="text-xs text-indigo-600 mt-0.5">AI is selecting, filtering, and rewriting articles in your style. This usually takes about 3-4 minutes.</p>
               </div>
             </div>
           )}
@@ -1061,7 +1061,7 @@ export default function AutomationEditPage() {
                     </span>
                   )}
                   {rewritingArticleIds.has(article.id) ? (
-                    <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 cursor-help" title="AI is rewriting this article — this usually takes about 1 minute">
+                    <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 cursor-help" title="AI is rewriting this article — this usually takes about 3-4 minutes">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       Rewriting...
                     </span>
@@ -1864,7 +1864,7 @@ export default function AutomationEditPage() {
               // Auto-fetch articles after saving content settings
               setRunningPipeline(true)
               try {
-                const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true }) })
+                const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true }) })
                 const data = await res.json()
                 const result = data.automations?.find((a: any) => a.automation_id === id)
                 if (result?.rewritten > 0 || result?.pending > 0) {
@@ -2633,7 +2633,7 @@ const { articles } = await res.json();
                 // Auto-trigger pipeline after activation
                 setRunningPipeline(true)
                 try {
-                  const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true }) })
+                  const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true }) })
                   const data = await res.json()
                   const result = data.automations?.find((a: any) => a.automation_id === id)
                   if (result?.rewritten > 0) {

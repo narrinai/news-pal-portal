@@ -16,6 +16,8 @@ export default async function handler(req, res) {
 
   // Manual trigger from dashboard bypasses hour/frequency checks
   const force = req.body?.force === true || req.query?.force === 'true'
+  // fetchOnly: only fetch and save pipeline candidates, don't auto-schedule or rewrite
+  const fetchOnly = req.body?.fetchOnly === true
 
   try {
     // Step 1: Get all enabled automations
@@ -231,10 +233,10 @@ export default async function handler(req, res) {
       const pipelineSize = Math.max(30, maxArticles * 5)
       const allCandidates = ranked.slice(0, pipelineSize)
       console.log(`[AUTO-PIPELINE] [${automation.name}] ${ranked.length} total after ranking, taking ${allCandidates.length} candidates (pipeline size ${pipelineSize})`)
-      // Auto-schedule: only the top `maxArticles` get rewritten and scheduled
-      const toAutoSchedule = allCandidates.slice(0, maxArticles)
+      // Auto-schedule: only the top `maxArticles` get rewritten and scheduled (unless fetchOnly)
+      const toAutoSchedule = fetchOnly ? [] : allCandidates.slice(0, maxArticles)
       // The rest are saved as pending (pipeline candidates)
-      const toPending = allCandidates.slice(maxArticles)
+      const toPending = fetchOnly ? allCandidates : allCandidates.slice(maxArticles)
 
       console.log(`[AUTO-PIPELINE] [${automation.name}] ${allCandidates.length} candidates: ${toAutoSchedule.length} to auto-schedule, ${toPending.length} as pending`)
 

@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { automation_id } = req.body
+  const { automation_id, article_ids } = req.body
 
   if (!automation_id) {
     return res.status(400).json({ error: 'Missing automation_id' })
@@ -21,10 +21,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: false, error: 'No Replit site configured' })
     }
 
-    // Get all published articles for this automation
+    // Get published articles — optionally filtered to specific IDs
     const allArticles = await getArticles()
+    const idsFilter = article_ids && Array.isArray(article_ids) ? new Set(article_ids) : null
     const publishedArticles = allArticles
       .filter(a => a.automation_id === automation_id && a.status === 'published')
+      .filter(a => idsFilter ? idsFilter.has(a.id) : true)
       .map(a => ({
         id: a.id,
         slug: (a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),

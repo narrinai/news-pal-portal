@@ -94,6 +94,46 @@ export default function AutomationEditPage() {
 
   const id = params?.id as string
 
+  // Auto-publish scheduled articles whose time has passed
+  const autoPublishDue = useCallback(async (articleList: Article[]) => {
+    const now = new Date()
+    const due = articleList.filter(a => a.status === 'selected' && a.publishedAt && new Date(a.publishedAt) <= now)
+    if (due.length === 0) return
+
+    for (const article of due) {
+      try {
+        await fetch(`/api/articles/${article.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'published' }),
+        })
+        console.log(`[auto-publish] Published: ${article.title}`)
+      } catch (err) {
+        console.error(`[auto-publish] Failed: ${article.title}`, err)
+      }
+    }
+
+    // Push only the newly published articles to site
+    const dueIds = due.map(a => a.id)
+    if (automation?.site_platform === 'replit' && automation?.site_api_key && automation?.site_url) {
+      try {
+        await fetch('/api/sites/push-articles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ automation_id: id, article_ids: dueIds }),
+        })
+      } catch { /* silent */ }
+    }
+    if (automation?.deploy_webhook_url) {
+      try { await fetch(automation.deploy_webhook_url, { method: 'POST' }) } catch { /* silent */ }
+    }
+
+    if (due.length > 0) {
+      showNotification({ type: 'success', title: `${due.length} article(s) auto-published`, message: 'Scheduled articles whose time arrived have been published', duration: 4000 })
+      loadArticles()
+    }
+  }, [id, automation])
+
   useEffect(() => {
     if (id) {
       loadAutomation()
@@ -178,13 +218,14 @@ export default function AutomationEditPage() {
       if (res.ok) {
         const data = await res.json()
         if (append) {
-          // Append only new published articles (avoid duplicating scheduled/pending)
           const existingIds = new Set(articles.map(a => a.id))
           const newArticles = data.articles.filter((a: Article) => !existingIds.has(a.id))
           setArticles(prev => [...prev, ...newArticles])
         } else {
           setArticles(data.articles)
           setPublishedOffset(0)
+          // Auto-publish any scheduled articles whose time has passed
+          autoPublishDue(data.articles)
         }
         setArticleCounts(data.counts)
         setHasMorePublished(data.pagination?.hasMore || false)
@@ -1125,13 +1166,13 @@ export default function AutomationEditPage() {
                             showNotification({ type: 'success', title: 'Published', message: `"${article.title}" is now published` })
                             setPublishedBanner({ title: article.title, siteUrl: automation.site_url || undefined })
                             loadArticles()
-                            // Push to connected site immediately
+                            // Push only this article to connected site
                             if (automation.site_platform === 'replit' && automation.site_api_key && automation.site_url) {
                               try {
                                 const pushRes = await fetch('/api/sites/push-articles', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ automation_id: id }),
+                                  body: JSON.stringify({ automation_id: id, article_ids: [article.id] }),
                                 })
                                 const pushData = await pushRes.json()
                                 if (pushData.success) {

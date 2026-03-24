@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Save, Info, ToggleLeft, ToggleRight, Plus, Trash2, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Save, Info, Plus, Trash2, ExternalLink } from 'lucide-react'
 
 interface UrlRule {
   keyword: string
@@ -20,7 +20,9 @@ interface AiSettings {
   include_quotes: boolean
   // SEO enhancements
   internal_links: string       // free text describing internal link strategy
+  max_internal_links: number   // max internal links per article
   url_rules: UrlRule[]         // keyword → always link to URL
+  max_url_rules: number        // max keyword→url links per article
   custom_instructions: string  // free-form extra prompt instructions
 }
 
@@ -32,7 +34,9 @@ const defaultSettings: AiSettings = {
   include_sources: true,
   include_quotes: true,
   internal_links: '',
+  max_internal_links: 2,
   url_rules: [],
+  max_url_rules: 2,
   custom_instructions: '',
 }
 
@@ -169,10 +173,13 @@ export default function AutomationSettingsPage() {
               const enabled = settings[f.key as keyof AiSettings] as boolean
               return (
                 <div key={f.key} className="flex items-start gap-4">
-                  <button onClick={() => toggle(f.key as keyof AiSettings)} className="mt-0.5 shrink-0">
-                    {enabled
-                      ? <ToggleRight size={24} className="text-indigo-600" />
-                      : <ToggleLeft size={24} className="text-slate-300" />}
+                  <button
+                    onClick={() => toggle(f.key as keyof AiSettings)}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors shrink-0 mt-0.5 ${enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                    role="switch"
+                    aria-checked={enabled}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                   <div>
                     <p className="text-sm font-medium text-slate-800">{f.label}</p>
@@ -200,9 +207,21 @@ export default function AutomationSettingsPage() {
             placeholder={SEO_TIPS[0].placeholder}
             className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
           />
-          <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-            <Info size={11} /> One rule per line. Use relative paths (/page) or full URLs.
-          </p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-slate-400 flex items-center gap-1">
+              <Info size={11} /> One rule per line. Use relative paths (/page) or full URLs.
+            </p>
+            <label className="flex items-center gap-2 text-xs text-slate-500 shrink-0">
+              Max per article
+              <select
+                value={settings.max_internal_links}
+                onChange={e => setSettings(s => ({ ...s, max_internal_links: Number(e.target.value) }))}
+                className="border border-slate-200 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+          </div>
         </section>
 
         {/* URL rules */}
@@ -253,13 +272,25 @@ export default function AutomationSettingsPage() {
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
-          <button
-            onClick={addUrlRule}
-            disabled={!newRule.keyword || !newRule.url}
-            className="mt-2 flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-40 font-medium"
-          >
-            <Plus size={14} /> Add rule
-          </button>
+          <div className="mt-2 flex items-center justify-between">
+            <button
+              onClick={addUrlRule}
+              disabled={!newRule.keyword || !newRule.url}
+              className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-40 font-medium"
+            >
+              <Plus size={14} /> Add rule
+            </button>
+            <label className="flex items-center gap-2 text-xs text-slate-500">
+              Max per article
+              <select
+                value={settings.max_url_rules}
+                onChange={e => setSettings(s => ({ ...s, max_url_rules: Number(e.target.value) }))}
+                className="border border-slate-200 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+          </div>
         </section>
 
         {/* Custom AI instructions */}

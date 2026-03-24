@@ -6,6 +6,7 @@ export default async function handler(req, res) {
   }
 
   const { automation_id, article_ids } = req.body
+  console.log(`[push-articles] Called — automation_id: ${automation_id}, article_ids: ${JSON.stringify(article_ids)}`)
 
   if (!automation_id) {
     return res.status(400).json({ error: 'Missing automation_id' })
@@ -17,23 +18,41 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Automation not found' })
     }
 
-    if (!automation.site_url || !automation.site_api_key || automation.site_platform !== 'replit') {
-      return res.status(200).json({ success: false, error: 'No Replit site configured' })
+    if (!automation.site_url || !automation.site_api_key) {
+      return res.status(200).json({ success: false, error: 'No site URL or API key configured' })
+    }
+    // WordPress and HubSpot use their own publish APIs — not this push mechanism
+    if (automation.site_platform === 'wordpress' || automation.site_platform === 'hubspot') {
+      return res.status(200).json({ success: false, error: 'Use the WordPress/HubSpot publish flow instead' })
     }
 
     // Get published articles — optionally filtered to specific IDs
     const allArticles = await getArticles()
     const idsFilter = article_ids && Array.isArray(article_ids) ? new Set(article_ids) : null
+    // Derive site category from the site_url path segment
+    // e.g. https://repricing.de/news/retail → "Retail"
+    // This ensures pushed articles appear under the correct section on the site
+    const siteUrlPath = (() => { try { return new URL(automation.site_url).pathname } catch { return '' } })()
+    const lastSegment = siteUrlPath.split('/').filter(Boolean).pop()
+    const primaryCategory = lastSegment
+      ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1)
+      : (automation.categories ? automation.categories.split(',')[0].trim() : undefined)
     const publishedArticles = allArticles
-      .filter(a => a.automation_id === automation_id && a.status === 'published')
-      .filter(a => idsFilter ? idsFilter.has(a.id) : true)
+      .filter(a => {
+        if (idsFilter) {
+          // Specific article push: match by ID only — automation_id may be unset on older articles
+          return idsFilter.has(a.id)
+        }
+        // Full sync: require both automation_id match and published status
+        return a.automation_id === automation_id && a.status === 'published'
+      })
       .map(a => ({
         id: a.id,
         slug: (a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
         title: a.title,
         description: (a.description || '').replace(/<[^>]+>/g, '').substring(0, 200).trim() + ((a.description || '').length > 200 ? '...' : ''),
         content_html: a.content_html || a.content_rewritten || `<p>${(a.description || '').replace(/<[^>]+>/g, '')}</p>`,
-        category: a.topic || a.category,
+        category: primaryCategory || a.topic || a.category,
         source: a.source,
         sourceUrl: a.url,
         imageUrl: a.imageUrl || `https://placehold.co/1200x630/4f46e5/ffffff?text=${encodeURIComponent((a.title || 'Article').substring(0, 30))}`,
@@ -49,6 +68,7 @@ export default async function handler(req, res) {
     const targetUrl = automation.replit_url || automation.site_url
     const origin = new URL(targetUrl).origin
     const pushUrl = `${origin}/newspal/receive`
+    console.log(`[push-articles] Pushing ${publishedArticles.length} article(s) to ${pushUrl} with key ${automation.site_api_key?.slice(0, 10)}...`)
 
     // Push in batches of 3 to avoid 413 Payload Too Large
     const BATCH_SIZE = 3
@@ -67,6 +87,7 @@ export default async function handler(req, res) {
       })
 
       const data = await pushRes.json().catch(() => ({}))
+      console.log(`[push-articles] Response: ${pushRes.status}`, JSON.stringify(data).slice(0, 200))
 
       if (!pushRes.ok) {
         console.error(`[push-articles] Batch ${i / BATCH_SIZE + 1} failed: ${pushRes.status}`)
@@ -77,7 +98,7 @@ export default async function handler(req, res) {
         })
       }
 
-      totalReceived += data.received || batch.length
+      totalReceived += data.received ?? batch.length
       totalOnSite = data.total || totalOnSite
     }
 

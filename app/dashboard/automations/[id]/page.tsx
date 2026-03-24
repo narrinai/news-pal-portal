@@ -59,6 +59,13 @@ interface Article {
   description?: string
 }
 
+// Any platform that uses the /newspal/receive push mechanism (not WordPress or HubSpot which have their own APIs)
+function usesPushMechanism(automation: Automation | null): boolean {
+  if (!automation?.site_url) return false
+  const platform = automation.site_platform
+  return platform === 'replit' || platform === 'other' || !platform
+}
+
 export default function AutomationEditPage() {
   const params = useParams()
   const router = useRouter()
@@ -92,7 +99,10 @@ export default function AutomationEditPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [showAllPending, setShowAllPending] = useState(false)
   const [publishedBanner, setPublishedBanner] = useState<{ title: string; siteUrl?: string } | null>(null)
+  const [autoSaving, setAutoSaving] = useState(false)
   const [rewritingArticleIds, setRewritingArticleIds] = useState<Set<string>>(new Set())
+  const [pushingToSiteIds, setPushingToSiteIds] = useState<Set<string>>(new Set())
+  const [syncingAll, setSyncingAll] = useState(false)
 
   const id = params?.id as string
 
@@ -107,7 +117,7 @@ export default function AutomationEditPage() {
         await fetch(`/api/articles/${article.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'published' }),
+          body: JSON.stringify({ status: 'published', automation_id: id }),
         })
         console.log(`[auto-publish] Published: ${article.title}`)
       } catch (err) {
@@ -117,14 +127,20 @@ export default function AutomationEditPage() {
 
     // Push only the newly published articles to site
     const dueIds = due.map(a => a.id)
-    if (automation?.site_platform === 'replit' && automation?.site_api_key && automation?.site_url) {
+    if (usesPushMechanism(automation)) {
       try {
-        await fetch('/api/sites/push-articles', {
+        const pushRes = await fetch('/api/sites/push-articles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ automation_id: id, article_ids: dueIds }),
         })
-      } catch { /* silent */ }
+        const pushData = await pushRes.json().catch(() => ({}))
+        if (!pushData.success) {
+          showNotification({ type: 'error', title: 'Push to site failed', message: pushData.error || 'Could not reach your Replit site. Use "Sync all to site" to retry.' })
+        }
+      } catch {
+        showNotification({ type: 'error', title: 'Push to site failed', message: 'Network error. Use "Sync all to site" to retry.' })
+      }
     }
     if (automation?.site_platform === 'hubspot' && automation?.site_api_key) {
       for (const article of due) {
@@ -222,6 +238,10 @@ export default function AutomationEditPage() {
         if (data.site_platform) {
           setExpandedGuide(data.site_platform)
         }
+        // Show setup expanded only if site is not yet configured
+        if (!data.site_url) {
+          setShowSetup(true)
+        }
       } else {
         showNotification({ type: 'error', title: 'Not found', message: 'Automation not found' })
         router.push('/dashboard/automations')
@@ -272,6 +292,15 @@ export default function AutomationEditPage() {
           setPublishedOffset(0)
           // Auto-publish any scheduled articles whose time has passed
           autoPublishDue(data.articles)
+          // Silently fix any published articles missing automation_id
+          const unlinked = data.articles.filter((a: Article) => a.status === 'published' && !(a as any).automation_id)
+          for (const a of unlinked) {
+            fetch(`/api/articles/${a.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ automation_id: id }),
+            }).catch(() => {})
+          }
         }
         setArticleCounts(data.counts)
         setHasMorePublished(data.pagination?.hasMore || false)
@@ -572,10 +601,10 @@ export default function AutomationEditPage() {
       if (res.ok) {
         if (!silent) {
           showNotification({ type: 'success', title: 'Saved', message: 'Automation settings saved', duration: 3000 })
-          window.scrollTo({ top: 0, behavior: 'smooth' })
         }
       } else {
-        showNotification({ type: 'error', title: 'Save failed', message: 'Could not save automation' })
+        const errData = await res.json().catch(() => ({}))
+        showNotification({ type: 'error', title: 'Save failed', message: errData.error || `HTTP ${res.status}` })
       }
     } catch {
       showNotification({ type: 'error', title: 'Network error', message: 'Could not connect to server' })
@@ -620,6 +649,7 @@ export default function AutomationEditPage() {
 
   const autoSave = useCallback(() => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    setAutoSaving(true)
     autoSaveTimer.current = setTimeout(async () => {
       const current = automationRef.current
       if (!current) return
@@ -630,11 +660,12 @@ export default function AutomationEditPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(fields),
         })
-        console.log('[auto-save] saved')
       } catch (err) {
         console.error('[auto-save] failed:', err)
+      } finally {
+        setAutoSaving(false)
       }
-    }, 1500)
+    }, 800)
   }, [id])
 
   const update = (key: keyof Automation, value: any) => {
@@ -832,13 +863,9 @@ export default function AutomationEditPage() {
           <Settings className="w-4 h-4" />
           AI Settings
         </button>
-        <button
-          onClick={() => save()}
-          disabled={saving}
-          className="inline-flex items-center px-4 py-1.5 bg-indigo-600 text-white hover:bg-white hover:text-indigo-600 border border-indigo-600 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shrink-0"
-        >
-          {saving ? 'Saving...' : 'Save Settings'}
-        </button>
+        {autoSaving && (
+          <span className="text-xs text-slate-400 shrink-0">Saving...</span>
+        )}
         <button
           onClick={handleDelete}
           className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
@@ -847,6 +874,20 @@ export default function AutomationEditPage() {
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Global pipeline banner — visible regardless of configured state */}
+      {runningPipeline && (
+        <div className="mb-5 p-4 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-indigo-900">Fetching and rewriting articles...</p>
+            <p className="text-xs text-indigo-600 mt-0.5">AI is selecting, filtering, and rewriting articles in your style. This usually takes 3–4 minutes.</p>
+          </div>
+          <div className="w-full max-w-xs h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+            <div className="h-full bg-indigo-500 rounded-full animate-pulse w-2/3" />
+          </div>
+        </div>
+      )}
 
       <div className="space-y-5">
         {/* Articles overview — only shown prominently when configured (pipeline mode) */}
@@ -932,18 +973,6 @@ export default function AutomationEditPage() {
             </div>
           )}
 
-          {/* Pipeline running indicator */}
-          {runningPipeline && (
-            <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center gap-3">
-              <div className="relative shrink-0">
-                <div className="w-8 h-8 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-indigo-900">Fetching and rewriting articles...</p>
-                <p className="text-xs text-indigo-600 mt-0.5">AI is selecting, filtering, and rewriting articles in your style. This usually takes about 3-4 minutes.</p>
-              </div>
-            </div>
-          )}
 
           {/* Summary strip */}
           <div className="flex items-center justify-between gap-4 text-xs text-slate-500 mb-4 pb-3 border-b border-slate-100">
@@ -1132,6 +1161,39 @@ export default function AutomationEditPage() {
                       View
                     </a>
                   )}
+                  {article.status === 'published' && usesPushMechanism(automation) && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        setPushingToSiteIds(prev => new Set([...prev, article.id]))
+                        try {
+                          const res = await fetch('/api/sites/push-articles', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ automation_id: id, article_ids: [article.id] }),
+                          })
+                          const data = await res.json()
+                          if (data.success && data.pushed > 0) {
+                            showNotification({ type: 'success', title: 'Pushed to site', message: `${data.pushed} article(s) pushed to your site`, duration: 3000 })
+                          } else if (data.success && data.pushed === 0) {
+                            showNotification({ type: 'error', title: 'Not pushed', message: 'Article not found — save the automation first and try again', duration: 5000 })
+                          } else {
+                            showNotification({ type: 'error', title: 'Push failed', message: data.error || 'Could not reach your site' })
+                          }
+                        } catch {
+                          showNotification({ type: 'error', title: 'Push failed', message: 'Network error' })
+                        } finally {
+                          setPushingToSiteIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
+                        }
+                      }}
+                      disabled={pushingToSiteIds.has(article.id)}
+                      className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors disabled:opacity-50"
+                      title="Re-push to Replit site"
+                    >
+                      {pushingToSiteIds.has(article.id) ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <ArrowRightLeft className="w-2.5 h-2.5" />}
+                      Push
+                    </button>
+                  )}
                   <div className="shrink-0 flex items-center gap-0.5">
                     {(article.status === 'selected' || article.status === 'published' || article.status === 'rewritten') && (
                       <a
@@ -1226,7 +1288,7 @@ export default function AutomationEditPage() {
                             await fetch(`/api/articles/${article.id}`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ status: 'published' }),
+                              body: JSON.stringify({ status: 'published', automation_id: id }),
                             })
                             setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
                             showNotification({ type: 'success', title: 'Published', message: `"${article.title}" is now published` })
@@ -1261,7 +1323,7 @@ export default function AutomationEditPage() {
                                 })
                                 const hsData = await hsRes.json()
                                 if (hsData.success) {
-                                  showNotification({ type: 'success', title: 'Gepubliceerd in HubSpot', message: hsData.message, duration: 3000 })
+                                  showNotification({ type: 'success', title: 'Published to HubSpot', message: hsData.message, duration: 3000 })
                                 }
                               } catch { /* silent — non-critical */ }
                             }
@@ -1287,7 +1349,7 @@ export default function AutomationEditPage() {
                                   })
                                   const wpData = await wpRes.json()
                                   if (wpData.success) {
-                                    showNotification({ type: 'success', title: 'Gepubliceerd op WordPress', message: wpData.message, duration: 3000 })
+                                    showNotification({ type: 'success', title: 'Published to WordPress', message: wpData.message, duration: 3000 })
                                   }
                                 } catch { /* silent — non-critical */ }
                               }
@@ -1435,9 +1497,51 @@ export default function AutomationEditPage() {
                 )}
                 {published.length > 0 && (
                   <div className="mt-5">
-                    <p className="text-[11px] font-semibold text-emerald-500 uppercase tracking-wide mb-1.5 px-1">
-                      Published ({published.length})
-                    </p>
+                    <div className="flex items-center justify-between mb-1.5 px-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[11px] font-semibold text-emerald-500 uppercase tracking-wide">
+                          Published ({published.length})
+                        </p>
+                        <a
+                          href={`/api/articles/public?automation_id=${id}&limit=5`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-slate-400 hover:text-slate-600 underline"
+                          title="Check what articles the public API returns for this automation"
+                        >
+                          check API
+                        </a>
+                      </div>
+                      {usesPushMechanism(automation) && (
+                        <button
+                          onClick={async () => {
+                            setSyncingAll(true)
+                            try {
+                              const res = await fetch('/api/sites/push-articles', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ automation_id: id }),
+                              })
+                              const data = await res.json()
+                              if (data.success) {
+                                showNotification({ type: 'success', title: 'Synced to site', message: `${data.pushed || 0} article(s) pushed to your Replit site`, duration: 4000 })
+                              } else {
+                                showNotification({ type: 'error', title: 'Sync failed', message: data.error || 'Could not reach your site' })
+                              }
+                            } catch {
+                              showNotification({ type: 'error', title: 'Sync failed', message: 'Network error' })
+                            } finally {
+                              setSyncingAll(false)
+                            }
+                          }}
+                          disabled={syncingAll}
+                          className="inline-flex items-center gap-1 text-[10px] font-medium text-orange-600 hover:text-orange-700 disabled:opacity-50"
+                        >
+                          {syncingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRightLeft className="w-3 h-3" />}
+                          Sync all to site
+                        </button>
+                      )}
+                    </div>
                     {published.map((a, i, arr) => (
                       <div key={a.id} className={i < arr.length - 1 ? 'border-b border-slate-100' : ''}>
                         {renderArticleRow(a, false)}
@@ -1647,7 +1751,7 @@ export default function AutomationEditPage() {
                     <Tag className="w-3.5 h-3.5 text-indigo-500" />
                     <span className="text-xs font-medium text-slate-600">Detected tags</span>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-0.5 ml-5">Worden gebruikt als WordPress/HubSpot tags en voor het filteren van relevante artikelen</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5 ml-5">Used as tags and for filtering relevant articles</p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {getTags().map((tag) => (
@@ -1660,8 +1764,8 @@ export default function AutomationEditPage() {
                   ))}
                   <button
                     onClick={async () => {
-                      const input = await showPrompt({ title: 'Add tag', message: 'Enter a topic tag:', promptPlaceholder: 'tag name', confirmText: 'Add', cancelText: 'Cancel' })
-                      if (input) addTag(input)
+                      const input = await showPrompt({ title: 'Add tag', message: 'Enter one or more topic tags, separated by commas:', promptPlaceholder: 'e.g. pricing, ecommerce, retail', confirmText: 'Add', cancelText: 'Cancel' })
+                      if (input) input.split(',').forEach(t => addTag(t.trim()))
                     }}
                     className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 rounded-full px-3 py-1 text-xs font-medium transition-colors"
                   >
@@ -1679,7 +1783,7 @@ export default function AutomationEditPage() {
                     <Users className="w-3.5 h-3.5 text-violet-500" />
                     <span className="text-xs font-medium text-slate-600">Target audience</span>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-0.5 ml-5">De AI schrijft artikelen specifiek gericht op deze doelgroepen</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5 ml-5">The AI writes articles specifically targeted at these audiences</p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {getAudience().map((segment) => (
@@ -1976,38 +2080,11 @@ export default function AutomationEditPage() {
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-full bg-indigo-900 text-white flex items-center justify-center text-xs font-bold shrink-0">5</div>
           <button
-            onClick={async () => {
-              await save()
-              // Auto-enable if not yet enabled
-              if (!automation.enabled) {
-                setAutomation(prev => prev ? { ...prev, enabled: true } : prev)
-                await save({ enabled: true })
-              }
-              // Auto-fetch articles after saving content settings
-              setRunningPipeline(true)
-              try {
-                const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true }) })
-                const data = await res.json()
-                const result = data.automations?.find((a: any) => a.automation_id === id)
-                if (result?.rewritten > 0 || result?.pending > 0) {
-                  const parts: string[] = []
-                  if (result.rewritten > 0) parts.push(`${result.rewritten} scheduled`)
-                  if (result.pending > 0) parts.push(`${result.pending} in pipeline`)
-                  showNotification({ type: 'success', title: 'Articles fetched', message: parts.join(', '), duration: 4000 })
-                } else {
-                  showNotification({ type: 'warning', title: 'No articles found', message: result?.message || 'Try adding more feeds or broader keywords', duration: 4000 })
-                }
-                loadArticles()
-              } catch {
-                showNotification({ type: 'error', title: 'Error', message: 'Pipeline failed' })
-              } finally {
-                setRunningPipeline(false)
-              }
-            }}
-            disabled={saving || runningPipeline}
+            onClick={() => save()}
+            disabled={saving}
             className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 shadow-sm"
           >
-            {saving ? 'Saving...' : runningPipeline ? <><Loader2 className="w-4 h-4 animate-spin" />Fetching articles...</> : 'Save & Fetch Articles'}
+            {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
 
@@ -2015,19 +2092,22 @@ export default function AutomationEditPage() {
           )}
         </div>
 
-        {/* Section 5: Connected Site — shown in setup mode, or when showSetup toggled */}
-        {(!isConfigured || showSetup) && (
+        {/* Section 5: Connected Site — always shown, collapsed when configured */}
         <div className="bg-white rounded-lg border border-slate-200 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Link className="w-4 h-4 text-indigo-500" />
-            <h3 className="text-sm font-semibold text-slate-900">Publish to your website</h3>
-            {automation.site_platform && automation.site_url && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <button
+            onClick={() => setShowSetup(s => !s)}
+            className="w-full flex items-center gap-2 text-left"
+          >
+            <ChevronRight className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${showSetup ? 'rotate-90' : ''}`} />
+            <h3 className="text-sm font-semibold text-slate-900 flex-1">Publish to your website</h3>
+            {automation.site_platform && automation.site_url && !showSetup && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 {automation.site_url.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}
               </span>
             )}
-          </div>
+          </button>
+          {showSetup && <div className="mt-4">
 
           <div className="space-y-5">
             {/* Step 1: Your site */}
@@ -2077,7 +2157,7 @@ export default function AutomationEditPage() {
                   { key: 'netlify', label: 'Netlify', desc: 'Static sites & SSG', logo: '/images/platforms/netlify.png' },
                   { key: 'wordpress', label: 'WordPress', desc: 'Blog & CMS', logo: '/images/platforms/wordpress.png' },
                   { key: 'replit', label: 'Replit', desc: 'Hosted web apps', logo: '/images/platforms/replit.png' },
-                  { key: 'hubspot', label: 'HubSpot', desc: 'CMS & Blog', logo: null, hubspot: true },
+                  { key: 'hubspot', label: 'HubSpot', desc: 'CMS & Blog', logo: '/images/platforms/hubspot.svg' },
                   { key: 'other', label: 'Other', desc: 'Any website', logo: null },
                 ].map((p) => (
                   <button
@@ -2216,7 +2296,7 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                 const hasCredentials = !!(automation.site_url && wpUser && wpPass)
                 return (
                 <div className="ml-7 mt-3 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
-                  <p className="text-xs text-slate-600 mb-3">News Pal publiceert artikelen <strong>direct als native WordPress blogposts</strong> — geen plugin nodig. Alleen je WordPress URL en een Application Password invoeren.</p>
+                  <p className="text-xs text-slate-600 mb-3">News Pal publishes articles <strong>directly as native WordPress blog posts</strong> — no plugin needed. Just enter your WordPress URL and an Application Password.</p>
                   <div className="space-y-3">
 
                     {/* Step 1: Site URL */}
@@ -2227,12 +2307,12 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                         <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
                       )}
                       <div className="text-xs text-slate-600 flex-1">
-                        <p className="font-medium text-slate-700 mb-1.5">Vul je WordPress URL in</p>
+                        <p className="font-medium text-slate-700 mb-1.5">Enter your WordPress URL</p>
                         <input
                           type="url"
                           value={automation.site_url || ''}
                           onChange={e => update('site_url', e.target.value)}
-                          placeholder="https://jouwsite.nl"
+                          placeholder="https://yoursite.com"
                           className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-400"
                         />
                       </div>
@@ -2246,21 +2326,21 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                         <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
                       )}
                       <div className="text-xs text-slate-600 flex-1">
-                        <p className="font-medium text-slate-700 mb-0.5">Maak een Application Password aan</p>
-                        <p className="text-slate-400 mb-2">WordPress admin → <strong>Gebruikers → Profiel</strong> → scroll naar beneden naar <strong>Application Passwords</strong> → voer een naam in (bijv. "News Pal") en klik <strong>Nieuw wachtwoord toevoegen</strong>.</p>
+                        <p className="font-medium text-slate-700 mb-0.5">Create an Application Password</p>
+                        <p className="text-slate-400 mb-2">WordPress admin → <strong>Users → Profile</strong> → scroll down to <strong>Application Passwords</strong> → enter a name (e.g. "News Pal") and click <strong>Add New Application Password</strong>.</p>
                         <div className="space-y-1.5">
                           <input
                             type="text"
                             value={wpUser}
                             onChange={e => update('site_api_key', `${e.target.value}:${wpPass}`)}
-                            placeholder="WordPress gebruikersnaam"
+                            placeholder="WordPress username"
                             className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-400"
                           />
                           <input
                             type="password"
                             value={wpPass}
                             onChange={e => update('site_api_key', `${wpUser}:${e.target.value}`)}
-                            placeholder="Application Password (bijv. xxxx xxxx xxxx xxxx xxxx xxxx)"
+                            placeholder="Application Password (e.g. xxxx xxxx xxxx xxxx xxxx xxxx)"
                             className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-400 font-mono"
                           />
                         </div>
@@ -2275,11 +2355,11 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                         <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
                       )}
                       <div className="text-xs text-slate-600 flex-1">
-                        <p className="font-medium text-slate-700 mb-1.5">Test de verbinding</p>
+                        <p className="font-medium text-slate-700 mb-1.5">Test the connection</p>
                         <button
                           onClick={async () => {
                             if (!automation.site_url || !wpUser || !wpPass) {
-                              showNotification({ type: 'error', title: 'Velden ontbreken', message: 'Vul je WordPress URL, gebruikersnaam en Application Password in' })
+                              showNotification({ type: 'error', title: 'Missing fields', message: 'Please fill in your WordPress URL, username and Application Password' })
                               return
                             }
                             setTestingConnection(true)
@@ -2291,12 +2371,12 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                               })
                               const data = await res.json()
                               if (data.success) {
-                                showNotification({ type: 'success', title: 'Verbinding geslaagd', message: data.message, duration: 4000 })
+                                showNotification({ type: 'success', title: 'Connection successful', message: data.message, duration: 4000 })
                               } else {
-                                showNotification({ type: 'error', title: 'Verbinding mislukt', message: data.message })
+                                showNotification({ type: 'error', title: 'Connection failed', message: data.message })
                               }
                             } catch {
-                              showNotification({ type: 'error', title: 'Fout', message: 'Kon de verbinding niet testen' })
+                              showNotification({ type: 'error', title: 'Error', message: 'Could not test the connection' })
                             } finally {
                               setTestingConnection(false)
                             }
@@ -2305,14 +2385,14 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-50 transition-colors"
                         >
                           {testingConnection ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                          Test verbinding
+                          Test connection
                         </button>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 mt-1 ml-7">
                       <Check className="w-4 h-4 text-emerald-500" />
-                      <span className="text-xs font-medium text-emerald-700">Klaar! Sla op en artikelen worden automatisch als blogpost gepubliceerd in WordPress.</span>
+                      <span className="text-xs font-medium text-emerald-700">Done! Save settings and articles will be published automatically as WordPress blog posts.</span>
                     </div>
                   </div>
                 </div>
@@ -2375,14 +2455,14 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                         <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
                       )}
                       <div className="text-xs text-slate-600 flex-1">
-                        <p className="font-medium text-slate-700 mb-1.5">Enter your Replit app URL</p>
-                        <p className="mb-2">The URL of your running Replit project — find it in the Replit webview.</p>
+                        <p className="font-medium text-slate-700 mb-1.5">Enter your Replit deployment URL</p>
+                        <p className="mb-2">In Replit, go to your project → <strong>Overview tab</strong> → copy the URL under <strong>Domain</strong> (e.g. <code className="bg-orange-100 px-1 rounded">https://pricing-pulse-news.replit.app</code>). Do <strong>not</strong> use the editor URL (<code className="bg-slate-100 px-1 rounded">replit.com/@...</code>).</p>
                         <input
                           type="url"
                           value={automation.replit_url || ''}
                           onChange={e => update('replit_url', e.target.value)}
                           onBlur={() => save({ replit_url: automation.replit_url }, true)}
-                          placeholder="https://your-project.username.repl.co"
+                          placeholder="https://your-project.replit.app"
                           className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-300"
                         />
                       </div>
@@ -2393,17 +2473,21 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                         <p className="font-medium text-slate-700 mb-1.5">Copy this prompt and paste it in Replit AI</p>
                         <p className="mb-1.5">Open your Replit project, open the AI chat, and paste this prompt. It will set everything up for you.</p>
                         {(() => {
+                            const siteUrl = automation.site_url || ''
+                            const sitePath = (() => { try { return new URL(siteUrl).pathname.replace(/\/$/, '') || '/news' } catch { return '/news' } })()
+                            const slugPath = `${sitePath}/:slug`
+                            const lastSegment = sitePath.split('/').filter(Boolean).pop() || 'news'
                             const prompt = `Add a News Pal integration to my project. This receives articles via a POST endpoint and serves them as pages on my site, matching my site's existing design.
 
 ## How it works
-News Pal pushes articles to your site daily via POST. Your site stores them and serves them as pages.
+News Pal pushes articles to your site daily via POST from an external server. Your site stores them and serves them as pages.
 
 ## Requirements
-- Create a file called newspal.js that exports a function taking an Express app
-- POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against process.env.NEWSPAL_API_KEY. Store articles in a JSON file (newspal-articles.json). Deduplicate by slug. Return { success, received, total }.
-- GET /news — renders an article listing page with cards (image, category badge, title linking to /news/:slug, description, date). Style it to match the existing site design.
-- GET /news/:slug — renders a full article detail page with title, subtitle, meta info, image, HTML content, and FAQ section (collapsible). Style it to match the existing site.
-- In my main server file, add: app.use(express.json()); require('./newspal')(app);
+- Create a file called newspal.ts that exports a function: export function registerNewspal(app: Express) { ... }
+- POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against process.env.NEWSPAL_API_KEY. Store articles in a PostgreSQL database table called newspal_articles (use Replit's built-in PostgreSQL). Deduplicate by slug using INSERT ... ON CONFLICT (slug) DO UPDATE to always update existing articles with new data. Return { success, received, total }.
+- GET ${sitePath} — renders an article listing page with cards (image, category badge, title linking to ${slugPath}, description, date). Style it to match the existing site design.
+- GET ${slugPath} — renders a full article detail page with title, subtitle, meta info, image, HTML content, and FAQ section (collapsible). Style it to match the existing site.
+- In the main server file, add a standard TypeScript import at the top: import { registerNewspal } from "./newspal"; and call registerNewspal(app) BEFORE app.use(helmet()) and BEFORE any CORS or security middleware — this is critical to avoid 403 errors from external pushes. Do NOT use require() — the production build bundles with esbuild and require is not available at runtime.
 - Add NEWSPAL_API_KEY to my Replit Secrets with value: ${automation.site_api_key || '(generate key in News Pal first)'}
 
 ## Article data format
@@ -2413,7 +2497,7 @@ Each article object has these fields:
   "title": "Article title",
   "description": "Short summary",
   "content_html": "<section class=\\"content-section\\">...</section>",
-  "category": "${categoryMeta[automation.categories]?.label || automation.categories || 'your-category'}",
+  "category": "${lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : 'News'}",
   "source": "Original Source",
   "sourceUrl": "https://original-url.com",
   "imageUrl": "https://...",
@@ -2426,8 +2510,9 @@ Each article object has these fields:
 - The content_html is already formatted with <section>, <h2>, <p>, <ul> tags — render it directly
 - If faq exists, parse the JSON string and render as collapsible Q&A items
 - All pages must match my existing site's design (fonts, colors, layout, spacing)
-- Do NOT add CSRF protection, referrer checks, or origin validation to /newspal/receive — it uses x-newspal-key for authentication instead
-- Do NOT use helmet() or any middleware that validates Referer/Origin headers on this route`
+- CRITICAL: Do NOT add CSRF protection, referrer checks, origin validation, or cors() restrictions to /newspal/receive — it comes from an external server and uses x-newspal-key for auth
+- CRITICAL: Register registerNewspal(app) as the FIRST middleware in your main server, before helmet(), cors(), and any other app.use() middleware — otherwise helmet/cors will return 403 for external requests
+- Do NOT use helmet() or any security middleware on this route`
                             return <>
                               <button
                                 onClick={() => {
@@ -2449,26 +2534,28 @@ Each article object has these fields:
                         <details className="mt-2">
                           <summary className="text-[11px] text-slate-400 cursor-pointer hover:text-slate-600">View the code manually</summary>
                           <div className="mt-2 relative">
-                            <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto max-h-48 overflow-y-auto"><code id="replit-snippet-code">{`// newspal.js — News Pal auto-publish receiver
-const fs = require('fs');
-const path = require('path');
-const DATA_FILE = path.join(__dirname, 'newspal-articles.json');
+                            <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto max-h-48 overflow-y-auto"><code id="replit-snippet-code">{`// newspal.ts — News Pal auto-publish receiver
+import fs from 'fs';
+import path from 'path';
+import { Express } from 'express';
+
+const DATA_FILE = path.join(process.cwd(), 'newspal-articles.json');
 
 function loadArticles() {
   try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
   catch { return []; }
 }
 
-module.exports = function(app) {
+export function registerNewspal(app: Express) {
   app.post('/newspal/receive', (req, res) => {
     const key = req.headers['x-newspal-key'];
     if (key !== process.env.NEWSPAL_API_KEY) {
       return res.status(401).json({ error: 'Invalid API key' });
     }
     const existing = loadArticles();
-    const existingSlugs = new Set(existing.map(a => a.slug));
+    const existingSlugs = new Set(existing.map((a: any) => a.slug));
     const newArticles = (req.body.articles || [])
-      .filter(a => !existingSlugs.has(a.slug));
+      .filter((a: any) => !existingSlugs.has(a.slug));
     const merged = [...newArticles, ...existing];
     fs.writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2));
     res.json({ success: true, received: newArticles.length, total: merged.length });
@@ -2508,7 +2595,7 @@ module.exports = function(app) {
       \${faqHtml ? \`<div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid #e2e8f0"><h2 style="font-size:1.25rem;margin-bottom:1rem">FAQ</h2>\${faqHtml}</div>\` : ''}
       </div></body></html>\`);
   });
-};`}</code></pre>
+}`}</code></pre>
                             <button
                               onClick={() => {
                                 const snippetEl = document.getElementById('replit-snippet-code')
@@ -2573,6 +2660,10 @@ module.exports = function(app) {
                         >
                           {pushingTest ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Sending test article...</> : 'Send test article'}
                         </button>
+                        <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 space-y-1">
+                          <p className="font-medium">Getting a 403 error?</p>
+                          <p>In your Replit server file, make sure <code className="bg-amber-100 px-1 rounded">registerNewspal(app)</code> is called <strong>before</strong> any <code className="bg-amber-100 px-1 rounded">app.use(helmet())</code> or <code className="bg-amber-100 px-1 rounded">cors()</code> middleware. Security middleware blocks external pushes before they reach the route.</p>
+                        </div>
                       </div>
                     </div>
                     {pushSuccess && (
@@ -2582,27 +2673,27 @@ module.exports = function(app) {
                       </div>
                     )}
                     <div className="ml-7 mt-1 p-2.5 bg-orange-100/50 rounded-lg">
-                      <p className="text-[11px] text-orange-700">Articles will appear at <strong>{automation.site_url ? new URL(automation.site_url).origin : 'your-site'}/news</strong> after the next pipeline run. Individual articles at <strong>/news/article-slug</strong>.</p>
+                      <p className="text-[11px] text-orange-700">Articles will appear at <strong>{automation.site_url || 'your-site/news'}</strong> after the next pipeline run. Individual articles at <strong>{automation.site_url ? automation.site_url.replace(/\/$/, '') : '/news'}/article-slug</strong>.</p>
                     </div>
                   </div>
                 </div>
               )}
               {expandedGuide === 'hubspot' && (
                 <div className="ml-7 mt-3 p-4 bg-orange-50/50 rounded-lg border border-orange-100">
-                  <p className="text-xs text-slate-600 mb-3">News Pal publiceert artikelen <strong>direct als native HubSpot blogposts</strong> — geen code nodig op je website. Alleen een Private App token instellen en klaar.</p>
+                  <p className="text-xs text-slate-600 mb-3">News Pal publishes articles <strong>directly as native HubSpot blog posts</strong> — no code needed on your website. Just set up a Private App token and you're good to go.</p>
                   <div className="space-y-3">
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
                       <div className="text-xs text-slate-600">
-                        <p className="font-medium text-slate-700">Maak een HubSpot Private App aan</p>
-                        <p className="mt-0.5">Ga naar <strong>HubSpot → Instellingen → Integraties → Private Apps → Maak een private app</strong>. Geef het een naam zoals "News Pal".</p>
+                        <p className="font-medium text-slate-700">Create a HubSpot Private App</p>
+                        <p className="mt-0.5">Go to <strong>HubSpot → Settings → Integrations → Private Apps → Create a private app</strong>. Give it a name like "News Pal".</p>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
                       <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
                       <div className="text-xs text-slate-600">
-                        <p className="font-medium text-slate-700">Stel de scope in</p>
-                        <p className="mt-0.5">Ga naar het tabblad <strong>Scopes</strong> en voeg toe: <code className="bg-orange-100 px-1 rounded">cms.blogs.posts</code> (schrijfrechten). Klik op <strong>App aanmaken</strong>.</p>
+                        <p className="font-medium text-slate-700">Set the required scope</p>
+                        <p className="mt-0.5">Go to the <strong>Scopes</strong> tab and add: <code className="bg-orange-100 px-1 rounded">cms.blogs.posts</code> (write access). Click <strong>Create app</strong>.</p>
                       </div>
                     </div>
                     <div className="flex gap-2.5">
@@ -2612,8 +2703,8 @@ module.exports = function(app) {
                         <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
                       )}
                       <div className="text-xs text-slate-600 flex-1">
-                        <p className="font-medium text-slate-700 mb-1.5">Plak je Access Token hieronder</p>
-                        <p className="mb-2">Kopieer het token dat HubSpot toont na het aanmaken van de app en plak het in het veld "API Key" hieronder.</p>
+                        <p className="font-medium text-slate-700 mb-1.5">Paste your Access Token below</p>
+                        <p className="mb-2">Copy the token HubSpot shows after creating the app and paste it in the field below.</p>
                         <input
                           type="password"
                           value={automation.site_api_key || ''}
@@ -2624,7 +2715,7 @@ module.exports = function(app) {
                         {automation.site_api_key && (
                           <div className="flex items-center gap-1.5 text-xs text-emerald-600 mt-1.5">
                             <Check className="w-3.5 h-3.5" />
-                            <span>Token opgeslagen</span>
+                            <span>Token saved</span>
                           </div>
                         )}
                       </div>
@@ -2636,11 +2727,11 @@ module.exports = function(app) {
                         <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">4</div>
                       )}
                       <div className="text-xs text-slate-600 flex-1">
-                        <p className="font-medium text-slate-700 mb-1.5">Test de verbinding</p>
+                        <p className="font-medium text-slate-700 mb-1.5">Test the connection</p>
                         <button
                           onClick={async () => {
                             if (!automation.site_api_key) {
-                              showNotification({ type: 'error', title: 'Geen token', message: 'Voer eerst je HubSpot Access Token in' })
+                              showNotification({ type: 'error', title: 'No token', message: 'Please enter your HubSpot Access Token first' })
                               return
                             }
                             setTestingConnection(true)
@@ -2652,12 +2743,12 @@ module.exports = function(app) {
                               })
                               const data = await res.json()
                               if (data.success) {
-                                showNotification({ type: 'success', title: 'Verbinding geslaagd', message: data.message, duration: 4000 })
+                                showNotification({ type: 'success', title: 'Connection successful', message: data.message, duration: 4000 })
                               } else {
-                                showNotification({ type: 'error', title: 'Verbinding mislukt', message: data.message })
+                                showNotification({ type: 'error', title: 'Connection failed', message: data.message })
                               }
                             } catch {
-                              showNotification({ type: 'error', title: 'Fout', message: 'Kon de verbinding niet testen' })
+                              showNotification({ type: 'error', title: 'Error', message: 'Could not test the connection' })
                             } finally {
                               setTestingConnection(false)
                             }
@@ -2666,13 +2757,13 @@ module.exports = function(app) {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 transition-colors"
                         >
                           {testingConnection ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                          Test verbinding
+                          Test connection
                         </button>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 mt-1 ml-7">
                       <Check className="w-4 h-4 text-emerald-500" />
-                      <span className="text-xs font-medium text-emerald-700">Klaar! Sla op en artikelen worden automatisch als blogpost gepubliceerd in HubSpot.</span>
+                      <span className="text-xs font-medium text-emerald-700">Done! Save settings and articles will be published automatically as HubSpot blog posts.</span>
                     </div>
                   </div>
                 </div>
@@ -2888,51 +2979,52 @@ const { articles } = await res.json();
               </div>
             </details>
           </div>
+          </div>}
         </div>
-        )}
 
         {/* Save bar */}
         <div className="bg-white rounded-lg border border-slate-200 p-5 flex items-center gap-3">
+          {autoSaving && <span className="text-xs text-slate-400">Saving...</span>}
           <button
-            onClick={() => save()}
-            disabled={saving}
-            className="inline-flex items-center px-6 py-2 bg-indigo-600 text-white hover:bg-white hover:text-indigo-600 border border-indigo-600 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            onClick={async () => {
+              // Auto-enable if not yet active
+              if (!automation.enabled) {
+                setAutomation(prev => prev ? { ...prev, enabled: true } : prev)
+                await save({ enabled: true }, true)
+              } else {
+                await save(undefined, true)
+              }
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+              setRunningPipeline(true)
+              try {
+                const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true }) })
+                const data = await res.json()
+                const result = data.automations?.find((a: any) => a.automation_id === id)
+                if (result?.rewritten > 0 || result?.pending > 0) {
+                  const parts: string[] = []
+                  if (result.rewritten > 0) parts.push(`${result.rewritten} scheduled`)
+                  if (result.pending > 0) parts.push(`${result.pending} in pipeline`)
+                  showNotification({ type: 'success', title: 'Articles fetched', message: parts.join(', '), duration: 4000 })
+                } else {
+                  showNotification({ type: 'warning', title: 'No articles found', message: result?.message || 'Try adding more feeds or broader keywords', duration: 4000 })
+                }
+                loadArticles()
+              } catch {
+                showNotification({ type: 'error', title: 'Error', message: 'Pipeline failed' })
+              } finally {
+                setRunningPipeline(false)
+              }
+            }}
+            disabled={saving || runningPipeline}
+            className="inline-flex items-center gap-2 px-6 py-2 bg-white text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-600 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Save Settings'}
+            {runningPipeline ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Fetching...</> : 'Save & Fetch Articles'}
           </button>
-          {automation.enabled ? (
+          {automation.enabled && (
             <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Automation is active
             </span>
-          ) : (
-            <button
-              onClick={async () => {
-                setAutomation(prev => prev ? { ...prev, enabled: true } : prev)
-                await save({ enabled: true })
-                // Auto-trigger pipeline after activation
-                setRunningPipeline(true)
-                try {
-                  const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true }) })
-                  const data = await res.json()
-                  const result = data.automations?.find((a: any) => a.automation_id === id)
-                  if (result?.rewritten > 0) {
-                    showNotification({ type: 'success', title: 'Pipeline complete', message: `${result.rewritten} article(s) published`, duration: 4000 })
-                  } else {
-                    showNotification({ type: 'warning', title: 'Pipeline complete', message: result?.message || 'No new articles found', duration: 4000 })
-                  }
-                  loadArticles()
-                } catch {
-                  showNotification({ type: 'error', title: 'Error', message: 'Pipeline failed' })
-                } finally {
-                  setRunningPipeline(false)
-                }
-              }}
-              disabled={saving}
-              className="inline-flex items-center px-6 py-2 bg-white text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-600 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save Settings & Activate'}
-            </button>
           )}
         </div>
       </div>

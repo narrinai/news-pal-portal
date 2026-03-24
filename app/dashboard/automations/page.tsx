@@ -59,7 +59,7 @@ export default function AutomationsPage() {
     const name = await showPrompt({
       title: 'New automation',
       message: 'Enter a name for the new automation:',
-      promptPlaceholder: 'e.g. Marketing AI Hub',
+      promptPlaceholder: 'e.g. Marketingtoolz.com News',
       confirmText: 'Create',
       cancelText: 'Cancel',
     })

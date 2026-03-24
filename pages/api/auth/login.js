@@ -15,7 +15,7 @@ export default async function handler(req, res) {
       // Set HTTP-only cookie
       const isHttps = req.headers['x-forwarded-proto'] === 'https';
       const secureFlag = isHttps ? '; Secure' : '';
-      res.setHeader('Set-Cookie', `authenticated=true; HttpOnly${secureFlag}; SameSite=Strict; Max-Age=86400; Path=/`);
+      res.setHeader('Set-Cookie', `authenticated=true; HttpOnly${secureFlag}; SameSite=Lax; Max-Age=86400; Path=/`);
       return res.status(200).json({ success: true });
     } else {
       return res.status(401).json({ 

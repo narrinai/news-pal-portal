@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useNotifications } from '../../../../components/NotificationSystem'
-import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown, ChevronRight, ChevronUp, FileText, Calendar, Clock, ArrowRightLeft, ArrowUp, ArrowDown, PenLine, Activity, AlertTriangle, Sparkles, Users, Tag } from 'lucide-react'
+import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown, ChevronRight, ChevronUp, FileText, Calendar, Clock, ArrowRightLeft, ArrowUp, ArrowDown, PenLine, Activity, AlertTriangle, Sparkles, Users, Tag, Settings } from 'lucide-react'
 
 interface Automation {
   id: string
@@ -125,6 +125,48 @@ export default function AutomationEditPage() {
           body: JSON.stringify({ automation_id: id, article_ids: dueIds }),
         })
       } catch { /* silent */ }
+    }
+    if (automation?.site_platform === 'hubspot' && automation?.site_api_key) {
+      for (const article of due) {
+        try {
+          await fetch('/api/hubspot/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              access_token: automation.site_api_key,
+              title: article.title,
+              content_html: article.content_html || article.content_rewritten || article.description || '',
+              featured_image_url: article.imageUrl || undefined,
+              status: 'PUBLISHED',
+            }),
+          })
+        } catch { /* silent */ }
+      }
+    }
+    if (automation?.site_platform === 'wordpress' && automation?.site_api_key && automation?.site_url) {
+      const colonIdx = automation.site_api_key.indexOf(':')
+      const wpUser = colonIdx > -1 ? automation.site_api_key.slice(0, colonIdx) : ''
+      const wpPass = colonIdx > -1 ? automation.site_api_key.slice(colonIdx + 1) : ''
+      if (wpUser && wpPass) {
+        for (const article of due) {
+          try {
+            await fetch('/api/wordpress/publish-post', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                site_url: automation.site_url,
+                username: wpUser,
+                app_password: wpPass,
+                title: article.title,
+                content_html: article.content_html || article.content_rewritten || article.description || '',
+                featured_image_url: article.imageUrl || undefined,
+                tags: (() => { try { return JSON.parse(automation.tags || '[]') } catch { return [] } })(),
+                status: 'publish',
+              }),
+            })
+          } catch { /* silent */ }
+        }
+      }
     }
     if (automation?.deploy_webhook_url) {
       try { await fetch(automation.deploy_webhook_url, { method: 'POST' }) } catch { /* silent */ }
@@ -385,12 +427,14 @@ export default function AutomationEditPage() {
     update('target_audience', JSON.stringify(audience))
   }
 
-  const addAudienceSegment = (segment: string) => {
+  const addAudienceSegment = (input: string) => {
     const current = getAudience()
-    const normalized = segment.trim().toLowerCase()
-    if (normalized && !current.map(a => a.toLowerCase()).includes(normalized)) {
-      setAudience([...current, normalized])
+    const newSegments = input.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+    const merged = [...current]
+    for (const s of newSegments) {
+      if (!merged.map(a => a.toLowerCase()).includes(s)) merged.push(s)
     }
+    setAudience(merged)
   }
 
   const removeAudienceSegment = (segment: string) => {
@@ -779,6 +823,14 @@ export default function AutomationEditPage() {
           aria-checked={automation.enabled}
         >
           <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${automation.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+        </button>
+        <button
+          onClick={() => router.push(`/dashboard/automations/${automation.id}/settings`)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors shrink-0"
+          title="AI Settings"
+        >
+          <Settings className="w-4 h-4" />
+          AI Settings
         </button>
         <button
           onClick={() => save()}
@@ -1194,6 +1246,52 @@ export default function AutomationEditPage() {
                                 }
                               } catch { /* silent — non-critical */ }
                             }
+                            if (automation.site_platform === 'hubspot' && automation.site_api_key) {
+                              try {
+                                const hsRes = await fetch('/api/hubspot/publish', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    access_token: automation.site_api_key,
+                                    title: article.title,
+                                    content_html: article.content_html || article.content_rewritten || article.description || '',
+                                    featured_image_url: article.imageUrl || undefined,
+                                    status: 'PUBLISHED',
+                                  }),
+                                })
+                                const hsData = await hsRes.json()
+                                if (hsData.success) {
+                                  showNotification({ type: 'success', title: 'Gepubliceerd in HubSpot', message: hsData.message, duration: 3000 })
+                                }
+                              } catch { /* silent — non-critical */ }
+                            }
+                            if (automation.site_platform === 'wordpress' && automation.site_api_key && automation.site_url) {
+                              const _colonIdx = automation.site_api_key.indexOf(':')
+                              const _wpUser = _colonIdx > -1 ? automation.site_api_key.slice(0, _colonIdx) : ''
+                              const _wpPass = _colonIdx > -1 ? automation.site_api_key.slice(_colonIdx + 1) : ''
+                              if (_wpUser && _wpPass) {
+                                try {
+                                  const wpRes = await fetch('/api/wordpress/publish-post', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      site_url: automation.site_url,
+                                      username: _wpUser,
+                                      app_password: _wpPass,
+                                      title: article.title,
+                                      content_html: article.content_html || article.content_rewritten || article.description || '',
+                                      featured_image_url: article.imageUrl || undefined,
+                                      tags: (() => { try { return JSON.parse(automation.tags || '[]') } catch { return [] } })(),
+                                      status: 'publish',
+                                    }),
+                                  })
+                                  const wpData = await wpRes.json()
+                                  if (wpData.success) {
+                                    showNotification({ type: 'success', title: 'Gepubliceerd op WordPress', message: wpData.message, duration: 3000 })
+                                  }
+                                } catch { /* silent — non-critical */ }
+                              }
+                            }
                             // Trigger deploy webhook if configured
                             if (automation.deploy_webhook_url) {
                               try {
@@ -1422,6 +1520,7 @@ export default function AutomationEditPage() {
                 className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                 <option value="nl">Dutch</option>
                 <option value="en">English</option>
+                <option value="de">German</option>
               </select>
             </div>
           </div>
@@ -1501,7 +1600,7 @@ export default function AutomationEditPage() {
               </div>
             ))}
             <div className="flex gap-2">
-              {analyzeUrls.length < 3 && (
+              {analyzeUrls.length < 10 && (
                 <button
                   onClick={() => setAnalyzeUrls([...analyzeUrls, ''])}
                   className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-500 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors"
@@ -1543,9 +1642,12 @@ export default function AutomationEditPage() {
             {/* Tags result */}
             {getTags().length > 0 && (
               <div className="mt-3">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <Tag className="w-3.5 h-3.5 text-indigo-500" />
-                  <span className="text-xs font-medium text-slate-600">Detected tags</span>
+                <div className="mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-3.5 h-3.5 text-indigo-500" />
+                    <span className="text-xs font-medium text-slate-600">Detected tags</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-0.5 ml-5">Worden gebruikt als WordPress/HubSpot tags en voor het filteren van relevante artikelen</p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {getTags().map((tag) => (
@@ -1572,9 +1674,12 @@ export default function AutomationEditPage() {
             {/* Audience result */}
             {getAudience().length > 0 && (
               <div className="mt-3">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <Users className="w-3.5 h-3.5 text-violet-500" />
-                  <span className="text-xs font-medium text-slate-600">Target audience</span>
+                <div className="mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-3.5 h-3.5 text-violet-500" />
+                    <span className="text-xs font-medium text-slate-600">Target audience</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-0.5 ml-5">De AI schrijft artikelen specifiek gericht op deze doelgroepen</p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {getAudience().map((segment) => (
@@ -1587,7 +1692,7 @@ export default function AutomationEditPage() {
                   ))}
                   <button
                     onClick={async () => {
-                      const input = await showPrompt({ title: 'Add audience segment', message: 'Enter a target audience:', promptPlaceholder: 'audience segment', confirmText: 'Add', cancelText: 'Cancel' })
+                      const input = await showPrompt({ title: 'Add audience segment', message: 'Enter one or more target audiences (comma-separated):', promptPlaceholder: 'e.g. marketing managers, HR professionals', confirmText: 'Add', cancelText: 'Cancel' })
                       if (input) addAudienceSegment(input)
                     }}
                     className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 hover:bg-violet-50 hover:text-violet-600 rounded-full px-3 py-1 text-xs font-medium transition-colors"
@@ -1619,6 +1724,7 @@ export default function AutomationEditPage() {
               'marketing': { label: 'Marketing', feedIds: [] },
               'european': { label: 'European Tech & Privacy', feedIds: [] },
               'dutch-tech': { label: 'Dutch Tech & News', feedIds: [] },
+              'german': { label: 'German Tech & News', feedIds: [] },
               'other': { label: 'Other', feedIds: [] },
             }
 
@@ -1630,6 +1736,9 @@ export default function AutomationEditPage() {
               'marketingtoolz': 'marketing',
               'europeanpurpose': 'european',
               'bouwcertificaten': 'dutch-tech',
+              'german-news': 'german',
+              'german-tech': 'german',
+              'german-business': 'german',
             }
 
             // Some feeds should be in specific groups based on their name/content
@@ -1953,7 +2062,8 @@ export default function AutomationEditPage() {
                 {automation.site_platform && (
                   (automation.site_platform === 'netlify' && automation.deploy_webhook_url) ||
                   (automation.site_platform === 'replit' && automation.site_api_key) ||
-                  automation.site_platform === 'wordpress' ||
+                  (automation.site_platform === 'hubspot' && automation.site_api_key) ||
+                  (automation.site_platform === 'wordpress' && automation.site_api_key && automation.site_url) ||
                   automation.site_platform === 'other'
                 ) ? (
                   <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><Check className="w-3 h-3" /></div>
@@ -1962,11 +2072,12 @@ export default function AutomationEditPage() {
                 )}
                 <span className="text-sm font-medium text-slate-800">Choose your platform</span>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 ml-7">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 ml-7">
                 {[
                   { key: 'netlify', label: 'Netlify', desc: 'Static sites & SSG', logo: '/images/platforms/netlify.png' },
                   { key: 'wordpress', label: 'WordPress', desc: 'Blog & CMS', logo: '/images/platforms/wordpress.png' },
                   { key: 'replit', label: 'Replit', desc: 'Hosted web apps', logo: '/images/platforms/replit.png' },
+                  { key: 'hubspot', label: 'HubSpot', desc: 'CMS & Blog', logo: null, hubspot: true },
                   { key: 'other', label: 'Other', desc: 'Any website', logo: null },
                 ].map((p) => (
                   <button
@@ -1974,7 +2085,7 @@ export default function AutomationEditPage() {
                     onClick={() => {
                       setExpandedGuide(expandedGuide === p.key ? null : p.key)
                       update('site_platform', p.key)
-                      if (p.key === 'replit') {
+                      if (p.key === 'replit' || p.key === 'hubspot') {
                         update('integration_type', 'fetch-api')
                       } else if (p.key !== 'other') {
                         update('integration_type', 'script-tag')
@@ -1989,6 +2100,8 @@ export default function AutomationEditPage() {
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
                       {p.logo ? (
                         <img src={p.logo} alt={p.label} className="w-7 h-7 object-contain" />
+                      ) : (p as any).hubspot ? (
+                        <span className={`text-xs font-black ${expandedGuide === p.key ? 'text-orange-500' : 'text-orange-400'}`}>HS</span>
                       ) : (
                         <span className={`text-sm font-bold ${expandedGuide === p.key ? 'text-indigo-600' : 'text-slate-400'}`}>?</span>
                       )}
@@ -2095,52 +2208,116 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                   </div>
                 </div>
               )}
-              {expandedGuide === 'wordpress' && (
+              {expandedGuide === 'wordpress' && (() => {
+                const wpCreds = automation.site_api_key || ''
+                const colonIdx = wpCreds.indexOf(':')
+                const wpUser = colonIdx > -1 ? wpCreds.slice(0, colonIdx) : wpCreds
+                const wpPass = colonIdx > -1 ? wpCreds.slice(colonIdx + 1) : ''
+                const hasCredentials = !!(automation.site_url && wpUser && wpPass)
+                return (
                 <div className="ml-7 mt-3 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
-                  <p className="text-xs text-slate-600 mb-3">No plugin needed — just paste a snippet and articles load automatically.</p>
+                  <p className="text-xs text-slate-600 mb-3">News Pal publiceert artikelen <strong>direct als native WordPress blogposts</strong> — geen plugin nodig. Alleen je WordPress URL en een Application Password invoeren.</p>
                   <div className="space-y-3">
+
+                    {/* Step 1: Site URL */}
                     <div className="flex gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
-                      <div className="text-xs text-slate-600">
-                        <p className="font-medium text-slate-700">Create a page for your articles</p>
-                        <p className="mt-0.5">In WordPress → <strong>Pages</strong> → <strong>Add New</strong>. Name it "News" or "Blog". Switch to the <strong>Code editor</strong> (or use a Custom HTML block).</p>
+                      {automation.site_url ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3" /></div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
+                      )}
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Vul je WordPress URL in</p>
+                        <input
+                          type="url"
+                          value={automation.site_url || ''}
+                          onChange={e => update('site_url', e.target.value)}
+                          placeholder="https://jouwsite.nl"
+                          className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-400"
+                        />
                       </div>
                     </div>
+
+                    {/* Step 2: Application Password */}
                     <div className="flex gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
+                      {hasCredentials ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3" /></div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
+                      )}
                       <div className="text-xs text-slate-600 flex-1">
-                        <p className="font-medium text-slate-700 mb-1.5">Paste this code into the page</p>
-                        <div className="relative">
-                          <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto"><code>{`<div id="newspal-articles"></div>
-<script src="${typeof window !== 'undefined' ? window.location.origin : 'https://newspal.vercel.app'}/embed/newspal-loader.js"
-  data-automation-id="${id}"
-  data-limit="20"></script>`}</code></pre>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(`<div id="newspal-articles"></div>\n<script src="${window.location.origin}/embed/newspal-loader.js"\n  data-automation-id="${id}"\n  data-limit="20"></script>`)
-                              showNotification({ type: 'success', title: 'Copied', message: 'Embed snippet copied to clipboard', duration: 2000 })
-                            }}
-                            className="absolute top-2 right-2 inline-flex items-center px-2 py-1 rounded-md text-[10px] text-slate-400 bg-slate-800/90 hover:bg-slate-700 transition-colors"
-                          >
-                            <Copy className="w-3 h-3 mr-1" />Copy
-                          </button>
+                        <p className="font-medium text-slate-700 mb-0.5">Maak een Application Password aan</p>
+                        <p className="text-slate-400 mb-2">WordPress admin → <strong>Gebruikers → Profiel</strong> → scroll naar beneden naar <strong>Application Passwords</strong> → voer een naam in (bijv. "News Pal") en klik <strong>Nieuw wachtwoord toevoegen</strong>.</p>
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            value={wpUser}
+                            onChange={e => update('site_api_key', `${e.target.value}:${wpPass}`)}
+                            placeholder="WordPress gebruikersnaam"
+                            className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-400"
+                          />
+                          <input
+                            type="password"
+                            value={wpPass}
+                            onChange={e => update('site_api_key', `${wpUser}:${e.target.value}`)}
+                            placeholder="Application Password (bijv. xxxx xxxx xxxx xxxx xxxx xxxx)"
+                            className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-400 font-mono"
+                          />
                         </div>
                       </div>
                     </div>
+
+                    {/* Step 3: Test connection */}
                     <div className="flex gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
-                      <div className="text-xs text-slate-600">
-                        <p className="font-medium text-slate-700">Publish the page</p>
-                        <p className="mt-0.5">Click Publish. Articles load automatically whenever someone visits the page.</p>
+                      {hasCredentials ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3" /></div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
+                      )}
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Test de verbinding</p>
+                        <button
+                          onClick={async () => {
+                            if (!automation.site_url || !wpUser || !wpPass) {
+                              showNotification({ type: 'error', title: 'Velden ontbreken', message: 'Vul je WordPress URL, gebruikersnaam en Application Password in' })
+                              return
+                            }
+                            setTestingConnection(true)
+                            try {
+                              const res = await fetch('/api/wordpress/test-automation', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ site_url: automation.site_url, username: wpUser, app_password: wpPass }),
+                              })
+                              const data = await res.json()
+                              if (data.success) {
+                                showNotification({ type: 'success', title: 'Verbinding geslaagd', message: data.message, duration: 4000 })
+                              } else {
+                                showNotification({ type: 'error', title: 'Verbinding mislukt', message: data.message })
+                              }
+                            } catch {
+                              showNotification({ type: 'error', title: 'Fout', message: 'Kon de verbinding niet testen' })
+                            } finally {
+                              setTestingConnection(false)
+                            }
+                          }}
+                          disabled={testingConnection || !automation.site_url || !wpUser || !wpPass}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                        >
+                          {testingConnection ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                          Test verbinding
+                        </button>
                       </div>
                     </div>
+
                     <div className="flex items-center gap-2 mt-1 ml-7">
                       <Check className="w-4 h-4 text-emerald-500" />
-                      <span className="text-xs font-medium text-emerald-700">That's it! Save your settings and you're done.</span>
+                      <span className="text-xs font-medium text-emerald-700">Klaar! Sla op en artikelen worden automatisch als blogpost gepubliceerd in WordPress.</span>
                     </div>
                   </div>
                 </div>
-              )}
+                )
+              })()}
               {expandedGuide === 'replit' && (
                 <div className="ml-7 mt-3 p-4 bg-orange-50/50 rounded-lg border border-orange-100">
                   <p className="text-xs text-slate-600 mb-3">News Pal <strong>pushes articles directly</strong> to your Replit site — fully automatic. New articles appear on your site without any manual work.</p>
@@ -2410,6 +2587,96 @@ module.exports = function(app) {
                   </div>
                 </div>
               )}
+              {expandedGuide === 'hubspot' && (
+                <div className="ml-7 mt-3 p-4 bg-orange-50/50 rounded-lg border border-orange-100">
+                  <p className="text-xs text-slate-600 mb-3">News Pal publiceert artikelen <strong>direct als native HubSpot blogposts</strong> — geen code nodig op je website. Alleen een Private App token instellen en klaar.</p>
+                  <div className="space-y-3">
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Maak een HubSpot Private App aan</p>
+                        <p className="mt-0.5">Ga naar <strong>HubSpot → Instellingen → Integraties → Private Apps → Maak een private app</strong>. Geef het een naam zoals "News Pal".</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700">Stel de scope in</p>
+                        <p className="mt-0.5">Ga naar het tabblad <strong>Scopes</strong> en voeg toe: <code className="bg-orange-100 px-1 rounded">cms.blogs.posts</code> (schrijfrechten). Klik op <strong>App aanmaken</strong>.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      {automation.site_api_key ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3" /></div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
+                      )}
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Plak je Access Token hieronder</p>
+                        <p className="mb-2">Kopieer het token dat HubSpot toont na het aanmaken van de app en plak het in het veld "API Key" hieronder.</p>
+                        <input
+                          type="password"
+                          value={automation.site_api_key || ''}
+                          onChange={e => update('site_api_key', e.target.value)}
+                          placeholder="pat-eu1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                          className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 font-mono focus:outline-none focus:border-orange-400"
+                        />
+                        {automation.site_api_key && (
+                          <div className="flex items-center gap-1.5 text-xs text-emerald-600 mt-1.5">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Token opgeslagen</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      {automation.site_api_key ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3" /></div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">4</div>
+                      )}
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Test de verbinding</p>
+                        <button
+                          onClick={async () => {
+                            if (!automation.site_api_key) {
+                              showNotification({ type: 'error', title: 'Geen token', message: 'Voer eerst je HubSpot Access Token in' })
+                              return
+                            }
+                            setTestingConnection(true)
+                            try {
+                              const res = await fetch('/api/hubspot/test', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ access_token: automation.site_api_key }),
+                              })
+                              const data = await res.json()
+                              if (data.success) {
+                                showNotification({ type: 'success', title: 'Verbinding geslaagd', message: data.message, duration: 4000 })
+                              } else {
+                                showNotification({ type: 'error', title: 'Verbinding mislukt', message: data.message })
+                              }
+                            } catch {
+                              showNotification({ type: 'error', title: 'Fout', message: 'Kon de verbinding niet testen' })
+                            } finally {
+                              setTestingConnection(false)
+                            }
+                          }}
+                          disabled={testingConnection || !automation.site_api_key}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                        >
+                          {testingConnection ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                          Test verbinding
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 ml-7">
+                      <Check className="w-4 h-4 text-emerald-500" />
+                      <span className="text-xs font-medium text-emerald-700">Klaar! Sla op en artikelen worden automatisch als blogpost gepubliceerd in HubSpot.</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               {expandedGuide === 'other' && (
                 <div className="ml-7 mt-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
                   <p className="text-xs text-slate-600 mb-2">Works with any website that supports HTML.</p>
@@ -2516,7 +2783,7 @@ const { articles } = await res.json();
             )}
 
             {/* Step 3: Match your site's design */}
-            {expandedGuide !== 'replit' && (
+            {expandedGuide !== 'replit' && expandedGuide !== 'hubspot' && expandedGuide !== 'wordpress' && (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 {automation.site_template || automation.site_detail_template ? (

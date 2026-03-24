@@ -12,7 +12,7 @@ const anthropic = process.env.ANTHROPIC_API_KEY
 export interface RewriteOptions {
   style: 'professional' | 'engaging' | 'technical' | 'news'
   length: 'short' | 'medium' | 'long' | 'extra-long' | 'longform'
-  language: 'nl' | 'en'
+  language: 'nl' | 'en' | 'de'
   tone: 'neutral' | 'warning' | 'informative'
   targetAudience?: string
 }
@@ -36,6 +36,12 @@ export async function rewriteArticle(
 Your task is to rewrite news articles while preserving the core message.
 
 IMPORTANT: You do NOT have access to web browsing or external sources. Work only with the information provided.`
+    : options.language === 'de'
+    ? `Du bist ein professioneller Journalist, der Nachrichtenartikel für ein breites Publikum umschreibt.
+
+Deine Aufgabe ist es, Nachrichtenartikel umzuschreiben und dabei die Kernbotschaft zu erhalten.
+
+WICHTIG: Du hast KEINEN Zugang zum Internet oder externen Quellen. Arbeite nur mit den bereitgestellten Informationen.`
     : `Je bent een professionele journalist die nieuwsartikelen herschrijft voor een breed publiek.
 
 Je taak is om nieuwsartikelen te herschrijven, waarbij je de kernboodschap behoudt.
@@ -147,7 +153,7 @@ function parseRewriteResponse(response: string, originalTitle: string) {
   if (faqSplit.length > 1) {
     mainContent = faqSplit[0].trim()
     const faqText = faqSplit[1].trim()
-    const faqMatches = faqText.matchAll(/Q:\s*(.+?)\nA:\s*(.+?)(?=\nQ:|\n*$)/gs)
+    const faqMatches = faqText.matchAll(/[QF]:\s*(.+?)\nA:\s*(.+?)(?=\n[QF]:|\n*$)/gs)
     for (const match of faqMatches) {
       faq.push({ question: match[1].trim(), answer: match[2].trim() })
     }
@@ -227,33 +233,118 @@ function createRewritePrompt(
   originalUrl?: string
 ): string {
   const isEnglish = options.language === 'en'
+  const isGerman = options.language === 'de'
 
   const lengthInstructions = {
-    short: isEnglish ? 'Keep the text short and concise (200-300 words)' : 'Houd de tekst kort en bondig (200-300 woorden)',
-    medium: isEnglish ? 'Write a medium-length article (400-600 words)' : 'Schrijf een artikel van gemiddelde lengte (400-600 woorden)',
-    long: isEnglish ? 'Write an extensive article (700-1000 words)' : 'Schrijf een uitgebreid artikel (700-1000 woorden)',
-    'extra-long': isEnglish ? 'Write a comprehensive, in-depth article (1200-1500 words). Include detailed analysis, multiple perspectives, and thorough coverage of the topic' : 'Schrijf een uitgebreid, diepgaand artikel (1200-1500 woorden). Voeg gedetailleerde analyse, meerdere perspectieven en grondige dekking van het onderwerp toe',
-    'longform': isEnglish ? 'Write an extensive longform article (2500-3500 words, ~10 minute read). This must be a deeply researched, magazine-quality piece. Include multiple sections with unique headings, expert analysis, real-world examples, historical context, future implications, and at least 4-5 distinct perspectives or angles. Each section should be substantial (300-500 words). Make it the definitive article on this topic.' : 'Schrijf een uitgebreid longform artikel (2500-3500 woorden, ~10 minuten leestijd). Dit moet een diepgaand, magazine-kwaliteit stuk zijn. Voeg meerdere secties toe met unieke koppen, expertanalyse, praktijkvoorbeelden, historische context, toekomstperspectieven, en minimaal 4-5 verschillende invalshoeken. Elke sectie moet substantieel zijn (300-500 woorden). Maak het hét definitieve artikel over dit onderwerp.'
+    short: isEnglish ? 'Keep the text short and concise (200-300 words)' : isGerman ? 'Halte den Text kurz und prägnant (200-300 Wörter)' : 'Houd de tekst kort en bondig (200-300 woorden)',
+    medium: isEnglish ? 'Write a medium-length article (400-600 words)' : isGerman ? 'Schreibe einen mittelangen Artikel (400-600 Wörter)' : 'Schrijf een artikel van gemiddelde lengte (400-600 woorden)',
+    long: isEnglish ? 'Write an extensive article (700-1000 words)' : isGerman ? 'Schreibe einen ausführlichen Artikel (700-1000 Wörter)' : 'Schrijf een uitgebreid artikel (700-1000 woorden)',
+    'extra-long': isEnglish ? 'Write a comprehensive, in-depth article (1200-1500 words). Include detailed analysis, multiple perspectives, and thorough coverage of the topic' : isGerman ? 'Schreibe einen umfassenden, tiefgründigen Artikel (1200-1500 Wörter). Füge detaillierte Analysen, mehrere Perspektiven und gründliche Abdeckung des Themas hinzu' : 'Schrijf een uitgebreid, diepgaand artikel (1200-1500 woorden). Voeg gedetailleerde analyse, meerdere perspectieven en grondige dekking van het onderwerp toe',
+    'longform': isEnglish ? 'Write an extensive longform article (2500-3500 words, ~10 minute read). This must be a deeply researched, magazine-quality piece. Include multiple sections with unique headings, expert analysis, real-world examples, historical context, future implications, and at least 4-5 distinct perspectives or angles. Each section should be substantial (300-500 words). Make it the definitive article on this topic.' : isGerman ? 'Schreibe einen ausführlichen Longform-Artikel (2500-3500 Wörter, ~10 Minuten Lesezeit). Dies muss ein tiefgründiges Stück in Magazinqualität sein. Füge mehrere Abschnitte mit einzigartigen Überschriften, Expertenanalysen, Praxisbeispielen, historischem Kontext, Zukunftsperspektiven und mindestens 4-5 verschiedenen Blickwinkeln hinzu. Mache es zum definitiven Artikel zu diesem Thema.' : 'Schrijf een uitgebreid longform artikel (2500-3500 woorden, ~10 minuten leestijd). Dit moet een diepgaand, magazine-kwaliteit stuk zijn. Voeg meerdere secties toe met unieke koppen, expertanalyse, praktijkvoorbeelden, historische context, toekomstperspectieven, en minimaal 4-5 verschillende invalshoeken. Elke sectie moet substantieel zijn (300-500 woorden). Maak het hét definitieve artikel over dit onderwerp.'
   }
 
   const styleInstructions = {
-    professional: isEnglish ? 'Write as a news article for a professional audience - clear, informative and human' : 'Schrijf als een nieuwsbericht voor een professioneel publiek - helder, informatief en menselijk',
-    engaging: isEnglish ? 'Write as an accessible news article that engages readers with story and context' : 'Schrijf als een toegankelijk nieuwsbericht dat lezers betrekt met verhaal en context',
-    technical: isEnglish ? 'Write as a technical news article with in-depth analysis but understandable explanation' : 'Schrijf als een technisch nieuwsbericht met diepgaande analyse maar begrijpelijke uitleg',
-    news: isEnglish ? 'Write as a clear news article in journalistic style - direct, informative and structured like traditional news articles' : 'Schrijf als een helder nieuwsbericht in journalistieke stijl - direct, informatief en gestructureerd zoals traditionele nieuwsartikelen'
+    professional: isEnglish ? 'Write as a news article for a professional audience - clear, informative and human' : isGerman ? 'Schreibe als Nachrichtenartikel für ein professionelles Publikum - klar, informativ und menschlich' : 'Schrijf als een nieuwsbericht voor een professioneel publiek - helder, informatief en menselijk',
+    engaging: isEnglish ? 'Write as an accessible news article that engages readers with story and context' : isGerman ? 'Schreibe als zugänglicher Nachrichtenartikel, der Leser mit Geschichte und Kontext einbindet' : 'Schrijf als een toegankelijk nieuwsbericht dat lezers betrekt met verhaal en context',
+    technical: isEnglish ? 'Write as a technical news article with in-depth analysis but understandable explanation' : isGerman ? 'Schreibe als technischer Nachrichtenartikel mit tiefgründiger Analyse aber verständlicher Erklärung' : 'Schrijf als een technisch nieuwsbericht met diepgaande analyse maar begrijpelijke uitleg',
+    news: isEnglish ? 'Write as a clear news article in journalistic style - direct, informative and structured like traditional news articles' : isGerman ? 'Schreibe als klarer Nachrichtenartikel im journalistischen Stil - direkt, informativ und strukturiert wie traditionelle Nachrichtenartikel' : 'Schrijf als een helder nieuwsbericht in journalistieke stijl - direct, informatief en gestructureerd zoals traditionele nieuwsartikelen'
   }
 
   const toneInstructions = {
-    neutral: isEnglish ? 'Maintain a neutral, objective tone' : 'Houd een neutrale, objectieve toon aan',
-    warning: isEnglish ? 'Emphasize the urgency and potential dangers' : 'Benadruk de urgentie en potentiële gevaren',
-    informative: isEnglish ? 'Focus on providing useful information and context' : 'Focus op het verstrekken van nuttige informatie en context'
+    neutral: isEnglish ? 'Maintain a neutral, objective tone' : isGerman ? 'Behalte einen neutralen, objektiven Ton bei' : 'Houd een neutrale, objectieve toon aan',
+    warning: isEnglish ? 'Emphasize the urgency and potential dangers' : isGerman ? 'Betone die Dringlichkeit und potenzielle Gefahren' : 'Benadruk de urgentie en potentiële gevaren',
+    informative: isEnglish ? 'Focus on providing useful information and context' : isGerman ? 'Konzentriere dich auf nützliche Informationen und Kontext' : 'Focus op het verstrekken van nuttige informatie en context'
   }
 
   const audienceBlock = options.targetAudience
     ? (isEnglish
       ? `\nTARGET AUDIENCE: ${options.targetAudience}\nAdapt your writing style for this audience. Use terminology and references they recognize.\nFocus on aspects that are relevant to their role/interests.\n`
+      : isGerman
+      ? `\nZIELGRUPPE: ${options.targetAudience}\nPasse deinen Schreibstil dieser Zielgruppe an. Verwende Terminologie und Referenzen, die sie kennen.\nFokussiere auf Aspekte, die für ihre Rolle/Interessen relevant sind.\n`
       : `\nDOELGROEP: ${options.targetAudience}\nPas je schrijfstijl aan op deze doelgroep. Gebruik terminologie en referenties die zij herkennen.\nFocus op aspecten die relevant zijn voor hun rol/interesses.\n`)
     : ''
+
+  if (isGerman) {
+    return `
+Schreibe den folgenden Nachrichtenartikel für ein deutschsprachiges Publikum um:
+
+ORIGINALTITEL: ${title}
+ORIGINALINHALT: ${content}
+${originalUrl ? `ORIGINAL-URL: ${originalUrl}` : ''}
+${audienceBlock}
+ANWEISUNGEN:
+SCHRITT 1 - UMSCHREIBEN:
+- ${styleInstructions[options.style]}
+- ${lengthInstructions[options.length]}
+- ${toneInstructions[options.tone]}
+- Schreibe auf Deutsch als Nachrichtenartikel/Pressemitteilung
+- Behalte die Kernbotschaft bei und bereichere mit Kontext wo möglich
+- ORIGINALE ÜBERSCHRIFTEN: Erstelle einzigartige Überschriften basierend auf dem tatsächlichen Inhalt
+- ZITATE: Wenn Personen erwähnt werden, generiere 1 relevantes Zitat basierend auf dem Kontext
+- Vermeide Unternehmens-Jargon
+- Mache es informativ aber lesbar für ein breites Publikum
+${customInstructions ? `\nSCHRITT 1B - ZUSÄTZLICHE ANWEISUNGEN:\n${customInstructions}\n` : ''}
+SCHRITT 2 - QUELLEN (KRITISCH):
+- Füge mindestens 3-5 verschiedene Quellen ein
+- Füge die Originalquelle ein: ${originalUrl || '[Original-Artikel-URL]'}
+- Füge 2-4 zusätzliche autoritative deutschsprachige Quellen hinzu (z.B. heise.de, spiegel.de, handelsblatt.com, faz.net, golem.de, t3n.de, manager-magazin.de)
+- Verknüpfe Quellen natürlich im Text
+
+SCHRITT 3 - VISUELLE ELEMENTE (KRITISCH):
+Füge mindestens 3 Unsplash-Bilder mit diesem Format ein:
+<figure><img src="https://images.unsplash.com/photo-[ID]?w=800&auto=format&fit=crop" alt="[Beschreibung]" style="width:100%;border-radius:8px;margin:1.5rem 0"><figcaption style="text-align:center;font-size:13px;color:#64748b">[Bildunterschrift]</figcaption></figure>
+
+Füge außerdem mindestens eines dieser Elemente ein:
+- DATENTABELLE: <table style="width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:14px">
+- KERNZAHLEN: <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:1.5rem 0"> mit Statistikkarten
+
+KRITISCHE ANWEISUNGEN:
+1. KEIN DATUM: Kein Veröffentlichungsdatum im Artikel
+2. ORIGINALE ÜBERSCHRIFTEN: Einzigartige Überschriften basierend auf tatsächlichem Inhalt
+3. KEIN META: Keine "CHECK:" oder Review-Anweisungen in der Ausgabe
+4. VISUELLE ELEMENTE: Mindestens 3 Bilder, 1 Statistikblock oder Tabelle
+
+FORMATIERE DEINE ANTWORT WIE FOLGT:
+[Kraftvoller deutscher Titel OHNE "TITEL:" davor]
+SUBTITLE: [Einzeiliger Untertitel der Kontext oder Blickwinkel zum Titel hinzufügt]
+CATEGORY: [Ein oder zwei Wörter als Themen-Label, z.B. "KI Sicherheit", "Marketing", "Cybersicherheit"]
+---
+<section class="content-section" id="[slug-der-überschrift]">
+<h2>[Originale Überschrift basierend auf Inhalt]</h2>
+<p>[Eröffnungsabsatz - KEIN Datum oder Standort-Prefix]</p>
+</section>
+
+<section class="content-section" id="quellen">
+<h2>Quellen</h2>
+<ul>
+<li><a href="${originalUrl || '[URL]'}" target="_blank" rel="noopener noreferrer">[Plattformname]</a></li>
+</ul>
+</section>
+
+---FAQ---
+F: [Häufig gestellte Frage zum Thema]
+A: [Prägnante Antwort in 2-3 Sätzen]
+
+F: [Weitere Frage]
+A: [Antwort]
+
+F: [Weitere Frage]
+A: [Antwort]
+
+F: [Weitere Frage]
+A: [Antwort]
+
+F: [Weitere Frage]
+A: [Antwort]
+
+WICHTIGE FORMATIERUNGSREGELN:
+- Jeder Abschnitt MUSS in <section class="content-section" id="[slug]"> eingeschlossen sein
+- Verwende <h2> für Abschnittsüberschriften, NICHT <p><strong>
+- Generiere genau 5 FAQ-Elemente nach dem ---FAQ--- Separator
+
+Beginne jetzt mit dem Umschreiben:
+`
+  }
 
   if (isEnglish) {
     return `

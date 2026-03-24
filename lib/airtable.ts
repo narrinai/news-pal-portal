@@ -71,6 +71,7 @@ export interface Automation {
   analyze_urls?: string
   pipeline_hour?: number
   auto_schedule?: boolean
+  ai_settings?: string
 }
 
 export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt'>) {
@@ -261,6 +262,7 @@ function recordToAutomation(record: any): Automation {
     target_audience: (f.target_audience as string) || '',
     extra_context: (f.extra_context as string) || '',
     analyze_urls: (f.analyze_urls as string) || '',
+    ai_settings: (f.ai_settings as string) || '',
   }
 }
 

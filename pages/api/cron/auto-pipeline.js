@@ -307,6 +307,34 @@ export default async function handler(req, res) {
 
           articleId = created.id
 
+          // Build custom instructions from extra_context + ai_settings
+          let customInstructions = automation.extra_context || ''
+          let aiSettings = {}
+          try { if (automation.ai_settings) aiSettings = JSON.parse(automation.ai_settings) } catch {}
+
+          const instructions = []
+          if (customInstructions) instructions.push(customInstructions)
+
+          // Feature toggles
+          if (aiSettings.include_faq === false) instructions.push('Do NOT include a FAQ section.')
+          if (aiSettings.include_images === false) instructions.push('Do NOT include inline images.')
+          if (aiSettings.include_charts === false) instructions.push('Do NOT include charts or data tables.')
+          if (aiSettings.include_sources === false) instructions.push('Do NOT include a sources section.')
+          if (aiSettings.include_quotes === false) instructions.push('Do NOT include generated quotes.')
+
+          // Internal linking strategy
+          if (aiSettings.internal_links) instructions.push(`INTERNAL LINKING:\n${aiSettings.internal_links}`)
+
+          // URL rules
+          if (aiSettings.url_rules && aiSettings.url_rules.length > 0) {
+            const rules = aiSettings.url_rules.map(r =>
+              `- When mentioning "${r.keyword}", link it to ${r.url}${r.label ? ` with anchor text "${r.label}"` : ''}`
+            ).join('\n')
+            instructions.push(`KEYWORD LINKS (always apply these):\n${rules}`)
+          }
+
+          const fullInstructions = instructions.join('\n\n') || undefined
+
           const rewritten = await rewriteArticle(
             article.title,
             article.originalContent || article.description,
@@ -317,13 +345,13 @@ export default async function handler(req, res) {
               tone: 'informative',
               targetAudience: targetAudienceStr || undefined,
             },
-            automation.extra_context || undefined,
+            fullInstructions,
             article.url
           )
 
-          // Find header image if missing
+          // Find header image if missing (skip if disabled in ai_settings)
           let headerImage = article.imageUrl
-          if (!headerImage) {
+          if (!headerImage && aiSettings.include_header_image !== false) {
             try {
               headerImage = await findHeaderImage(rewritten.title, article.matchedKeywords)
             } catch { /* silent */ }

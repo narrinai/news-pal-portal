@@ -1,378 +1,66 @@
 [
   {
-    "id": "404media",
-    "name": "404 Media",
-    "url": "https://www.404media.co/rss/",
-    "category": "ai-companion",
+    "id": "de-heise-news",
+    "name": "Heise Online News",
+    "url": "https://www.heise.de/rss/heise-atom.xml",
+    "category": "german-news",
     "enabled": true,
-    "maxArticles": 30
+    "maxArticles": 20
   },
   {
-    "id": "ai-adult",
-    "name": "AI Adult",
-    "url": "https://rss.app/feeds/tNuJy2d6Kop70Q6B.xml",
-    "category": "ai-companion",
+    "id": "de-golem",
+    "name": "Golem.de",
+    "url": "https://rss.golem.de/rss.php?feed=ATOM1.0",
+    "category": "german-tech",
     "enabled": true,
-    "maxArticles": 50
+    "maxArticles": 20
   },
   {
-    "id": "artificialintelligence-news",
-    "name": "AI News",
-    "url": "https://www.artificialintelligence-news.com/feed/",
-    "category": "ai-companion",
+    "id": "de-t3n",
+    "name": "t3n Magazin",
+    "url": "https://t3n.de/rss.xml",
+    "category": "german-tech",
     "enabled": true,
-    "maxArticles": 50
+    "maxArticles": 20
   },
   {
-    "id": "aitrends",
-    "name": "AI Trends",
-    "url": "https://www.aitrends.com/feed/",
-    "category": "ai-companion",
+    "id": "de-handelsblatt",
+    "name": "Handelsblatt Digital",
+    "url": "https://www.handelsblatt.com/contentexport/feed/themen/digitalisierung",
+    "category": "german-business",
     "enabled": true,
-    "maxArticles": 40
+    "maxArticles": 15
   },
   {
-    "id": "aiweekly",
-    "name": "AI Weekly",
-    "url": "https://aiweekly.co/feed/",
-    "category": "ai-companion",
+    "id": "de-spiegel-tech",
+    "name": "Spiegel Netzwelt",
+    "url": "https://www.spiegel.de/netzwelt/index.rss",
+    "category": "german-tech",
     "enabled": true,
-    "maxArticles": 30
+    "maxArticles": 15
   },
   {
-    "id": "anthropic-news",
-    "name": "Anthropic News",
-    "url": "https://www.anthropic.com/news/rss.xml",
-    "category": "ai-companion",
+    "id": "de-chip",
+    "name": "CHIP Online",
+    "url": "https://www.chip.de/rss/rss_topnews.xml",
+    "category": "german-tech",
     "enabled": true,
-    "maxArticles": 25
+    "maxArticles": 15
   },
   {
-    "id": "ars-technica-ai",
-    "name": "Ars Technica",
-    "url": "https://feeds.arstechnica.com/arstechnica/index",
-    "category": "ai-learning",
+    "id": "de-computerwoche",
+    "name": "Computerwoche",
+    "url": "https://www.computerwoche.de/feeds/rss-feed",
+    "category": "german-tech",
     "enabled": true,
-    "maxArticles": 100
+    "maxArticles": 15
   },
   {
-    "id": "ai-blog-news",
-    "name": "Artificial Intelligence Blog & News",
-    "url": "https://www.artificial-intelligence.blog/ai-news?format=rss",
-    "category": "ai-companion",
+    "id": "de-manager-magazin",
+    "name": "Manager Magazin Digital",
+    "url": "https://www.manager-magazin.de/themen/digitalisierung/index.rss",
+    "category": "german-business",
     "enabled": true,
-    "maxArticles": 50
-  },
-  {
-    "id": "ashland-genai",
-    "name": "Ashland University - GenAI Resources",
-    "url": "https://libguides.ashland.edu/GEN-AI/feed",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 25
-  },
-  {
-    "id": "bbc-marketing",
-    "name": "BBC Technology",
-    "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
-    "category": "marketingtoolz",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "bleepingcomputer",
-    "name": "BleepingComputer",
-    "url": "https://www.bleepingcomputer.com/feed/",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "computable",
-    "name": "Computable",
-    "url": "https://www.computable.nl/rss.xml",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "csoonline",
-    "name": "CSO Online",
-    "url": "https://www.csoonline.com/feed/",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "darkreading",
-    "name": "Dark Reading",
-    "url": "https://www.darkreading.com/rss.xml",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "forbes-ai",
-    "name": "Forbes - AI",
-    "url": "https://www.forbes.com/ai/feed/",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 40
-  },
-  {
-    "id": "futurism-ai",
-    "name": "Futurism - AI",
-    "url": "https://futurism.com/artificial-intelligence/feed",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 50
-  },
-  {
-    "id": "google-ai-blog",
-    "name": "Google AI Blog",
-    "url": "https://blog.google/technology/ai/rss/",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 25
-  },
-  {
-    "id": "deepmind-blog",
-    "name": "Google DeepMind Blog",
-    "url": "https://deepmind.google/blog/rss.xml",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 25
-  },
-  {
-    "id": "iculture",
-    "name": "iCulture",
-    "url": "https://www.iculture.nl/feed/",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "koreai-blog",
-    "name": "Kore.ai Blog",
-    "url": "https://blog.kore.ai/rss.xml",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 25
-  },
-  {
-    "id": "krebs",
-    "name": "Krebs on Security",
-    "url": "https://krebsonsecurity.com/feed/",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "machinelearningmastery",
-    "name": "Machine Learning Mastery",
-    "url": "https://machinelearningmastery.com/feed/",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 30
-  },
-  {
-    "id": "marketingtoolz-rss-guidy",
-    "name": "Marketingtoolz RSS Guidy",
-    "url": "https://rss.app/feeds/_LQs45CWGP68uGMOs.xml",
-    "category": "marketingtoolz",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "marktechpost",
-    "name": "MarkTechPost",
-    "url": "https://www.marktechpost.com/feed/",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 50
-  },
-  {
-    "id": "ai-news-mit",
-    "name": "MIT AI News",
-    "url": "https://news.mit.edu/topic/artificial-intelligence2-rss.xml",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 30
-  },
-  {
-    "id": "mit-tech-review",
-    "name": "MIT Technology Review",
-    "url": "https://www.technologyreview.com/feed/",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 50
-  },
-  {
-    "id": "nu-tech",
-    "name": "NU.nl Tech",
-    "url": "https://www.nu.nl/rss/Tech",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "openai-blog",
-    "name": "OpenAI Blog",
-    "url": "https://openai.com/blog/rss/",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 25
-  },
-  {
-    "id": "openai-research",
-    "name": "OpenAI Research",
-    "url": "https://openai.com/research/rss.xml",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 25
-  },
-  {
-    "id": "reuters-marketing",
-    "name": "Reuters Technology",
-    "url": "https://feeds.reuters.com/reuters/technologyNews",
-    "category": "marketingtoolz",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "rss-app-cybersecurity",
-    "name": "RSS App Cybersecurity Feed",
-    "url": "https://rss.app/feeds/_8Sg3b109sUx8r8Y4.xml",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "rss-app-new-cybersecurity",
-    "name": "RSS App New Cybersecurity Feed",
-    "url": "https://rss.app/feeds/_NgLaShZokHh9UbEF.xml",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "sciencedaily-ai",
-    "name": "ScienceDaily - AI",
-    "url": "https://www.sciencedaily.com/rss/computers_math/artificial_intelligence.xml",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 30
-  },
-  {
-    "id": "securityweek",
-    "name": "Security Week",
-    "url": "https://www.securityweek.com/feed/",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "security-nl-default",
-    "name": "Security.NL",
-    "url": "https://www.security.nl/rss/headlines.xml",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "techcrunch-ai",
-    "name": "TechCrunch",
-    "url": "https://techcrunch.com/feed/",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "hackernews",
-    "name": "The Hacker News",
-    "url": "https://feeds.feedburner.com/TheHackersNews",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "theverge-ai",
-    "name": "The Verge",
-    "url": "https://www.theverge.com/rss/index.xml",
-    "category": "ai-learning",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "threatpost",
-    "name": "Threatpost",
-    "url": "https://threatpost.com/feed/",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "towards-data-science",
-    "name": "Towards Data Science",
-    "url": "https://towardsdatascience.com/feed",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 50
-  },
-  {
-    "id": "tweakers",
-    "name": "Tweakers",
-    "url": "https://feeds.feedburner.com/tweakers/mixed",
-    "category": "cybersecurity",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "unite-ai",
-    "name": "Unite.AI",
-    "url": "https://www.unite.ai/feed/",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 40
-  },
-  {
-    "id": "venturebeat-ai",
-    "name": "VentureBeat AI",
-    "url": "https://venturebeat.com/category/ai/feed/",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 50
-  },
-  {
-    "id": "wired-ai",
-    "name": "Wired",
-    "url": "https://www.wired.com/feed/rss",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 100
-  },
-  {
-    "id": "wired-ai-specific",
-    "name": "Wired - Artificial Intelligence",
-    "url": "https://www.wired.com/feed/category/artificial-intelligence/latest/rss",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 50
-  },
-  {
-    "id": "zdnet-ai",
-    "name": "ZDNet - AI",
-    "url": "https://www.zdnet.com/topic/artificial-intelligence/rss.xml",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 40
-  },
-  {
-    "id": "ai-girlfriend",
-    "name": "AI Girlfriend",
-    "url": "https://rss.app/feeds/t7J1yCCO5QGLQvF0.xml",
-    "category": "ai-companion",
-    "enabled": true,
-    "maxArticles": 50
+    "maxArticles": 10
   }
 ]

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNotifications } from '../../../components/NotificationSystem'
-import { Plus, Zap, ZapOff, Globe, FileText } from 'lucide-react'
+import { Plus, Zap, ZapOff, Globe, FileText, Trash2 } from 'lucide-react'
 
 interface Automation {
   id: string
@@ -21,7 +21,8 @@ interface Automation {
 
 export default function AutomationsPage() {
   const router = useRouter()
-  const { showNotification, showPrompt } = useNotifications()
+  const { showNotification, showPrompt, showConfirm } = useNotifications()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [automations, setAutomations] = useState<Automation[]>([])
   const [articleCounts, setArticleCounts] = useState<Record<string, { total: number, selected: number, published: number }>>({})
   const [loading, setLoading] = useState(true)
@@ -98,6 +99,31 @@ export default function AutomationsPage() {
     }
   }
 
+  const deleteAutomation = async (automation: Automation) => {
+    const confirmed = await showConfirm({
+      title: 'Delete automation',
+      message: `Are you sure you want to delete "${automation.name}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    })
+    if (!confirmed) return
+
+    setDeletingId(automation.id)
+    try {
+      const res = await fetch(`/api/automations/${automation.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setAutomations(prev => prev.filter(a => a.id !== automation.id))
+        showNotification({ type: 'success', title: 'Deleted', message: `"${automation.name}" has been deleted`, duration: 3000 })
+      } else {
+        showNotification({ type: 'error', title: 'Failed', message: 'Could not delete automation' })
+      }
+    } catch {
+      showNotification({ type: 'error', title: 'Network error', message: 'Could not connect to server' })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-6 lg:p-8">
@@ -132,71 +158,67 @@ export default function AutomationsPage() {
           </button>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-2">
           {automations.map((automation) => {
-            const cats = automation.categories ? automation.categories.split(',').map(c => c.trim()).filter(Boolean) : []
+            const counts = articleCounts[automation.id]
+            const scheduled = counts ? counts.selected + counts.published : 0
             return (
               <div
                 key={automation.id}
-                className="bg-white rounded-lg border border-slate-200 p-5 hover:border-slate-300 transition-colors cursor-pointer"
+                className={`group bg-white rounded-lg border border-slate-200 px-4 py-3 hover:border-slate-300 transition-colors cursor-pointer ${deletingId === automation.id ? 'opacity-50 pointer-events-none' : ''}`}
                 onClick={() => router.push(`/dashboard/automations/${automation.id}`)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h3 className="text-base font-semibold text-slate-900 truncate">{automation.name}</h3>
-                      {automation.enabled ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <Zap className="w-3 h-3 mr-1" />Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-50 text-slate-500 border border-slate-200">
-                          <ZapOff className="w-3 h-3 mr-1" />Disabled
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-slate-500">
-                      <span>{automation.articles_per_day} articles/{(automation.publish_frequency || 'daily').replace('every-', '').replace('-days', 'd').replace('biweekly', '2wk').replace('monthly', 'mo').replace('weekly', 'wk').replace('daily', 'day')}</span>
-                      <span>{automation.language === 'nl' ? 'Dutch' : 'English'}</span>
-                      <span className="capitalize">{automation.length}</span>
-                    </div>
-                    {cats.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {cats.map(cat => (
-                          <span key={cat} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
-                            {cat}
-                          </span>
-                        ))}
-                      </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0 flex items-center gap-2.5 flex-wrap">
+                    <h3 className="text-sm font-semibold text-slate-900 truncate">{automation.name}</h3>
+                    {automation.enabled ? (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <Zap className="w-2.5 h-2.5 mr-0.5" />Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-50 text-slate-500 border border-slate-200">
+                        <ZapOff className="w-2.5 h-2.5 mr-0.5" />Off
+                      </span>
                     )}
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {automation.site_name && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <Globe className="w-3 h-3" />
-                          {automation.site_name}
-                        </span>
-                      )}
-                      {articleCounts[automation.id] && (articleCounts[automation.id].selected + articleCounts[automation.id].published) > 0 && (
-                        <span
-                          onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/automations/${automation.id}#articles`) }}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
-                        >
-                          <FileText className="w-3 h-3" />
-                          {articleCounts[automation.id].selected + articleCounts[automation.id].published} scheduled
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-xs text-slate-400">
+                      {automation.articles_per_day}/{(automation.publish_frequency || 'daily').replace('every-', '').replace('-days', 'd').replace('biweekly', '2wk').replace('monthly', 'mo').replace('weekly', 'wk').replace('daily', 'day')}
+                    </span>
+                    <span className="text-xs text-slate-400">{automation.language === 'nl' ? 'NL' : 'EN'}</span>
+                    {automation.site_name && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <Globe className="w-2.5 h-2.5" />
+                        {automation.site_name}
+                      </span>
+                    )}
+                    {scheduled > 0 && (
+                      <span
+                        onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/automations/${automation.id}#articles`) }}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+                      >
+                        <FileText className="w-2.5 h-2.5" />
+                        {scheduled}
+                      </span>
+                    )}
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleEnabled(automation) }}
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors shrink-0 ml-4 ${
-                      automation.enabled ? 'bg-emerald-500' : 'bg-slate-300'
-                    }`}
-                    role="switch"
-                    aria-checked={automation.enabled}
-                  >
-                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${automation.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteAutomation(automation) }}
+                      className="p-1.5 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                      title="Delete automation"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleEnabled(automation) }}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                        automation.enabled ? 'bg-emerald-500' : 'bg-slate-300'
+                      }`}
+                      role="switch"
+                      aria-checked={automation.enabled}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${automation.enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+                    </button>
+                  </div>
                 </div>
               </div>
             )

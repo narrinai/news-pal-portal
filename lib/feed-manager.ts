@@ -530,97 +530,47 @@ export async function getFeedConfigs(): Promise<RSSFeedConfig[]> {
       }
     }
 
-    // PRIORITY 2: Try to load from persistent API storage
-    try {
-      const response = await fetch('http://localhost:3000/api/feeds/store')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.feeds && data.feeds.length > 0) {
-          customFeeds = data.feeds
-          console.log(`✅ Using ${data.feeds.length} persistent feeds from API storage`)
-          return data.feeds
-        }
-      }
-    } catch (apiError) {
-      console.warn('Could not load from API storage, trying fallback method:', apiError.message)
-
-      // Fallback: try to get feeds via direct store GET
-      try {
-        const storeResponse = await fetch('http://localhost:3000/api/feeds/store', { method: 'GET' })
-        if (storeResponse.ok) {
-          const storeData = await storeResponse.json()
-          if (storeData.success && storeData.feeds && storeData.feeds.length > 0) {
-            customFeeds = storeData.feeds
-            console.log(`✅ Fallback success: Using ${storeData.feeds.length} feeds from store`)
-            return storeData.feeds
-          }
-        }
-      } catch (fallbackError) {
-        console.warn('Fallback also failed:', fallbackError.message)
-      }
-    }
-    
     // PRIORITY 2: Check memory storage
     if (customFeeds.length > 0) {
       console.log(`✅ Using ${customFeeds.length} custom feeds from memory`)
       return customFeeds
     }
 
-    // PRIORITY 3: Try to load from file system (multiple file locations)
-    try {
-      const fs = require('fs')
-      const path = require('path')
+    // PRIORITY 3: Try to load from file system (local dev only, not available on Netlify)
+    if (typeof globalThis.process?.versions?.node !== 'undefined') {
+      try {
+        const fs = require('fs')
+        const path = require('path')
 
-      // Try the new persistent file first
-      const persistentFilePath = path.join(process.cwd(), 'feeds-persistent.json')
-      if (fs.existsSync(persistentFilePath)) {
-        const fileData = fs.readFileSync(persistentFilePath, 'utf8')
-        const fileFeeds = JSON.parse(fileData)
-        if (fileFeeds && fileFeeds.length > 0) {
-          customFeeds = fileFeeds
-          console.log(`✅ Loaded ${fileFeeds.length} feeds from persistent file`)
-          return fileFeeds
+        const persistentFilePath = path.join(process.cwd(), 'feeds-persistent.json')
+        if (fs.existsSync(persistentFilePath)) {
+          const fileData = fs.readFileSync(persistentFilePath, 'utf8')
+          const fileFeeds = JSON.parse(fileData)
+          if (fileFeeds && fileFeeds.length > 0) {
+            customFeeds = fileFeeds
+            console.log(`✅ Loaded ${fileFeeds.length} feeds from persistent file`)
+            return fileFeeds
+          }
         }
-      }
 
-      // Fallback to old file location
-      const feedsFilePath = path.join(process.cwd(), 'feeds-data.json')
-      if (fs.existsSync(feedsFilePath)) {
-        const fileData = fs.readFileSync(feedsFilePath, 'utf8')
-        const fileFeeds = JSON.parse(fileData)
-        if (fileFeeds && fileFeeds.length > 0) {
-          customFeeds = fileFeeds
-          console.log(`✅ Loaded ${fileFeeds.length} feeds from legacy file, migrating to persistent storage`)
-          // Migrate to new persistent file
-          await saveFeedConfigs(fileFeeds)
-          return fileFeeds
+        const feedsFilePath = path.join(process.cwd(), 'feeds-data.json')
+        if (fs.existsSync(feedsFilePath)) {
+          const fileData = fs.readFileSync(feedsFilePath, 'utf8')
+          const fileFeeds = JSON.parse(fileData)
+          if (fileFeeds && fileFeeds.length > 0) {
+            customFeeds = fileFeeds
+            console.log(`✅ Loaded ${fileFeeds.length} feeds from legacy file`)
+            return fileFeeds
+          }
         }
+      } catch (fileError) {
+        console.warn('Could not load feeds from file:', fileError.message)
       }
-    } catch (fileError) {
-      console.warn('Could not load feeds from file:', fileError.message)
     }
 
-    // PRIORITY 4: Only use defaults if NO persistent file exists
-    // Check if persistent file exists to avoid overwriting manual changes
-    try {
-      const fs = require('fs')
-      const path = require('path')
-      const persistentFilePath = path.join(process.cwd(), 'feeds-persistent.json')
-
-      if (fs.existsSync(persistentFilePath)) {
-        // File exists but couldn't be read earlier - return defaults WITHOUT saving
-        console.log('⚠️ Persistent file exists but is empty or unreadable - using defaults WITHOUT overwriting file')
-        customFeeds = DEFAULT_RSS_FEEDS
-        return DEFAULT_RSS_FEEDS
-      }
-    } catch (error) {
-      console.warn('Could not check for persistent file:', error.message)
-    }
-
-    // Only initialize with defaults if no persistent file exists at all
-    console.log('🔧 No persistent file found - initializing with defaults and saving...')
-    await saveFeedConfigs(DEFAULT_RSS_FEEDS)
-    console.log(`✅ Saved ${DEFAULT_RSS_FEEDS.length} default feeds persistently`)
+    // PRIORITY 4: Fall back to defaults
+    console.log('ℹ️ No feeds from Airtable or file system — using defaults')
+    customFeeds = DEFAULT_RSS_FEEDS
     return DEFAULT_RSS_FEEDS
     
   } catch (error) {
@@ -648,15 +598,17 @@ export async function saveFeedConfigs(feeds: RSSFeedConfig[]): Promise<void> {
       }
     }
 
-    // PRIORITY 2: Save to persistent file system as backup
-    try {
-      const fs = require('fs')
-      const path = require('path')
-      const persistentFilePath = path.join(process.cwd(), 'feeds-persistent.json')
-      fs.writeFileSync(persistentFilePath, JSON.stringify(feeds, null, 2))
-      console.log(`✅ Feeds also saved to persistent file system (${feeds.length} feeds)`)
-    } catch (fileError) {
-      console.warn('Could not save to persistent file system:', fileError.message)
+    // PRIORITY 2: Save to persistent file system as backup (local dev only)
+    if (typeof globalThis.process?.versions?.node !== 'undefined') {
+      try {
+        const fs = require('fs')
+        const path = require('path')
+        const persistentFilePath = path.join(process.cwd(), 'feeds-persistent.json')
+        fs.writeFileSync(persistentFilePath, JSON.stringify(feeds, null, 2))
+        console.log(`✅ Feeds also saved to persistent file system (${feeds.length} feeds)`)
+      } catch (fileError) {
+        console.warn('Could not save to persistent file system:', fileError.message)
+      }
     }
 
     // Clear RSS cache to force refresh with new feeds

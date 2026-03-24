@@ -6,7 +6,7 @@ import { NewsArticle } from '../../../../lib/airtable'
 import { RewriteOptions } from '../../../../lib/ai-rewriter'
 import { useNotifications } from '../../../../components/NotificationSystem'
 import {
-  ArrowLeft, ExternalLink, Copy, Check, RefreshCw, Code, FileText, PenLine
+  ArrowLeft, ExternalLink, Copy, Check, RefreshCw, Code, FileText, PenLine, Send
 } from 'lucide-react'
 
 interface RewritePageProps {
@@ -39,6 +39,7 @@ export default function RewritePage({ params }: RewritePageProps) {
   const [editingTitle, setEditingTitle] = useState(false)
   const [editingContent, setEditingContent] = useState(false)
   const [savingEdits, setSavingEdits] = useState(false)
+  const [publishing, setPublishing] = useState(false)
 
   useEffect(() => {
     fetchArticle()
@@ -147,6 +148,40 @@ export default function RewritePage({ params }: RewritePageProps) {
     }
   }
 
+  const handlePublish = async () => {
+    setPublishing(true)
+    try {
+      const updates: any = {
+        status: 'published',
+        ...(article?.automation_id ? { automation_id: article.automation_id } : {}),
+      }
+      if (rewritten) {
+        updates.title = rewritten.title
+        updates.content_rewritten = rewritten.content
+        updates.content_html = rewritten.content_html
+      }
+      const res = await fetch(`/api/articles/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      if (res.ok) {
+        showNotification({ type: 'success', title: 'Published', message: 'Article published successfully', duration: 3000 })
+        if (article?.automation_id) {
+          router.push(`/dashboard/automations/${article.automation_id}`)
+        } else {
+          router.back()
+        }
+      } else {
+        showNotification({ type: 'error', title: 'Error', message: 'Could not publish article' })
+      }
+    } catch {
+      showNotification({ type: 'error', title: 'Error', message: 'Could not publish article' })
+    } finally {
+      setPublishing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-6 lg:p-8 flex items-center justify-center min-h-[50vh]">
@@ -248,7 +283,7 @@ export default function RewritePage({ params }: RewritePageProps) {
                   onChange={(e) => setOptions({...options, language: e.target.value as any})}
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
-                  <option value="nl">Nederlands</option>
+                  <option value="nl">Dutch</option>
                   <option value="en">English</option>
                 </select>
               </div>
@@ -310,23 +345,41 @@ export default function RewritePage({ params }: RewritePageProps) {
               />
             </div>
 
-            <button
-              onClick={handleRewrite}
-              disabled={rewriting}
-              className="mt-4 w-full inline-flex items-center justify-center bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
-            >
-              {rewriting ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Rewriting — usually takes about 1 minute...
-                </>
-              ) : (
-                <>
-                  <PenLine className="w-4 h-4 mr-2" />
-                  {rewritten ? 'Rewrite Again' : 'Rewrite Article'}
-                </>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={handleRewrite}
+                disabled={rewriting || publishing}
+                className="flex-1 inline-flex items-center justify-center bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+              >
+                {rewriting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Rewriting...
+                  </>
+                ) : (
+                  <>
+                    <PenLine className="w-4 h-4 mr-2" />
+                    {rewritten ? 'Rewrite Again' : 'Rewrite Article'}
+                  </>
+                )}
+              </button>
+              {rewritten && (
+                <button
+                  onClick={handlePublish}
+                  disabled={publishing || rewriting}
+                  className="inline-flex items-center justify-center bg-emerald-600 text-white hover:bg-emerald-700 px-4 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+                >
+                  {publishing ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Publish
+                    </>
+                  )}
+                </button>
               )}
-            </button>
+            </div>
 
             {rewriting && (
               <div className="mt-3 bg-indigo-50 border border-indigo-100 rounded-lg p-3">

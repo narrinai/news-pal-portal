@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
   // Cache headers
-  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120')
 
   try {
     const { category, limit, offset, automation_id } = req.query

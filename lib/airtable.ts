@@ -62,7 +62,7 @@ export interface Automation {
   site_detail_template?: string
   integration_type?: 'script-tag' | 'fetch-api' | 'build-time' | 'netlify-function'
   deploy_webhook_url?: string
-  site_platform?: 'netlify' | 'wordpress' | 'replit' | 'other'
+  site_platform?: 'netlify' | 'wordpress' | 'replit' | 'hubspot' | 'other'
   site_api_key?: string
   replit_url?: string
   tags?: string
@@ -325,8 +325,26 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
 
   try {
     const { id: _id, ...fields } = data
+
+    // Only send fields that exist as columns in Airtable automation_settings
+    const KNOWN_FIELDS = new Set([
+      'name', 'enabled', 'articles_per_day', 'publish_frequency',
+      'categories', 'style', 'length', 'language',
+      'keywords', 'feeds', 'tags', 'target_audience',
+      'site_name', 'site_url', 'site_example_url',
+      'site_template', 'site_detail_template',
+      'integration_type', 'deploy_webhook_url',
+      'site_platform', 'site_api_key', 'replit_url',
+      'extra_context', 'analyze_urls', 'ai_settings',
+    ])
+
+    const cleaned: Record<string, any> = {}
+    for (const [key, val] of Object.entries(fields)) {
+      if (!KNOWN_FIELDS.has(key)) continue
+      cleaned[key] = val
+    }
+
     // Airtable requires null (not empty string) to clear singleSelect and url fields
-    const cleaned: Record<string, any> = { ...fields }
     const selectFields = ['integration_type', 'publish_frequency', 'site_platform']
     const urlFields = ['site_url', 'deploy_webhook_url', 'replit_url']
     for (const key of [...selectFields, ...urlFields]) {
@@ -334,10 +352,15 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
         cleaned[key] = null
       }
     }
+
     const record = await base('automation_settings').update(id, cleaned)
     return recordToAutomation(record)
-  } catch (error) {
-    console.error(`Error updating automation ${id}:`, error)
+  } catch (error: any) {
+    console.error(`Error updating automation ${id}:`, error?.message || error)
+    // If Airtable rejects unknown fields, retry with only base fields
+    if (error?.message?.includes('UNKNOWN_FIELD_NAME') || error?.statusCode === 422) {
+      throw error
+    }
     return mockAirtable.updateAutomation(id, data)
   }
 }

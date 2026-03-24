@@ -26,8 +26,12 @@ export default async function handler(req, res) {
       const airtableFeeds = await loadFeedsFromAirtable()
 
       if (airtableFeeds.length > 0) {
-        console.log(`✅ Returning ${airtableFeeds.length} feeds from Airtable`)
-        return res.status(200).json(airtableFeeds)
+        // Merge: include DEFAULT_RSS_FEEDS that aren't already in Airtable (by id)
+        const airtableIds = new Set(airtableFeeds.map(f => f.id))
+        const missingDefaults = DEFAULT_RSS_FEEDS.filter(f => !airtableIds.has(f.id))
+        const merged = [...airtableFeeds, ...missingDefaults]
+        console.log(`✅ Returning ${merged.length} feeds (${airtableFeeds.length} Airtable + ${missingDefaults.length} defaults)`)
+        return res.status(200).json(merged)
       }
 
       // PRIORITY 2: Fallback to local feed manager

@@ -25,7 +25,7 @@
   }
 
   var CACHE_KEY = 'newspal_cache_' + automationId;
-  var CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  var CACHE_TTL = 1 * 60 * 1000; // 1 minute
 
   // Default card template
   var DEFAULT_TEMPLATE =

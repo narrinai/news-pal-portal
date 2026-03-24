@@ -485,13 +485,82 @@ const EUROPEAN_PURPOSE_FEEDS: RSSFeedConfig[] = [
   }
 ]
 
+// 🇩🇪 GERMAN TECH & NEWS FEEDS
+const GERMAN_FEEDS: RSSFeedConfig[] = [
+  {
+    id: 'de-heise-news',
+    url: 'https://www.heise.de/rss/heise-atom.xml',
+    name: 'Heise Online News',
+    category: 'german-news',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'de-golem',
+    url: 'https://rss.golem.de/rss.php?feed=RSS2.0',
+    name: 'Golem.de',
+    category: 'german-tech',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'de-t3n',
+    url: 'https://t3n.de/rss.xml',
+    name: 't3n Magazin',
+    category: 'german-tech',
+    enabled: true,
+    maxArticles: 50
+  },
+  {
+    id: 'de-handelsblatt',
+    url: 'https://www.handelsblatt.com/contentexport/feed/themen/digitalisierung',
+    name: 'Handelsblatt Digital',
+    category: 'german-business',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'de-spiegel-tech',
+    url: 'https://www.spiegel.de/netzwelt/index.rss',
+    name: 'Spiegel Netzwelt',
+    category: 'german-tech',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'de-chip',
+    url: 'https://www.chip.de/rss/rss.xml',
+    name: 'CHIP Online',
+    category: 'german-tech',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'de-computerwoche',
+    url: 'https://www.computerwoche.de/feed/news.rss',
+    name: 'Computerwoche',
+    category: 'german-tech',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'de-manager-magazin',
+    url: 'https://www.manager-magazin.de/themen/digitalisierung/index.rss',
+    name: 'Manager Magazin Digital',
+    category: 'german-business',
+    enabled: true,
+    maxArticles: 40
+  }
+]
+
 // GECOMBINEERDE FEED LIJST
 export const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
   ...CYBERSECURITY_FEEDS,
   ...BOUWCERTIFICATEN_NL_FEEDS,
   ...AI_FEEDS,
   ...MARKETING_FEEDS,
-  ...EUROPEAN_PURPOSE_FEEDS
+  ...EUROPEAN_PURPOSE_FEEDS,
+  ...GERMAN_FEEDS
 ]
 
 // Global keywords for all feeds

@@ -17,12 +17,12 @@ export default function RewriteButton({ isRewriting, onClick, disabled }: Rewrit
         {isRewriting ? (
           <div className="flex items-center justify-center">
             <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-            AI aan het herschrijven...
+            AI rewriting...
           </div>
         ) : (
           <div className="flex items-center justify-center">
             <PenLine className="w-4 h-4 mr-2" />
-            Herschrijf Artikel
+            Rewrite Article
           </div>
         )}
       </button>
@@ -37,10 +37,10 @@ export default function RewriteButton({ isRewriting, onClick, disabled }: Rewrit
             </div>
             <div className="ml-3 flex-1">
               <p className="text-sm font-medium text-indigo-800">
-                OpenAI GPT-4 aan het werk...
+                AI is working...
               </p>
               <p className="text-sm text-indigo-600">
-                Het artikel wordt herschreven. Dit kan 10-30 seconden duren.
+                Rewriting the article. This may take 10–30 seconds.
               </p>
             </div>
           </div>

@@ -491,7 +491,7 @@ export default function DashboardPage() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="cybersecurity">Cybersecurity</option>
-                  <option value="bouwcertificaten">Bouwcertificaten</option>
+                  <option value="bouwcertificaten">Construction Certificates</option>
                   <option value="ai-companion">AI Companion</option>
                   <option value="marketingtoolz">Marketingtoolz</option>
                 </select>

@@ -206,6 +206,46 @@ export const TAG_MAPPINGS: Record<string, TagMapping> = {
     ]
   },
 
+  // === E-commerce & Retail ===
+  'ecommerce': {
+    category: 'marketingtoolz',
+    feeds: [
+      'reuters-marketing', 'bbc-marketing', 'techcrunch-ai', 'venturebeat-ai',
+      'forbes-ai', 'zdnet-ai', 'theverge-ai',
+      'de-heise-news', 'de-golem', 'de-t3n', 'de-handelsblatt', 'de-manager-magazin'
+    ],
+    keywords: [
+      'ecommerce', 'e-commerce', 'online shop', 'webshop', 'marketplace',
+      'shopify', 'woocommerce', 'magento', 'online retail', 'conversion rate',
+      'checkout', 'cart abandonment', 'product listing'
+    ]
+  },
+  'pricing': {
+    category: 'marketingtoolz',
+    feeds: [
+      'techcrunch-ai', 'venturebeat-ai', 'forbes-ai', 'zdnet-ai',
+      'reuters-marketing', 'bbc-marketing',
+      'de-handelsblatt', 'de-manager-magazin', 'de-t3n'
+    ],
+    keywords: [
+      'pricing', 'price optimization', 'dynamic pricing', 'repricing',
+      'price intelligence', 'competitive pricing', 'price monitoring',
+      'revenue management', 'price strategy', 'yield management'
+    ]
+  },
+  'retail': {
+    category: 'marketingtoolz',
+    feeds: [
+      'techcrunch-ai', 'venturebeat-ai', 'forbes-ai', 'reuters-marketing',
+      'de-handelsblatt', 'de-manager-magazin', 'de-t3n', 'de-heise-news'
+    ],
+    keywords: [
+      'retail', 'retail technology', 'retail tech', 'omnichannel',
+      'brick and mortar', 'point of sale', 'inventory management',
+      'supply chain', 'fulfillment', 'last mile delivery'
+    ]
+  },
+
   // === German Tech & News ===
   'german tech': {
     category: 'german-tech',

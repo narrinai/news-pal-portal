@@ -206,6 +206,55 @@ export const TAG_MAPPINGS: Record<string, TagMapping> = {
     ]
   },
 
+  // === German Tech & News ===
+  'german tech': {
+    category: 'german-tech',
+    feeds: [
+      'de-heise-news', 'de-golem', 'de-t3n', 'de-spiegel-tech', 'de-chip', 'de-computerwoche',
+      // International English feeds also work — the rewriter translates to German
+      'techcrunch-ai', 'theverge-ai', 'ars-technica-ai', 'wired-ai', 'zdnet-ai'
+    ],
+    keywords: [
+      'Technologie', 'Tech', 'Software', 'Hardware', 'Digital', 'IT', 'KI',
+      'technology', 'software', 'hardware', 'digital', 'artificial intelligence'
+    ]
+  },
+  'german news': {
+    category: 'german-news',
+    feeds: [
+      'de-heise-news', 'de-golem', 'de-spiegel-tech', 'de-chip',
+      // International English feeds also work — the rewriter translates to German
+      'hackernews', 'techcrunch-ai', 'theverge-ai'
+    ],
+    keywords: [
+      'Nachrichten', 'News', 'Neuigkeiten', 'Bericht', 'Meldung',
+      'news', 'report', 'breaking'
+    ]
+  },
+  'german business': {
+    category: 'german-business',
+    feeds: [
+      'de-handelsblatt', 'de-manager-magazin', 'de-computerwoche',
+      // International English feeds also work — the rewriter translates to German
+      'techcrunch-ai', 'wired-ai'
+    ],
+    keywords: [
+      'Wirtschaft', 'Business', 'Unternehmen', 'Markt', 'Finanzen', 'Startup',
+      'business', 'market', 'company', 'startup', 'finance', 'economy'
+    ]
+  },
+  'ki': {
+    category: 'german-tech',
+    feeds: [
+      'de-heise-news', 'de-golem', 'de-t3n',
+      'techcrunch-ai', 'theverge-ai', 'venturebeat-ai', 'mit-tech-review'
+    ],
+    keywords: [
+      'KI', 'Künstliche Intelligenz', 'maschinelles Lernen', 'neuronales Netz',
+      'AI', 'artificial intelligence', 'machine learning'
+    ]
+  },
+
   // === Bouw ===
   'bouwcertificaten': {
     category: 'bouwcertificaten',

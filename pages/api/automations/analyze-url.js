@@ -70,7 +70,7 @@ CONTENT PREVIEW: ${textContent}
 ${extraContext ? `\nEXTRA CONTEXT FROM USER:\n${extraContext}` : ''}
 
 Based on this website, return a JSON object with:
-1. "tags" — an array of 3-8 specific topic tags that describe what this site covers. Use lowercase English terms. Examples: "cybersecurity", "email marketing", "ai companion", "european tech", "seo", "content marketing", "privacy tools", "open source", "ransomware"
+1. "tags" — an array of 3-8 specific topic tags that describe what this site covers. Use lowercase English terms. Examples: "cybersecurity", "email marketing", "ai companion", "european tech", "seo", "content marketing", "privacy tools", "open source", "ransomware". If the site is in German or targets a German audience, also include relevant German-specific tags such as "german tech", "german news", "german business", or "ki".
 2. "audience" — an array of 1-4 target audience segments. Examples: "marketing managers", "developers", "entrepreneurs", "security professionals", "small business owners"
 3. "suggestedName" — a short name for this automation based on the site (2-4 words)
 

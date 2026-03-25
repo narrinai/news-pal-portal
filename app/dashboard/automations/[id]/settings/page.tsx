@@ -85,7 +85,9 @@ const SEO_TIPS = [
 export default function AutomationSettingsPage() {
   const params = useParams()
   const router = useRouter()
-  const id = params.id as string
+  const id = params?.id as string
+
+  if (!id) return null
 
   const [automationName, setAutomationName] = useState('')
   const [settings, setSettings] = useState<AiSettings>(defaultSettings)

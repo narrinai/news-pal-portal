@@ -323,7 +323,10 @@ export default async function handler(req, res) {
           if (aiSettings.include_quotes === false) instructions.push('Do NOT include generated quotes.')
 
           // Internal linking strategy
-          if (aiSettings.internal_links) instructions.push(`INTERNAL LINKING:\n${aiSettings.internal_links}`)
+          if (aiSettings.internal_links) {
+            const maxLinks = aiSettings.max_internal_links || 2
+            instructions.push(`INTERNAL LINKING (max ${maxLinks} links total per article):\n${aiSettings.internal_links}`)
+          }
 
           // URL rules
           if (aiSettings.url_rules && aiSettings.url_rules.length > 0) {
@@ -349,9 +352,10 @@ export default async function handler(req, res) {
             article.url
           )
 
-          // Find header image if missing (skip if disabled in ai_settings)
+          // Find header image if missing or placeholder (skip if disabled in ai_settings)
           let headerImage = article.imageUrl
-          if (!headerImage && aiSettings.include_header_image !== false) {
+          const isPlaceholderImg = !headerImage || headerImage.includes('placehold.co')
+          if (isPlaceholderImg && aiSettings.include_header_image !== false) {
             try {
               headerImage = await findHeaderImage(rewritten.title, article.matchedKeywords)
             } catch { /* silent */ }

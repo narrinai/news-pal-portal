@@ -1,13 +1,18 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Save, Info, Plus, Trash2, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Save, Info, Plus, Trash2 } from 'lucide-react'
 
 interface UrlRule {
   keyword: string
   url: string
   label: string
+}
+
+interface InternalLink {
+  topic: string
+  url: string
 }
 
 interface AiSettings {
@@ -19,7 +24,8 @@ interface AiSettings {
   include_sources: boolean
   include_quotes: boolean
   // SEO enhancements
-  internal_links: string       // free text describing internal link strategy
+  internal_links: string       // auto-generated prompt text from internal_link_rules
+  internal_link_rules: InternalLink[]  // structured topic → URL pairs
   max_internal_links: number   // max internal links per article
   url_rules: UrlRule[]         // keyword → always link to URL
   max_url_rules: number        // max keyword→url links per article
@@ -34,10 +40,31 @@ const defaultSettings: AiSettings = {
   include_sources: true,
   include_quotes: true,
   internal_links: '',
+  internal_link_rules: [],
   max_internal_links: 2,
   url_rules: [],
   max_url_rules: 2,
   custom_instructions: '',
+}
+
+// Parse legacy internal_links string into structured rules
+function parseInternalLinks(text: string): InternalLink[] {
+  if (!text) return []
+  return text.split('\n').filter(Boolean).map(line => {
+    // Try patterns like "When mentioning X, link to Y" or "X → Y" or "X, Y" or "X\tY"
+    const arrowMatch = line.match(/^(.+?)\s*[→➜\->]+\s*(.+)$/)
+    if (arrowMatch) return { topic: arrowMatch[1].trim(), url: arrowMatch[2].trim() }
+    const whenMatch = line.match(/[Ww]hen\s+(?:mentioning|discussing|referencing|talking about)\s+(.+?),?\s+link\s+to\s+(.+)/i)
+    if (whenMatch) return { topic: whenMatch[1].trim(), url: whenMatch[2].trim() }
+    const tabMatch = line.split('\t')
+    if (tabMatch.length >= 2) return { topic: tabMatch[0].trim(), url: tabMatch[1].trim() }
+    return null
+  }).filter((r): r is InternalLink => r !== null && r.topic !== '' && r.url !== '')
+}
+
+// Generate prompt text from structured rules
+function generateInternalLinksText(rules: InternalLink[]): string {
+  return rules.filter(r => r.topic && r.url).map(r => `When mentioning ${r.topic}, link to ${r.url}`).join('\n')
 }
 
 const DEFAULT_FEATURES = [
@@ -73,15 +100,6 @@ const DEFAULT_FEATURES = [
   },
 ]
 
-const SEO_TIPS = [
-  {
-    title: 'Internal linking',
-    description: 'Tell the AI which topics should link to which pages on your site. Example: "When mentioning email marketing, link internally to /email-marketing-tools"',
-    field: 'internal_links',
-    placeholder: 'When mentioning email marketing, link to /email-marketing-tools\nWhen discussing SEO tools, link to /seo-software\nWhen referencing AI writing tools, link to /ai-content-tools',
-  },
-]
-
 export default function AutomationSettingsPage() {
   const params = useParams()
   const router = useRouter()
@@ -94,7 +112,11 @@ export default function AutomationSettingsPage() {
   const [extraContext, setExtraContext] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [newRule, setNewRule] = useState({ keyword: '', url: '', label: '' })
+
+  const [showPasteModal, setShowPasteModal] = useState(false)
+  const [pasteText, setPasteText] = useState('')
+  const [showUrlPasteModal, setShowUrlPasteModal] = useState(false)
+  const [urlPasteText, setUrlPasteText] = useState('')
 
   useEffect(() => {
     fetch(`/api/automations/${id}`)
@@ -105,7 +127,12 @@ export default function AutomationSettingsPage() {
         if (data.ai_settings) {
           try {
             const parsed = JSON.parse(data.ai_settings)
-            setSettings({ ...defaultSettings, ...parsed })
+            const merged = { ...defaultSettings, ...parsed }
+            // Migrate legacy internal_links text to structured rules
+            if (merged.internal_links && (!merged.internal_link_rules || merged.internal_link_rules.length === 0)) {
+              merged.internal_link_rules = parseInternalLinks(merged.internal_links)
+            }
+            setSettings(merged)
           } catch {}
         }
       })
@@ -115,11 +142,6 @@ export default function AutomationSettingsPage() {
     setSettings(s => ({ ...s, [key]: !s[key] }))
   }
 
-  const addUrlRule = () => {
-    if (!newRule.keyword || !newRule.url) return
-    setSettings(s => ({ ...s, url_rules: [...s.url_rules, newRule] }))
-    setNewRule({ keyword: '', url: '', label: '' })
-  }
 
   const removeUrlRule = (i: number) => {
     setSettings(s => ({ ...s, url_rules: s.url_rules.filter((_, idx) => idx !== i) }))
@@ -128,11 +150,16 @@ export default function AutomationSettingsPage() {
   const save = useCallback(async () => {
     setSaving(true)
     try {
+      // Auto-generate internal_links prompt text from structured rules
+      const settingsToSave = {
+        ...settings,
+        internal_links: generateInternalLinksText(settings.internal_link_rules),
+      }
       await fetch(`/api/automations/${id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ai_settings: JSON.stringify(settings),
+          ai_settings: JSON.stringify(settingsToSave),
           extra_context: extraContext,
         }),
       })
@@ -142,6 +169,19 @@ export default function AutomationSettingsPage() {
       setSaving(false)
     }
   }, [id, settings, extraContext])
+
+  // Autosave with debounce
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const initialLoad = useRef(true)
+  useEffect(() => {
+    if (initialLoad.current) {
+      initialLoad.current = false
+      return
+    }
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(() => { save() }, 1500)
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
+  }, [settings, extraContext, save])
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -202,25 +242,126 @@ export default function AutomationSettingsPage() {
           <p className="text-sm text-slate-500 mb-4">
             Tell the AI which topics should link to pages on your site. The AI will weave these links naturally into the article text.
           </p>
-          <textarea
-            value={settings.internal_links}
-            onChange={e => setSettings(s => ({ ...s, internal_links: e.target.value }))}
-            rows={5}
-            placeholder={SEO_TIPS[0].placeholder}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-          />
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-xs text-slate-400 flex items-center gap-1">
-              <Info size={11} /> One rule per line. Use relative paths (/page) or full URLs.
-            </p>
+
+          {/* Link rules table */}
+          <div className="border border-slate-200 rounded-lg overflow-hidden mb-3">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-left">
+                  <th className="px-3 py-2 text-xs font-medium text-slate-500 w-[45%]">Topic / keyword</th>
+                  <th className="px-3 py-2 text-xs font-medium text-slate-500 w-[45%]">Link to</th>
+                  <th className="px-3 py-2 w-8"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(settings.internal_link_rules.length > 0 ? settings.internal_link_rules : [{ topic: '', url: '' }]).map((rule, i) => (
+                  <tr key={i} className="border-t border-slate-100">
+                    <td className="px-3 py-1.5">
+                      <input
+                        value={rule.topic}
+                        onChange={e => {
+                          if (settings.internal_link_rules.length === 0) {
+                            setSettings(s => ({ ...s, internal_link_rules: [{ topic: e.target.value, url: '' }] }))
+                          } else {
+                            setSettings(s => ({ ...s, internal_link_rules: s.internal_link_rules.map((r, idx) => idx === i ? { ...r, topic: e.target.value } : r) }))
+                          }
+                        }}
+                        className="w-full text-sm border-0 bg-transparent focus:outline-none focus:ring-0 px-0"
+                        placeholder="e.g. email marketing"
+                      />
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input
+                        value={rule.url}
+                        onChange={e => {
+                          if (settings.internal_link_rules.length === 0) {
+                            setSettings(s => ({ ...s, internal_link_rules: [{ topic: '', url: e.target.value }] }))
+                          } else {
+                            setSettings(s => ({ ...s, internal_link_rules: s.internal_link_rules.map((r, idx) => idx === i ? { ...r, url: e.target.value } : r) }))
+                          }
+                        }}
+                        className="w-full text-sm border-0 bg-transparent focus:outline-none focus:ring-0 px-0 font-mono text-indigo-600"
+                        placeholder="/page-path or full URL"
+                      />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      {settings.internal_link_rules.length > 0 && (
+                        <button onClick={() => setSettings(s => ({ ...s, internal_link_rules: s.internal_link_rules.filter((_, idx) => idx !== i) }))} className="text-slate-300 hover:text-red-500 transition-colors">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Add row + paste buttons */}
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={() => setSettings(s => ({ ...s, internal_link_rules: [...s.internal_link_rules, { topic: '', url: '' }] }))}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+            >
+              <Plus size={13} /> Add link
+            </button>
+            <button
+              onClick={() => setShowPasteModal(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              Paste from spreadsheet
+            </button>
+          </div>
+
+          {/* Paste modal */}
+          {showPasteModal && (
+            <div className="mb-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <p className="text-xs text-slate-500 mb-2">Paste rows from a spreadsheet (tab-separated) or one per line as <code className="bg-slate-100 px-1 rounded">topic, url</code></p>
+              <textarea
+                value={pasteText}
+                onChange={e => setPasteText(e.target.value)}
+                rows={4}
+                placeholder={"email marketing\t/email-marketing-tools\nSEO tools\t/seo-software\nAI writing\t/ai-content-tools"}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none mb-2"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const parsed = pasteText.split('\n').filter(Boolean).map(line => {
+                      const parts = line.includes('\t') ? line.split('\t') : line.split(',')
+                      if (parts.length >= 2) return { topic: parts[0].trim(), url: parts[1].trim() }
+                      return null
+                    }).filter((r): r is InternalLink => r !== null && r.topic !== '' && r.url !== '')
+                    if (parsed.length > 0) {
+                      setSettings(s => ({ ...s, internal_link_rules: [...s.internal_link_rules, ...parsed] }))
+                    }
+                    setPasteText('')
+                    setShowPasteModal(false)
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                >
+                  {pasteText.trim() ? `Add ${pasteText.split('\n').filter(Boolean).length} rows` : 'Add rows'}
+                </button>
+                <button
+                  onClick={() => { setPasteText(''); setShowPasteModal(false) }}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-end">
             <label className="flex items-center gap-2 text-xs text-slate-500 shrink-0">
-              Max per article
+              Max total links per article
               <select
                 value={settings.max_internal_links}
                 onChange={e => setSettings(s => ({ ...s, max_internal_links: Number(e.target.value) }))}
                 className="border border-slate-200 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
-                {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                {[1,2,3,4,5,8,10].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
             </label>
           </div>
@@ -236,54 +377,90 @@ export default function AutomationSettingsPage() {
             When a specific term is mentioned, always link it to a specific URL. Great for product pages, partner links, or key landing pages.
           </p>
 
-          {settings.url_rules.length > 0 && (
-            <div className="space-y-2 mb-4">
-              {settings.url_rules.map((rule, i) => (
-                <div key={i} className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-700 min-w-0 truncate">{rule.keyword}</span>
-                  <span className="text-slate-400 shrink-0">→</span>
-                  <a href={rule.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 truncate flex items-center gap-1 min-w-0">
-                    {rule.url} <ExternalLink size={11} className="shrink-0" />
-                  </a>
-                  {rule.label && <span className="text-slate-400 text-xs shrink-0">"{rule.label}"</span>}
-                  <button onClick={() => removeUrlRule(i)} className="ml-auto shrink-0 text-slate-400 hover:text-red-500">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="grid grid-cols-3 gap-2">
-            <input
-              value={newRule.keyword}
-              onChange={e => setNewRule(r => ({ ...r, keyword: e.target.value }))}
-              placeholder='Keyword (e.g. "Mailchimp")'
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
-            <input
-              value={newRule.url}
-              onChange={e => setNewRule(r => ({ ...r, url: e.target.value }))}
-              placeholder="URL (e.g. /email-tools)"
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
-            <input
-              value={newRule.label}
-              onChange={e => setNewRule(r => ({ ...r, label: e.target.value }))}
-              placeholder='Link label (optional, e.g. "our review")'
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
+          <div className="border border-slate-200 rounded-lg overflow-hidden mb-3">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-left">
+                  <th className="px-3 py-2 text-xs font-medium text-slate-500 w-[35%]">Keyword</th>
+                  <th className="px-3 py-2 text-xs font-medium text-slate-500 w-[35%]">URL</th>
+                  <th className="px-3 py-2 text-xs font-medium text-slate-500 w-[22%]">Label (optional)</th>
+                  <th className="px-3 py-2 w-8"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(settings.url_rules.length > 0 ? settings.url_rules : [{ keyword: '', url: '', label: '' }]).map((rule, i) => (
+                  <tr key={i} className="border-t border-slate-100">
+                    <td className="px-3 py-1.5">
+                      <input
+                        value={rule.keyword}
+                        onChange={e => {
+                          if (settings.url_rules.length === 0) {
+                            setSettings(s => ({ ...s, url_rules: [{ keyword: e.target.value, url: '', label: '' }] }))
+                          } else {
+                            setSettings(s => ({ ...s, url_rules: s.url_rules.map((r, idx) => idx === i ? { ...r, keyword: e.target.value } : r) }))
+                          }
+                        }}
+                        className="w-full text-sm border-0 bg-transparent focus:outline-none focus:ring-0 px-0"
+                        placeholder='e.g. "Mailchimp"'
+                      />
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input
+                        value={rule.url}
+                        onChange={e => {
+                          if (settings.url_rules.length === 0) {
+                            setSettings(s => ({ ...s, url_rules: [{ keyword: '', url: e.target.value, label: '' }] }))
+                          } else {
+                            setSettings(s => ({ ...s, url_rules: s.url_rules.map((r, idx) => idx === i ? { ...r, url: e.target.value } : r) }))
+                          }
+                        }}
+                        className="w-full text-sm border-0 bg-transparent focus:outline-none focus:ring-0 px-0 font-mono text-indigo-600"
+                        placeholder="/email-tools"
+                      />
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input
+                        value={rule.label}
+                        onChange={e => {
+                          if (settings.url_rules.length === 0) {
+                            setSettings(s => ({ ...s, url_rules: [{ keyword: '', url: '', label: e.target.value }] }))
+                          } else {
+                            setSettings(s => ({ ...s, url_rules: s.url_rules.map((r, idx) => idx === i ? { ...r, label: e.target.value } : r) }))
+                          }
+                        }}
+                        className="w-full text-sm border-0 bg-transparent focus:outline-none focus:ring-0 px-0 text-slate-400"
+                        placeholder='"our review"'
+                      />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      {settings.url_rules.length > 0 && (
+                        <button onClick={() => removeUrlRule(i)} className="text-slate-300 hover:text-red-500 transition-colors">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
           <div className="mt-2 flex items-center justify-between">
-            <button
-              onClick={addUrlRule}
-              disabled={!newRule.keyword || !newRule.url}
-              className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-40 font-medium"
-            >
-              <Plus size={14} /> Add rule
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSettings(s => ({ ...s, url_rules: [...s.url_rules, { keyword: '', url: '', label: '' }] }))}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+              >
+                <Plus size={13} /> Add rule
+              </button>
+              <button
+                onClick={() => setShowUrlPasteModal(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Paste from spreadsheet
+              </button>
+            </div>
             <label className="flex items-center gap-2 text-xs text-slate-500">
-              Max per article
+              Max total per article
               <select
                 value={settings.max_url_rules}
                 onChange={e => setSettings(s => ({ ...s, max_url_rules: Number(e.target.value) }))}
@@ -293,6 +470,46 @@ export default function AutomationSettingsPage() {
               </select>
             </label>
           </div>
+
+          {/* URL rules paste modal */}
+          {showUrlPasteModal && (
+            <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <p className="text-xs text-slate-500 mb-2">Paste rows from a spreadsheet (tab-separated) or one per line as <code className="bg-slate-100 px-1 rounded">keyword, url</code> or <code className="bg-slate-100 px-1 rounded">keyword, url, label</code></p>
+              <textarea
+                value={urlPasteText}
+                onChange={e => setUrlPasteText(e.target.value)}
+                rows={4}
+                placeholder={"Mailchimp\t/email-tools\tour review\nHubSpot\t/crm-tools\nSalesforce\t/crm-tools\tcompare"}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none mb-2"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const parsed = urlPasteText.split('\n').filter(Boolean).map(line => {
+                      const parts = line.includes('\t') ? line.split('\t') : line.split(',')
+                      if (parts.length >= 2) return { keyword: parts[0].trim(), url: parts[1].trim(), label: (parts[2] || '').trim() }
+                      return null
+                    }).filter((r): r is UrlRule => r !== null && r.keyword !== '' && r.url !== '')
+                    if (parsed.length > 0) {
+                      setSettings(s => ({ ...s, url_rules: [...s.url_rules, ...parsed] }))
+                    }
+                    setUrlPasteText('')
+                    setShowUrlPasteModal(false)
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                >
+                  {urlPasteText.trim() ? `Add ${urlPasteText.split('\n').filter(Boolean).length} rules` : 'Add rules'}
+                </button>
+                <button
+                  onClick={() => { setUrlPasteText(''); setShowUrlPasteModal(false) }}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Custom AI instructions */}

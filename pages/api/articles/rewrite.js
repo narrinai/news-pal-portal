@@ -29,9 +29,10 @@ export default async function handler(req, res) {
       article.url
     )
 
-    // Find a header image if the article doesn't have one
+    // Find a header image if the article doesn't have a real one
     let imageUrl = article.imageUrl
-    if (!imageUrl) {
+    const isPlaceholder = !imageUrl || imageUrl.includes('placehold.co')
+    if (isPlaceholder) {
       try {
         imageUrl = await findHeaderImage(rewritten.title, article.matchedKeywords)
         console.log('Found header image:', imageUrl?.substring(0, 80))
@@ -54,7 +55,7 @@ export default async function handler(req, res) {
       faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
       ...(imageUrl ? { imageUrl } : {}),
       ...(cleanTopic ? { topic: cleanTopic } : {}),
-      status: 'rewritten'
+      status: (article.status === 'published' || article.status === 'selected') ? article.status : 'rewritten'
     })
 
     return res.status(200).json({

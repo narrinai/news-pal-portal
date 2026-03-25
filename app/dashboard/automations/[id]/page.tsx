@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useNotifications } from '../../../../components/NotificationSystem'
-import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown, ChevronRight, ChevronUp, FileText, Calendar, Clock, ArrowRightLeft, ArrowUp, ArrowDown, PenLine, Activity, AlertTriangle, Sparkles, Users, Tag, Settings } from 'lucide-react'
+import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown, ChevronRight, ChevronUp, FileText, Calendar, Clock, ArrowRightLeft, ArrowUp, ArrowDown, PenLine, Activity, AlertTriangle, Sparkles, Users, Tag, Settings, HelpCircle } from 'lucide-react'
 
 interface Automation {
   id: string
@@ -88,6 +88,7 @@ export default function AutomationEditPage() {
   const [editingDateId, setEditingDateId] = useState<string | null>(null)
   const [pushingTest, setPushingTest] = useState(false)
   const [pushSuccess, setPushSuccess] = useState(false)
+  const [showReplitHelp, setShowReplitHelp] = useState(false)
   const [runningPipeline, setRunningPipeline] = useState(false)
   const [analyzingUrl, setAnalyzingUrl] = useState(false)
   const [discoveringFeeds, setDiscoveringFeeds] = useState(false)
@@ -102,6 +103,7 @@ export default function AutomationEditPage() {
   const [autoSaving, setAutoSaving] = useState(false)
   const [rewritingArticleIds, setRewritingArticleIds] = useState<Set<string>>(new Set())
   const [pushingToSiteIds, setPushingToSiteIds] = useState<Set<string>>(new Set())
+  const [deletingFromSiteIds, setDeletingFromSiteIds] = useState<Set<string>>(new Set())
   const [syncingAll, setSyncingAll] = useState(false)
 
   const id = params?.id as string
@@ -1053,7 +1055,7 @@ export default function AutomationEditPage() {
               .filter(a => !isRefusal(a.title))
             const scheduled = filtered.filter(a => a.status === 'selected' || (a.status === 'rewritten' && rewritingArticleIds.has(a.id)))
               .sort((a, b) => new Date(a.publishedAt || 0).getTime() - new Date(b.publishedAt || 0).getTime())
-            const published = filtered.filter(a => a.status === 'published')
+            const published = filtered.filter(a => a.status === 'published' || a.status === 'rewritten')
               .sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime())
             const pending = filtered.filter(a => a.status === 'pending')
               .sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime())
@@ -1097,11 +1099,6 @@ export default function AutomationEditPage() {
                     </a>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[11px] text-slate-400">{article.source}</span>
-                      {article.publishedAt && (
-                        <span className="text-[11px] text-slate-300">
-                          {new Date(article.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                      )}
                     </div>
                   </div>
                   {editingDateId === article.id ? (
@@ -1149,7 +1146,7 @@ export default function AutomationEditPage() {
                       {article.status === 'published' ? 'Published' : article.status === 'selected' ? 'Scheduled' : article.status}
                     </span>
                   )}
-                  {article.status === 'published' && automation.site_url && (
+                  {(article.status === 'published' || article.status === 'rewritten') && automation.site_url && (
                     <a
                       href={automation.site_url}
                       target="_blank"
@@ -1161,7 +1158,7 @@ export default function AutomationEditPage() {
                       View
                     </a>
                   )}
-                  {article.status === 'published' && usesPushMechanism(automation) && (
+                  {(article.status === 'published' || article.status === 'rewritten') && usesPushMechanism(automation) && (
                     <button
                       onClick={async (e) => {
                         e.stopPropagation()
@@ -1192,6 +1189,39 @@ export default function AutomationEditPage() {
                     >
                       {pushingToSiteIds.has(article.id) ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <ArrowRightLeft className="w-2.5 h-2.5" />}
                       Push
+                    </button>
+                  )}
+                  {(article.status === 'published' || article.status === 'rewritten') && usesPushMechanism(automation) && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        const slug = (article.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80)
+                        if (!slug) return
+                        setDeletingFromSiteIds(prev => new Set([...prev, article.id]))
+                        try {
+                          const res = await fetch('/api/sites/delete-articles', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ automation_id: id, slugs: [slug] }),
+                          })
+                          const data = await res.json()
+                          if (data.success) {
+                            showNotification({ type: 'success', title: 'Removed from site', message: `Article removed from your site`, duration: 3000 })
+                          } else {
+                            showNotification({ type: 'error', title: 'Delete failed', message: data.error || 'Could not delete from site' })
+                          }
+                        } catch {
+                          showNotification({ type: 'error', title: 'Delete failed', message: 'Network error' })
+                        } finally {
+                          setDeletingFromSiteIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
+                        }
+                      }}
+                      disabled={deletingFromSiteIds.has(article.id)}
+                      className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                      title="Remove from site"
+                    >
+                      {deletingFromSiteIds.has(article.id) ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Trash2 className="w-2.5 h-2.5" />}
+                      Remove
                     </button>
                   )}
                   <div className="shrink-0 flex items-center gap-0.5">
@@ -1959,7 +1989,7 @@ export default function AutomationEditPage() {
                     }
                     try {
                       const res = await fetch('/api/feeds', {
-                        method: 'POST',
+                        method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                           url: feedUrl,
@@ -1969,16 +1999,17 @@ export default function AutomationEditPage() {
                         }),
                       })
                       if (res.ok) {
-                        const newFeed = await res.json()
-                        showNotification({ type: 'success', title: 'Feed added', message: `${newFeed.name || feedName} has been added`, duration: 3000 })
+                        const data = await res.json()
+                        const addedFeed = data.feed || data
+                        showNotification({ type: 'success', title: 'Feed added', message: `${addedFeed.name || feedName} has been added`, duration: 3000 })
                         // Add to selected feeds
-                        if (newFeed.id) {
+                        if (addedFeed.id) {
                           const current = getSelectedFeedIds()
-                          update('feeds', [...current, newFeed.id].join(','))
+                          update('feeds', [...current, addedFeed.id].join(','))
                         }
                         urlInput.value = ''
                         nameInput.value = ''
-                        loadFeeds()
+                        await loadFeeds()
                       } else {
                         showNotification({ type: 'error', title: 'Failed', message: 'Could not add feed' })
                       }
@@ -2449,26 +2480,7 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                       </div>
                     </div>
                     <div className="flex gap-2.5">
-                      {automation.replit_url ? (
-                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3" /></div>
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
-                      )}
-                      <div className="text-xs text-slate-600 flex-1">
-                        <p className="font-medium text-slate-700 mb-1.5">Enter your Replit deployment URL</p>
-                        <p className="mb-2">In Replit, go to your project → <strong>Overview tab</strong> → copy the URL under <strong>Domain</strong> (e.g. <code className="bg-orange-100 px-1 rounded">https://pricing-pulse-news.replit.app</code>). Do <strong>not</strong> use the editor URL (<code className="bg-slate-100 px-1 rounded">replit.com/@...</code>).</p>
-                        <input
-                          type="url"
-                          value={automation.replit_url || ''}
-                          onChange={e => update('replit_url', e.target.value)}
-                          onBlur={() => save({ replit_url: automation.replit_url }, true)}
-                          placeholder="https://your-project.replit.app"
-                          className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:border-orange-300"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
+                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
                       <div className="text-xs text-slate-600 flex-1">
                         <p className="font-medium text-slate-700 mb-1.5">Copy this prompt and paste it in Replit AI</p>
                         <p className="mb-1.5">Open your Replit project, open the AI chat, and paste this prompt. It will set everything up for you.</p>
@@ -2477,18 +2489,25 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                             const sitePath = (() => { try { return new URL(siteUrl).pathname.replace(/\/$/, '') || '/news' } catch { return '/news' } })()
                             const slugPath = `${sitePath}/:slug`
                             const lastSegment = sitePath.split('/').filter(Boolean).pop() || 'news'
-                            const prompt = `Add a News Pal integration to my project. This receives articles via a POST endpoint and serves them as pages on my site, matching my site's existing design.
+                            const prompt = `Add a News Pal integration to my project. News Pal pushes articles to my site via a POST endpoint. These articles must live ALONGSIDE my existing content — never replace, delete, or interfere with articles that are already on the site.
 
 ## How it works
-News Pal pushes articles to your site daily via POST from an external server. Your site stores them and serves them as pages.
+News Pal pushes articles to your site daily via POST from an external server. Your site stores them separately and serves them as pages alongside existing content.
 
 ## Requirements
-- Create a file called newspal.ts that exports a function: export function registerNewspal(app: Express) { ... }
-- POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against process.env.NEWSPAL_API_KEY. Store articles in a PostgreSQL database table called newspal_articles (use Replit's built-in PostgreSQL). Deduplicate by slug using INSERT ... ON CONFLICT (slug) DO UPDATE to always update existing articles with new data. Return { success, received, total }.
-- GET ${sitePath} — renders an article listing page with cards (image, category badge, title linking to ${slugPath}, description, date). Style it to match the existing site design.
-- GET ${slugPath} — renders a full article detail page with title, subtitle, meta info, image, HTML content, and FAQ section (collapsible). Style it to match the existing site.
-- In the main server file, add a standard TypeScript import at the top: import { registerNewspal } from "./newspal"; and call registerNewspal(app) BEFORE app.use(helmet()) and BEFORE any CORS or security middleware — this is critical to avoid 403 errors from external pushes. Do NOT use require() — the production build bundles with esbuild and require is not available at runtime.
-- Add NEWSPAL_API_KEY to my Replit Secrets with value: ${automation.site_api_key || '(generate key in News Pal first)'}
+- POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against env var NEWSPAL_API_KEY. Store articles in their own separate storage — use whatever storage method and language fits this project best (JSON file, database table, etc.) but NEVER write to or modify the storage used by existing site articles. Deduplicate by slug — if an article with the same slug exists, update it; otherwise append. Return { success, received, total }.
+- POST /newspal/delete — accepts { slugs: ["slug1", "slug2"] } with header x-newspal-key validated against NEWSPAL_API_KEY. Delete the specified articles by slug from newspal storage. Return { success, deleted: number, remaining: number }.
+- GET ${sitePath} — renders an article listing page showing BOTH existing site articles AND News Pal articles together, sorted by date. Use cards (image, category badge, title linking to ${slugPath}, description, date). Style it to match the existing site design.
+- GET ${slugPath} — renders a full article detail page with title, subtitle, meta info, image, HTML content, and FAQ section (collapsible). Must work for both existing articles and News Pal articles. Style it to match the existing site. Include ALL page elements that existing article pages have — such as sidebars (e.g. "related stories", "recent articles"), breadcrumbs, social share buttons, author info, navigation between articles, etc. The newspal article pages must be indistinguishable from existing article pages.
+- Register the /newspal/receive route BEFORE any security middleware (helmet, cors, csrf, etc.) — otherwise external pushes will be blocked with 403.
+- Add NEWSPAL_API_KEY to the environment/secrets with value: ${automation.site_api_key || '(generate key in News Pal first)'}
+
+## Coexistence with existing content
+- NEVER touch, overwrite, or delete existing articles, pages, blog posts, or any other content on the site
+- News Pal articles must have their own separate storage — do not mix them into existing content files or database tables
+- On listing pages (${sitePath}), merge News Pal articles with existing articles and sort by date, so they appear as one unified feed
+- On detail pages (${slugPath}), check both existing content and News Pal storage to find the article by slug
+- If the site already has routes for ${sitePath} or ${slugPath}, extend those route handlers to also include News Pal articles — do not create duplicate routes
 
 ## Article data format
 Each article object has these fields:
@@ -2510,9 +2529,18 @@ Each article object has these fields:
 - The content_html is already formatted with <section>, <h2>, <p>, <ul> tags — render it directly
 - If faq exists, parse the JSON string and render as collapsible Q&A items
 - All pages must match my existing site's design (fonts, colors, layout, spacing)
-- CRITICAL: Do NOT add CSRF protection, referrer checks, origin validation, or cors() restrictions to /newspal/receive — it comes from an external server and uses x-newspal-key for auth
-- CRITICAL: Register registerNewspal(app) as the FIRST middleware in your main server, before helmet(), cors(), and any other app.use() middleware — otherwise helmet/cors will return 403 for external requests
-- Do NOT use helmet() or any security middleware on this route`
+- CRITICAL: Do NOT add CSRF protection, referrer checks, origin validation, or cors() restrictions to /newspal/receive — it receives pushes from an external server and uses x-newspal-key header for authentication
+- CRITICAL: Make sure /newspal/receive is reachable before any security middleware runs — this is the #1 cause of integration failures${automation.site_detail_template ? `
+
+## Styling reference
+Below is the extracted HTML/CSS from an existing article page on my site. News Pal articles MUST match this exact styling — same fonts, colors, spacing, layout, header image placement, and typography. Use this as the reference template:
+
+${automation.site_detail_template}` : ''}${automation.site_template ? `
+
+## Card/listing styling reference
+Below is the extracted HTML/CSS for article cards on the listing page. News Pal article cards must match this styling:
+
+${automation.site_template}` : ''}`
                             return <>
                               <button
                                 onClick={() => {
@@ -2614,7 +2642,7 @@ export function registerNewspal(app: Express) {
                       {automation.site_template || automation.site_detail_template ? (
                         <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3" /></div>
                       ) : (
-                        <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">4</div>
+                        <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
                       )}
                       <div className="text-xs text-slate-600 flex-1">
                         <p className="font-medium text-slate-700 mb-1.5">Match your site's design</p>
@@ -2649,21 +2677,76 @@ export function registerNewspal(app: Express) {
                       </div>
                     </div>
                     <div className="flex gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">5</div>
+                      <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">4</div>
                       <div className="text-xs text-slate-600 flex-1">
                         <p className="font-medium text-slate-700 mb-1.5">Test the connection</p>
                         <p className="mb-2">Make sure your Replit site is running, then click the button to send a test article.</p>
+                        <div className="flex items-center gap-3">
                         <button
                           onClick={testPush}
-                          disabled={pushingTest || (!automation.replit_url && !automation.site_url) || !automation.site_api_key}
+                          disabled={pushingTest || !automation.site_url || !automation.site_api_key}
                           className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 transition-colors disabled:opacity-40"
                         >
                           {pushingTest ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Sending test article...</> : 'Send test article'}
                         </button>
-                        <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 space-y-1">
-                          <p className="font-medium">Getting a 403 error?</p>
-                          <p>In your Replit server file, make sure <code className="bg-amber-100 px-1 rounded">registerNewspal(app)</code> is called <strong>before</strong> any <code className="bg-amber-100 px-1 rounded">app.use(helmet())</code> or <code className="bg-amber-100 px-1 rounded">cors()</code> middleware. Security middleware blocks external pushes before they reach the route.</p>
+                        <button
+                          onClick={() => setShowReplitHelp(!showReplitHelp)}
+                          className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-indigo-600 transition-colors"
+                        >
+                          <HelpCircle className="w-3 h-3" />
+                          Troubleshooting
+                          {showReplitHelp ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        </button>
                         </div>
+                        {showReplitHelp && (
+                          <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 space-y-3">
+                            <div>
+                              <p className="font-medium text-slate-700 mb-1">403 Forbidden</p>
+                              <p className="mb-1.5">Make sure <code className="bg-slate-100 px-1 rounded">registerNewspal(app)</code> is called <strong>before</strong> any <code className="bg-slate-100 px-1 rounded">app.use(helmet())</code> or <code className="bg-slate-100 px-1 rounded">cors()</code> middleware.</p>
+                              <button onClick={() => { navigator.clipboard.writeText('Move registerNewspal(app) to the top of your server file, before any app.use(helmet()) or cors() middleware. registerNewspal must be the first middleware registered.'); showNotification({ type: 'success', title: 'Copied', message: 'Fix prompt copied', duration: 2000 }) }} className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-slate-200 rounded text-[10px] text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-colors">
+                                <Copy className="w-2.5 h-2.5" /> Copy fix prompt
+                              </button>
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-700 mb-1">404 Not Found</p>
+                              <p className="mb-1.5">The News Pal routes are not registered. Make sure <code className="bg-slate-100 px-1 rounded">registerNewspal(app)</code> is in your server file.</p>
+                              <button onClick={() => { navigator.clipboard.writeText('Add registerNewspal(app) to your Express server file. This registers the /newspal/push endpoint that receives articles from News Pal.'); showNotification({ type: 'success', title: 'Copied', message: 'Fix prompt copied', duration: 2000 }) }} className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-slate-200 rounded text-[10px] text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-colors">
+                                <Copy className="w-2.5 h-2.5" /> Copy fix prompt
+                              </button>
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-700 mb-1">500 Server Error</p>
+                              <p className="mb-1.5">Something crashed in the push handler. Check your Replit logs for the stack trace.</p>
+                              <button onClick={() => { navigator.clipboard.writeText('Check the Replit console logs for errors in the /newspal/push route handler. The push endpoint is crashing — look for undefined variables, missing database tables, or file system errors.'); showNotification({ type: 'success', title: 'Copied', message: 'Fix prompt copied', duration: 2000 }) }} className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-slate-200 rounded text-[10px] text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-colors">
+                                <Copy className="w-2.5 h-2.5" /> Copy fix prompt
+                              </button>
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-700 mb-1">Connection refused / timeout</p>
+                              <p className="mb-1.5">Your Replit site is not running or the URL is incorrect. Use the deployment URL, not the editor URL.</p>
+                              <button onClick={() => { navigator.clipboard.writeText('Make sure your Replit project is deployed and running. Use the deployment URL (e.g. https://your-project.replit.app), not the editor URL (replit.com/@...).'); showNotification({ type: 'success', title: 'Copied', message: 'Fix prompt copied', duration: 2000 }) }} className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-slate-200 rounded text-[10px] text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-colors">
+                                <Copy className="w-2.5 h-2.5" /> Copy fix prompt
+                              </button>
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-700 mb-1">Existing articles disappeared</p>
+                              <p className="mb-1.5">News Pal articles replaced your existing content instead of appearing alongside it.</p>
+                              <button onClick={() => { navigator.clipboard.writeText(`CRITICAL BUG: News Pal articles are REPLACING my existing articles instead of appearing alongside them. Fix this:
+
+1. News Pal articles must be stored SEPARATELY from existing site articles — in their own JSON file (e.g. newspal-articles.json) or their own database table (e.g. newspal_articles). NEVER store them in the same place as existing content.
+
+2. The listing page must MERGE both sources: load existing articles from wherever they currently live AND load News Pal articles from newspal storage, combine them into one array, sort by date, and render.
+
+3. The detail/article page must check BOTH sources when looking up an article by slug.
+
+4. The /newspal/receive POST endpoint must ONLY write to the separate newspal storage — never touch existing content storage.
+
+My existing articles are gone from the listing page. Please restore them by fixing the code to read from both sources.`); showNotification({ type: 'success', title: 'Copied', message: 'Fix prompt copied', duration: 2000 }) }} className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-slate-200 rounded text-[10px] text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-colors">
+                                <Copy className="w-2.5 h-2.5" /> Copy fix prompt
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     {pushSuccess && (

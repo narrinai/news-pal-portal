@@ -167,7 +167,19 @@ export default function RewritePage({ params }: RewritePageProps) {
       })
       if (res.ok) {
         showNotification({ type: 'success', title: 'Published', message: 'Article published successfully', duration: 3000 })
+        // Push to connected site if automation has a site configured
         if (article?.automation_id) {
+          try {
+            const pushRes = await fetch('/api/sites/push-articles', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ automation_id: article.automation_id, article_ids: [params.id] }),
+            })
+            const pushData = await pushRes.json()
+            if (pushData.success && pushData.pushed > 0) {
+              showNotification({ type: 'success', title: 'Pushed to site', message: `Article pushed to your site`, duration: 3000 })
+            }
+          } catch { /* silent — push is best-effort */ }
           router.push(`/dashboard/automations/${article.automation_id}`)
         } else {
           router.back()
@@ -387,6 +399,13 @@ export default function RewritePage({ params }: RewritePageProps) {
                 <div className="mt-2 bg-indigo-100 rounded-full h-1.5 overflow-hidden">
                   <div className="bg-indigo-600 h-full rounded-full progress-bar"></div>
                 </div>
+              </div>
+            )}
+
+            {rewritten && !rewriting && (
+              <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-lg p-3 flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <p className="text-sm text-emerald-700">Article rewritten. Review the result below, then publish or rewrite again.</p>
               </div>
             )}
 

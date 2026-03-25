@@ -1,4 +1,4 @@
-import { updateArticle, getArticles } from '../../../lib/airtable'
+import { updateArticle, getArticles, getAutomation } from '../../../lib/airtable'
 import { rewriteArticle } from '../../../lib/ai-rewriter'
 import { findHeaderImage } from '../../../lib/image-search'
 
@@ -20,12 +20,26 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Article not found' });
     }
 
+    // Get brand colors from automation if available
+    let brandColorInstructions = ''
+    if (article.automation_id) {
+      try {
+        const automation = await getAutomation(article.automation_id)
+        if (automation?.site_brand_colors) {
+          const brandColors = JSON.parse(automation.site_brand_colors)
+          if (brandColors?.primary) {
+            brandColorInstructions = `\n\nBRAND COLORS: Use these colors for all visual elements (stat blocks, charts, bar charts, tables, highlights):\n- Primary accent: ${brandColors.primary}\n- Secondary: ${brandColors.secondary || brandColors.primary}\n- Text: ${brandColors.text || '#374151'}\nDo NOT use the default indigo (#4f46e5). Use the brand colors above instead.`
+          }
+        }
+      } catch {}
+    }
+
     // Rewrite the article using AI
     const rewritten = await rewriteArticle(
       article.title,
       article.originalContent || article.description,
       options,
-      customInstructions,
+      (customInstructions || '') + brandColorInstructions || undefined,
       article.url
     )
 

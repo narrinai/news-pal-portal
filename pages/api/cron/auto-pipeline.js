@@ -336,6 +336,13 @@ export default async function handler(req, res) {
             instructions.push(`KEYWORD LINKS (always apply these):\n${rules}`)
           }
 
+          // Brand colors from site template analysis
+          let brandColors = null
+          try { if (automation.site_brand_colors) brandColors = JSON.parse(automation.site_brand_colors) } catch {}
+          if (brandColors?.primary) {
+            instructions.push(`BRAND COLORS: Use these colors for all visual elements (stat blocks, charts, bar charts, tables, highlights):\n- Primary accent: ${brandColors.primary}\n- Secondary: ${brandColors.secondary || brandColors.primary}\n- Text: ${brandColors.text || '#374151'}\nDo NOT use the default indigo (#4f46e5). Use the brand colors above instead.`)
+          }
+
           const fullInstructions = instructions.join('\n\n') || undefined
 
           const rewritten = await rewriteArticle(

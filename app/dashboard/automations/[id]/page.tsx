@@ -27,6 +27,7 @@ interface Automation {
   site_platform: string
   site_api_key: string
   replit_url: string
+  framer_collection: string
   tags: string
   target_audience: string
   extra_context: string
@@ -225,6 +226,7 @@ export default function AutomationEditPage() {
           site_platform: data.site_platform || '',
           site_api_key: data.site_api_key || '',
           replit_url: data.replit_url || '',
+          framer_collection: data.framer_collection || '',
           tags: data.tags || '',
           target_audience: data.target_audience || '',
           extra_context: data.extra_context || '',
@@ -1384,6 +1386,19 @@ export default function AutomationEditPage() {
                                 } catch { /* silent — non-critical */ }
                               }
                             }
+                            if (automation.site_platform === 'framer' && automation.site_api_key && automation.framer_collection) {
+                              try {
+                                const framerRes = await fetch('/api/framer/publish', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ automation_id: id, article_ids: [article.id] }),
+                                })
+                                const framerData = await framerRes.json()
+                                if (framerData.success) {
+                                  showNotification({ type: 'success', title: 'Published to Framer', message: `${framerData.published || 0} article(s) published`, duration: 3000 })
+                                }
+                              } catch { /* silent — non-critical */ }
+                            }
                             // Trigger deploy webhook if configured
                             if (automation.deploy_webhook_url) {
                               try {
@@ -2173,6 +2188,7 @@ export default function AutomationEditPage() {
                 {automation.site_platform && (
                   (automation.site_platform === 'netlify' && automation.deploy_webhook_url) ||
                   (automation.site_platform === 'replit' && automation.site_api_key) ||
+                  (automation.site_platform === 'framer' && automation.site_api_key) ||
                   (automation.site_platform === 'hubspot' && automation.site_api_key) ||
                   (automation.site_platform === 'wordpress' && automation.site_api_key && automation.site_url) ||
                   automation.site_platform === 'other'
@@ -2188,6 +2204,7 @@ export default function AutomationEditPage() {
                   { key: 'netlify', label: 'Netlify', desc: 'Static sites & SSG', logo: '/images/platforms/netlify.png' },
                   { key: 'wordpress', label: 'WordPress', desc: 'Blog & CMS', logo: '/images/platforms/wordpress.png' },
                   { key: 'replit', label: 'Replit', desc: 'Hosted web apps', logo: '/images/platforms/replit.png' },
+                  { key: 'framer', label: 'Framer', desc: 'Design-first sites', logo: '/images/platforms/framer.png' },
                   { key: 'hubspot', label: 'HubSpot', desc: 'CMS & Blog', logo: '/images/platforms/hubspot.svg' },
                   { key: 'other', label: 'Other', desc: 'Any website', logo: null },
                 ].map((p) => (
@@ -2196,7 +2213,7 @@ export default function AutomationEditPage() {
                     onClick={() => {
                       setExpandedGuide(expandedGuide === p.key ? null : p.key)
                       update('site_platform', p.key)
-                      if (p.key === 'replit' || p.key === 'hubspot') {
+                      if (p.key === 'replit' || p.key === 'hubspot' || p.key === 'framer') {
                         update('integration_type', 'fetch-api')
                       } else if (p.key !== 'other') {
                         update('integration_type', 'script-tag')
@@ -2495,7 +2512,7 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
 News Pal pushes articles to your site daily via POST from an external server. Your site stores them separately and serves them as pages alongside existing content.
 
 ## Requirements
-- POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against env var NEWSPAL_API_KEY. Store articles in their own separate storage — use whatever storage method and language fits this project best (JSON file, database table, etc.) but NEVER write to or modify the storage used by existing site articles. Deduplicate by slug — if an article with the same slug exists, update it; otherwise append. Return { success, received, total }.
+- POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against env var NEWSPAL_API_KEY. Store articles in their own separate PERSISTENT storage — use a database table, key-value store, or other persistent storage that survives server restarts and redeploys. Do NOT use a JSON file on the filesystem — it will be wiped on redeploy. NEVER write to or modify the storage used by existing site articles. Deduplicate by slug — if an article with the same slug exists, update it; otherwise append. Return { success, received, total }.
 - POST /newspal/delete — accepts { slugs: ["slug1", "slug2"] } with header x-newspal-key validated against NEWSPAL_API_KEY. Delete the specified articles by slug from newspal storage. Return { success, deleted: number, remaining: number }.
 - GET ${sitePath} — renders an article listing page showing BOTH existing site articles AND News Pal articles together, sorted by date. Use cards (image, category badge, title linking to ${slugPath}, description, date). Style it to match the existing site design.
 - GET ${slugPath} — renders a full article detail page with title, subtitle, meta info, image, HTML content, and FAQ section (collapsible). Must work for both existing articles and News Pal articles. Style it to match the existing site. Include ALL page elements that existing article pages have — such as sidebars (e.g. "related stories", "recent articles"), breadcrumbs, social share buttons, author info, navigation between articles, etc. The newspal article pages must be indistinguishable from existing article pages.
@@ -2530,7 +2547,8 @@ Each article object has these fields:
 - If faq exists, parse the JSON string and render as collapsible Q&A items
 - All pages must match my existing site's design (fonts, colors, layout, spacing)
 - CRITICAL: Do NOT add CSRF protection, referrer checks, origin validation, or cors() restrictions to /newspal/receive — it receives pushes from an external server and uses x-newspal-key header for authentication
-- CRITICAL: Make sure /newspal/receive is reachable before any security middleware runs — this is the #1 cause of integration failures${automation.site_detail_template ? `
+- CRITICAL: Make sure /newspal/receive is reachable before any security middleware runs — this is the #1 cause of integration failures
+- SITEMAP: Add News Pal articles to the site's sitemap.xml so they get indexed by search engines. If the site already has a sitemap, extend it to include newspal article URLs. If not, create one at /sitemap.xml that includes all newspal articles${automation.site_detail_template ? `
 
 ## Styling reference
 Below is the extracted HTML/CSS from an existing article page on my site. News Pal articles MUST match this exact styling — same fonts, colors, spacing, layout, header image placement, and typography. Use this as the reference template:
@@ -2757,6 +2775,105 @@ My existing articles are gone from the listing page. Please restore them by fixi
                     )}
                     <div className="ml-7 mt-1 p-2.5 bg-orange-100/50 rounded-lg">
                       <p className="text-[11px] text-orange-700">Articles will appear at <strong>{automation.site_url || 'your-site/news'}</strong> after the next pipeline run. Individual articles at <strong>{automation.site_url ? automation.site_url.replace(/\/$/, '') : '/news'}/article-slug</strong>.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {expandedGuide === 'framer' && (
+                <div className="ml-7 mt-3 p-4 bg-violet-50/50 rounded-lg border border-violet-100">
+                  <p className="text-xs text-slate-600 mb-3">News Pal publishes articles <strong>directly to your Framer CMS</strong> — they appear as native CMS items in your collection, matching your existing blog design.</p>
+                  <div className="space-y-3">
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">1</div>
+                      <div className="text-xs text-slate-600">
+                        <p className="font-medium text-slate-700 mb-1.5">Create a CMS API token</p>
+                        <p className="mt-0.5">Go to <strong>Framer → Site Settings → CMS API</strong> and create a new API token. Give it <strong>Read & Write</strong> access to your blog/articles collection.</p>
+                        <input
+                          type="password"
+                          value={automation.site_api_key || ''}
+                          onChange={e => update('site_api_key', e.target.value)}
+                          onBlur={() => save({ site_api_key: automation.site_api_key }, true)}
+                          placeholder="Paste your Framer CMS API token"
+                          className="mt-2 w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-300"
+                        />
+                        {automation.site_api_key && (
+                          <div className="flex items-center gap-1.5 text-xs text-emerald-600 mt-1.5">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>API token saved</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">2</div>
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Enter your Framer site URL</p>
+                        <p className="mt-0.5">The published URL of your Framer site (e.g. <code className="bg-violet-100 px-1 rounded">https://yoursite.framer.website</code> or your custom domain).</p>
+                        <input
+                          type="url"
+                          value={automation.site_url || ''}
+                          onChange={e => update('site_url', e.target.value)}
+                          onBlur={() => save({ site_url: automation.site_url }, true)}
+                          placeholder="https://yoursite.com"
+                          className="mt-2 w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-300"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">3</div>
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Enter your CMS collection slug</p>
+                        <p className="mt-0.5">The slug of the CMS collection where articles should be published (e.g. <code className="bg-violet-100 px-1 rounded">articles</code> or <code className="bg-violet-100 px-1 rounded">blog</code>).</p>
+                        <input
+                          type="text"
+                          value={automation.framer_collection || ''}
+                          onChange={e => update('framer_collection', e.target.value)}
+                          onBlur={() => save({ framer_collection: automation.framer_collection }, true)}
+                          placeholder="articles"
+                          className="mt-2 w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-300"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">4</div>
+                      <div className="text-xs text-slate-600 flex-1">
+                        <p className="font-medium text-slate-700 mb-1.5">Test the connection</p>
+                        <p className="mb-2">Make sure your API token and collection slug are correct, then send a test article.</p>
+                        <button
+                          onClick={async () => {
+                            if (!automation.site_api_key || !automation.framer_collection) {
+                              showNotification({ type: 'error', title: 'Missing info', message: 'Enter your API token and collection slug first' })
+                              return
+                            }
+                            setPushingTest(true)
+                            try {
+                              const res = await fetch('/api/framer/test-push', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  api_token: automation.site_api_key,
+                                  collection_slug: automation.framer_collection,
+                                }),
+                              })
+                              const data = await res.json()
+                              if (data.success) {
+                                setPushSuccess(true)
+                                showNotification({ type: 'success', title: 'Connected', message: 'Test article published to your Framer CMS', duration: 4000 })
+                              } else {
+                                showNotification({ type: 'error', title: 'Connection failed', message: data.error || 'Could not reach Framer CMS' })
+                              }
+                            } catch {
+                              showNotification({ type: 'error', title: 'Error', message: 'Could not test Framer connection' })
+                            } finally {
+                              setPushingTest(false)
+                            }
+                          }}
+                          disabled={pushingTest || !automation.site_api_key || !automation.framer_collection}
+                          className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-700 transition-colors disabled:opacity-40"
+                        >
+                          {pushingTest ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Sending test article...</> : 'Send test article'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

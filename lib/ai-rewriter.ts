@@ -406,7 +406,8 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
 4. LINKS: Integrate subtly in the text, no "Source:" labels
 5. NO META INSTRUCTIONS: Do NOT include any "CHECK:" or review instructions in the output
 6. VISUAL ELEMENTS: MUST include at least 3 images, 1 stat block or table, and 1 chart — never write without visual breaks
-7. SOURCES: MUST include at least 3-5 different sources — never just 1
+7. NO HEADER IMAGE: Do NOT place an image at the very top of the article (before or directly after the first heading). The CMS adds a separate header image automatically. Start with text content, then place the first image after the first 1-2 paragraphs
+8. SOURCES: MUST include at least 3-5 different sources — never just 1
 
 FORMAT YOUR ANSWER AS FOLLOWS:
 [Powerful English title WITHOUT "TITLE:" before it]

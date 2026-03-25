@@ -49,7 +49,7 @@ export default async function handler(req, res) {
           {
             role: 'system',
             content: `You are an HTML template extraction expert. Analyze article pages and extract reusable templates.
-Return ONLY valid JSON with two keys: "card_template" and "detail_template". No markdown, no code fences.`
+Return ONLY valid JSON with three keys: "card_template", "detail_template", and "brand_colors". No markdown, no code fences.`
           },
           {
             role: 'user',
@@ -63,8 +63,10 @@ Return ONLY valid JSON with two keys: "card_template" and "detail_template". No 
    Use these placeholders: {{title}}, {{description}}, {{date}}, {{category}}, {{source}}, {{url}}, {{imageUrl}}, {{content}}
    Keep the EXACT CSS classes and HTML structure from the original page.
 
+3. **Brand colors**: Extract the primary accent color, secondary color, and text color used on the page (from CSS, inline styles, or dominant visual elements). Return as hex codes.
+
 Return ONLY a JSON object like:
-{"card_template": "<article class=...>...</article>", "detail_template": "<div class=...>...</div>"}
+{"card_template": "<article class=...>...</article>", "detail_template": "<div class=...>...</div>", "brand_colors": {"primary": "#e4006e", "secondary": "#1a1a1a", "text": "#374151"}}
 
 Page HTML:
 ${truncatedHtml}`
@@ -100,20 +102,23 @@ ${truncatedHtml}`
 
     const cardTemplate = templates.card_template || ''
     const detailTemplate = templates.detail_template || ''
+    const brandColors = templates.brand_colors || null
 
-    // Save templates to automation
+    // Save templates and brand colors to automation
     await updateAutomation(automation_id, {
       site_template: cardTemplate,
       site_detail_template: detailTemplate,
       site_example_url: url,
+      ...(brandColors ? { site_brand_colors: JSON.stringify(brandColors) } : {}),
     })
 
-    console.log(`[ANALYZE] Templates saved for automation ${automation_id}`)
+    console.log(`[ANALYZE] Templates saved for automation ${automation_id}`, brandColors ? `Brand colors: ${JSON.stringify(brandColors)}` : '')
 
     return res.status(200).json({
       success: true,
       card_template: cardTemplate,
       detail_template: detailTemplate,
+      brand_colors: brandColors,
       source_url: url,
     })
   } catch (error) {

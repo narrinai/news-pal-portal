@@ -2216,7 +2216,7 @@ export default function AutomationEditPage() {
                   { key: 'netlify', label: 'Netlify', desc: 'Static sites & SSG', logo: '/images/platforms/netlify.png' },
                   { key: 'wordpress', label: 'WordPress', desc: 'Blog & CMS', logo: '/images/platforms/wordpress.png' },
                   { key: 'replit', label: 'Replit', desc: 'Hosted web apps', logo: '/images/platforms/replit.png' },
-                  { key: 'framer', label: 'Framer', desc: 'Design-first sites', logo: '/images/platforms/framer.png' },
+                  { key: 'framer', label: 'Framer', desc: 'Design-first sites', logo: '/images/platforms/framer.svg' },
                   { key: 'hubspot', label: 'HubSpot', desc: 'CMS & Blog', logo: '/images/platforms/hubspot.svg' },
                   { key: 'other', label: 'Other', desc: 'Any website', logo: null },
                 ].map((p) => (

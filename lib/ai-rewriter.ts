@@ -9,6 +9,10 @@ const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null
 
+const deepseek = process.env.DEEPSEEK_API_KEY
+  ? new OpenAI({ apiKey: process.env.DEEPSEEK_API_KEY, baseURL: 'https://api.deepseek.com' })
+  : null
+
 export interface RewriteOptions {
   style: 'professional' | 'engaging' | 'technical' | 'news'
   length: 'short' | 'medium' | 'long' | 'extra-long' | 'longform'
@@ -90,62 +94,72 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
     }
   }
 
+  // Fallback chain: OpenAI → Claude → DeepSeek
   if (!response) {
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: maxTokens
-    }, {
-      timeout: 90000
-    })
-
-    response = completion.choices[0]?.message?.content || ''
-
-    if (refusalPatterns.some(p => p.test(response))) {
-      console.warn('⚠️ OpenAI refused, falling back to Claude:', originalTitle)
-      throw new Error('AI_REFUSAL')
-    }
-  } catch (openaiError: any) {
-    // Fallback to Claude
-    if (!anthropic) {
-      console.error('OpenAI failed and no ANTHROPIC_API_KEY configured')
-      throw new Error('Failed to rewrite article: OpenAI refused and Claude fallback not available')
-    }
-
-    console.log('🔄 Falling back to Claude for:', originalTitle)
-    usedModel = 'claude-sonnet-4-20250514'
-
     try {
-      const message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: maxTokens,
-        system: systemPrompt,
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-      })
-
-      response = message.content[0]?.type === 'text' ? message.content[0].text : ''
-
-      if (!response) {
-        throw new Error('Claude returned empty response')
+      usedModel = 'gpt-4o'
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: maxTokens
+      }, { timeout: 90000 })
+      response = completion.choices[0]?.message?.content || ''
+      if (response && refusalPatterns.some(p => p.test(response))) {
+        console.warn('⚠️ OpenAI refused:', originalTitle)
+        response = ''
       }
+    } catch (e: any) {
+      console.error('OpenAI failed:', e.message)
+      response = ''
+    }
 
-      if (refusalPatterns.some(p => p.test(response))) {
-        console.error('⚠️ Claude also refused to rewrite:', originalTitle)
-        throw new Error('Both OpenAI and Claude refused to rewrite this article')
+    if (!response && anthropic) {
+      try {
+        console.log('🔄 Falling back to Claude for:', originalTitle.substring(0, 50))
+        usedModel = 'claude-sonnet-4-20250514'
+        const message = await anthropic.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: maxTokens,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: prompt }],
+        })
+        response = message.content[0]?.type === 'text' ? message.content[0].text : ''
+        if (response && refusalPatterns.some(p => p.test(response))) {
+          console.warn('⚠️ Claude also refused:', originalTitle)
+          response = ''
+        }
+      } catch (e: any) {
+        console.error('Claude failed:', e.message)
+        response = ''
       }
-    } catch (claudeError: any) {
-      console.error('Claude fallback also failed:', claudeError.message)
-      throw new Error('Failed to rewrite article with both OpenAI and Claude')
+    }
+
+    if (!response && deepseek) {
+      try {
+        console.log('🔄 Falling back to DeepSeek for:', originalTitle.substring(0, 50))
+        usedModel = 'deepseek-chat'
+        const completion = await deepseek.chat.completions.create({
+          model: 'deepseek-chat',
+          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: maxTokens
+        }, { timeout: 90000 })
+        response = completion.choices[0]?.message?.content || ''
+        if (response && refusalPatterns.some(p => p.test(response))) {
+          console.warn('⚠️ DeepSeek also refused:', originalTitle)
+          response = ''
+        }
+      } catch (e: any) {
+        console.error('DeepSeek failed:', e.message)
+        response = ''
+      }
+    }
+
+    if (!response) {
+      throw new Error('All models (OpenAI, Claude, DeepSeek) refused or failed to rewrite this article')
     }
   }
-  } // end if (!response)
 
   console.log(`✅ Article rewritten with ${usedModel}: ${originalTitle.substring(0, 50)}...`)
 

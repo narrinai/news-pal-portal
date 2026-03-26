@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     const publicArticles = articles.slice(startOffset, startOffset + maxArticles).map(a => ({
       id: a.id,
       title: a.title,
-      description: a.description,
+      description: ((a.description || '').replace(/<[^>]+>/g, '').substring(0, 200).trim() + ((a.description || '').length > 200 ? '...' : '')),
       content: a.content_rewritten || a.description,
       html: a.content_html || '',
       category: primaryCategory || a.topic || a.category,

@@ -1217,7 +1217,10 @@ export default function AutomationEditPage() {
                           })
                           const data = await res.json()
                           if (data.success) {
-                            showNotification({ type: 'success', title: 'Removed from site', message: `Article removed from your site`, duration: 3000 })
+                            // Also delete from Airtable
+                            fetch(`/api/articles/${article.id}`, { method: 'DELETE' }).catch(() => {})
+                            setArticles(prev => prev.filter(a => a.id !== article.id))
+                            showNotification({ type: 'success', title: 'Removed', message: `Article removed from site and database`, duration: 3000 })
                           } else {
                             showNotification({ type: 'error', title: 'Delete failed', message: data.error || 'Could not delete from site' })
                           }

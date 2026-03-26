@@ -330,6 +330,15 @@ export default function AutomationEditPage() {
     try {
       const res = await fetch(`/api/articles/${article.id}`, { method: 'DELETE' })
       if (res.ok) {
+        // Also remove from connected site if configured
+        if (automation?.site_url && automation?.site_api_key) {
+          const slug = (article.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80)
+          fetch('/api/sites/delete-articles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ automation_id: automation.id, slugs: [slug] }),
+          }).catch(() => {})
+        }
         showNotification({ type: 'success', title: 'Deleted', message: 'Article removed' })
         loadArticles()
       } else {

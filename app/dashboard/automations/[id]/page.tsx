@@ -2263,11 +2263,11 @@ export default function AutomationEditPage() {
                         <p className="font-medium text-slate-700 mb-1.5">Copy this prompt and paste it in your code editor AI</p>
                         <p className="mb-1.5">Works with Claude Code, Cursor, Replit AI, or any AI assistant with access to your project.</p>
                         {(() => {
-                          const apiBase = 'https://newspal.netlify.app'
+                          const apiBase = 'https://newspalportal.netlify.app'
                           const netlifyPrompt = `Integrate News Pal articles into my existing site (${automation.site_url || 'my website'}). My site already has a news/blog page and article detail pages. The articles from News Pal should appear in my existing design as if they are native content — same cards, same layout, same styling.
 
 ## API Endpoint
-GET ${apiBase}/api/articles/public?automation_id=${id}&limit=20
+GET ${apiBase}/api/articles/public?automation_id=${id}&limit=50
 
 Returns JSON:
 {
@@ -2276,15 +2276,16 @@ Returns JSON:
     {
       "id": "recXXX",
       "title": "Article title",
-      "description": "Short summary",
-      "content_html": "<section class=\\"content-section\\" id=\\"slug\\"><h2>Heading</h2><p>Paragraph</p></section>",
+      "description": "Short summary (max 200 chars)",
+      "content": "Plain text content",
+      "html": "<section><h2>Heading</h2><p>Paragraph</p></section>",
       "category": "Category Name",
       "source": "Source Name",
       "sourceUrl": "https://original-url.com",
       "imageUrl": "https://...",
       "subtitle": "One-line subtitle under the title",
       "publishedAt": "2026-03-11T07:00:00.000Z",
-      "faq": "[{\\"question\\":\\"Question?\\",\\"answer\\":\\"Answer text\\"}]"
+      "faq": [{"question":"Question?","answer":"Answer text"}]
     }
   ]
 }
@@ -2292,17 +2293,28 @@ Returns JSON:
 ## What to do
 - Fetch articles from the API above at BUILD TIME and merge them into the existing news/article overview page — same grid, same card design, same styling as articles already on the site
 - For each article, create a detail page using my site's existing article/detail page template and layout
-- On the detail page: render content_html directly (it's pre-formatted HTML with <section>, <h2>, <p>, <ul> tags). Style these tags to match my site's typography.
-- If faq exists (JSON string of [{question, answer}]), render as a collapsible FAQ section on the detail page
+- On the detail page: render the html field directly (it's pre-formatted HTML with <section>, <h2>, <p>, <ul> tags). Style these tags to match my site's typography.
+- If faq exists (array of {question, answer} objects), render as a collapsible FAQ section on the detail page
 - Generate slugs from title: lowercase, replace non-alphanumeric with hyphens, max 80 chars
 - Add og:title, og:description, og:image meta tags on detail pages for SEO
 - Nothing new needs to be designed — use my existing pages and components, just add the API data source
+- KEEP existing articles/content on the site — add News Pal articles alongside them, not instead of them
 
 ## Deploy hook (important!)
 Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
 1. Netlify dashboard → Site configuration → Build & deploy → Build hooks
 2. Add build hook → Name: "News Pal" → Copy the URL
-3. Give me the webhook URL — I need to paste it into News Pal so it triggers a rebuild when new articles are published`
+3. Give me the webhook URL — I need to paste it into News Pal so it triggers a rebuild when new articles are published${automation.site_detail_template ? `
+
+## Styling reference
+Below is the extracted HTML/CSS from an existing article page. News Pal articles MUST match this exact styling:
+
+${automation.site_detail_template}` : ''}${automation.site_template ? `
+
+## Card/listing styling reference
+Below is the extracted HTML/CSS for article cards on the listing page:
+
+${automation.site_template}` : ''}`
                           return <>
                             <button
                               onClick={() => {

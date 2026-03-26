@@ -1,4 +1,4 @@
-import { getArticles } from '../../../lib/airtable'
+import { getArticles, getAutomation } from '../../../lib/airtable'
 
 export default async function handler(req, res) {
   // Handle CORS preflight
@@ -37,6 +37,20 @@ export default async function handler(req, res) {
 
     const total = articles.length
 
+    // Derive site category from automation's site_url path segment
+    // e.g. https://repricing.de/news/retail → "Retail"
+    let primaryCategory = undefined
+    if (automation_id) {
+      try {
+        const automation = await getAutomation(automation_id)
+        if (automation?.site_url) {
+          const siteUrlPath = new URL(automation.site_url).pathname
+          const lastSegment = siteUrlPath.split('/').filter(Boolean).pop()
+          if (lastSegment) primaryCategory = lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1)
+        }
+      } catch {}
+    }
+
     // Return only the fields the consuming site needs
     const publicArticles = articles.slice(startOffset, startOffset + maxArticles).map(a => ({
       id: a.id,
@@ -44,7 +58,7 @@ export default async function handler(req, res) {
       description: a.description,
       content: a.content_rewritten || a.description,
       html: a.content_html || '',
-      category: a.category,
+      category: primaryCategory || a.topic || a.category,
       source: a.source,
       sourceUrl: a.url,
       imageUrl: a.imageUrl || '',

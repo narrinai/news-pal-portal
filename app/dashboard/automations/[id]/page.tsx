@@ -2506,49 +2506,87 @@ Set up a Netlify Build Hook so the site rebuilds daily with fresh articles:
                             const sitePath = (() => { try { return new URL(siteUrl).pathname.replace(/\/$/, '') || '/news' } catch { return '/news' } })()
                             const slugPath = `${sitePath}/:slug`
                             const lastSegment = sitePath.split('/').filter(Boolean).pop() || 'news'
-                            const prompt = `Add a News Pal integration to my project. News Pal pushes articles to my site via a POST endpoint. These articles must live ALONGSIDE my existing content — never replace, delete, or interfere with articles that are already on the site.
+                            const apiBase = 'https://newspalportal.netlify.app'
+                            const prompt = `Add a News Pal integration to my project. This uses a hybrid approach: articles are synced from a remote API into persistent local storage, so they survive deploys and can be edited locally. These articles must live ALONGSIDE my existing content — never replace, delete, or interfere with articles that are already on the site.
 
 ## How it works
-News Pal pushes articles to your site daily via POST from an external server. Your site stores them separately and serves them as pages alongside existing content.
+1. On server startup, automatically sync new articles from the News Pal API into Replit Database (persistent key-value store that survives deploys)
+2. Your ${sitePath} page reads from local Replit Database — fast, always available, locally editable
+3. A manual sync endpoint lets you pull new articles on demand: GET /newspal/sync
+4. Existing articles that were already synced and potentially edited locally are NEVER overwritten — only new articles (by slug) are added
+
+## API endpoint (already running, read-only — do NOT modify this external API)
+GET ${apiBase}/api/articles/public?automation_id=${automation.id}&limit=50
+Returns: { success: true, total: number, articles: [...] }
 
 ## Requirements
-- POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against env var NEWSPAL_API_KEY. Store articles in their own separate PERSISTENT storage — use a database table, key-value store, or other persistent storage that survives server restarts and redeploys. Do NOT use a JSON file on the filesystem — it will be wiped on redeploy. NEVER write to or modify the storage used by existing site articles. Deduplicate by slug — if an article with the same slug exists, update it; otherwise append. Return { success, received, total }.
-- POST /newspal/delete — accepts { slugs: ["slug1", "slug2"] } with header x-newspal-key validated against NEWSPAL_API_KEY. Delete the specified articles by slug from newspal storage. Return { success, deleted: number, remaining: number }.
-- GET ${sitePath} — renders an article listing page showing BOTH existing site articles AND News Pal articles together, sorted by date. Use cards (image, category badge, title linking to ${slugPath}, description, date). Style it to match the existing site design.
-- GET ${slugPath} — renders a full article detail page with title, subtitle, meta info, image, HTML content, and FAQ section (collapsible). Must work for both existing articles and News Pal articles. Style it to match the existing site. Include ALL page elements that existing article pages have — such as sidebars (e.g. "related stories", "recent articles"), breadcrumbs, social share buttons, author info, navigation between articles, etc. The newspal article pages must be indistinguishable from existing article pages.
-- Register the /newspal/receive route BEFORE any security middleware (helmet, cors, csrf, etc.) — otherwise external pushes will be blocked with 403.
+- Install @replit/database: npm install @replit/database
+- Use Replit Database (const Database = require("@replit/database"); const db = new Database()) for article storage — NOT JSON files (those get wiped on redeploy)
+- Store each article under key "newspal_article_<slug>" and keep an index at key "newspal_slugs" (JSON array of slug strings)
+
+### Routes to create:
+- GET /newspal/sync — fetch articles from the API, generate slug from each title (lowercase, replace non-alphanumeric with hyphens), add only NEW articles (slug not in existing index) to Replit Database. Do NOT overwrite articles that already exist locally (they may have been edited). Return { synced: number, total: number }.
+- POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against env var NEWSPAL_API_KEY. Same storage logic as sync: store in Replit Database, deduplicate by slug, update if exists. Return { success, received, total }. This is a fallback push endpoint.
+- POST /newspal/delete — accepts { slugs: ["slug1", "slug2"] } with header x-newspal-key validated against NEWSPAL_API_KEY. Delete the specified articles by slug from Replit Database and remove from index. Return { success, deleted: number, remaining: number }.
+- GET ${sitePath} — read all articles from Replit Database, render a listing page showing BOTH existing site articles AND News Pal articles together, sorted by date. Use cards (image, category badge, title linking to ${slugPath}, description, date). Style it to match the existing site design.
+- GET ${slugPath} — read single article from Replit Database by slug, render a full article detail page with title, subtitle, meta info, image, HTML content, and FAQ section (collapsible). Must work for both existing articles and News Pal articles. Style it to match the existing site. Include ALL page elements that existing article pages have — such as sidebars, breadcrumbs, social share buttons, navigation between articles, etc.
+- Register the /newspal/receive route BEFORE any security middleware (helmet, cors, csrf, etc.)
 - Add NEWSPAL_API_KEY to the environment/secrets with value: ${automation.site_api_key || '(generate key in News Pal first)'}
+- On server startup, call syncArticles() once to automatically pull any new articles from the API
+
+### Sync logic:
+\`\`\`
+async function syncArticles() {
+  const res = await fetch('${apiBase}/api/articles/public?automation_id=${automation.id}&limit=50');
+  const { articles } = await res.json();
+  const existingSlugs = JSON.parse((await db.get('newspal_slugs')) || '[]');
+  const existingSet = new Set(existingSlugs);
+  let synced = 0;
+  for (const a of articles) {
+    const slug = toSlug(a.title);
+    if (!existingSet.has(slug)) {
+      await db.set('newspal_article_' + slug, JSON.stringify({ ...a, slug }));
+      existingSlugs.push(slug);
+      synced++;
+    }
+  }
+  await db.set('newspal_slugs', JSON.stringify(existingSlugs));
+  return { synced, total: existingSlugs.length };
+}
+\`\`\`
 
 ## Coexistence with existing content
 - NEVER touch, overwrite, or delete existing articles, pages, blog posts, or any other content on the site
-- News Pal articles must have their own separate storage — do not mix them into existing content files or database tables
+- News Pal articles live in Replit Database — completely separate from existing content
 - On listing pages (${sitePath}), merge News Pal articles with existing articles and sort by date, so they appear as one unified feed
 - On detail pages (${slugPath}), check both existing content and News Pal storage to find the article by slug
 - If the site already has routes for ${sitePath} or ${slugPath}, extend those route handlers to also include News Pal articles — do not create duplicate routes
 
-## Article data format
-Each article object has these fields:
+## Article data format from API
+Each article has:
 {
-  "slug": "article-title-here",
+  "id": "recXXX",
   "title": "Article title",
   "description": "Short summary",
-  "content_html": "<section class=\\"content-section\\">...</section>",
+  "content": "Plain text content",
+  "html": "<section>...</section>",
   "category": "${lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : 'News'}",
   "source": "Original Source",
   "sourceUrl": "https://original-url.com",
   "imageUrl": "https://...",
   "subtitle": "One-line subtitle",
   "publishedAt": "2026-03-11T07:00:00.000Z",
-  "faq": "[{\\"question\\":\\"..\\",\\"answer\\":\\"..\\"}]"
+  "faq": [{"question":"..","answer":".."}]
 }
 
 ## Important
-- The content_html is already formatted with <section>, <h2>, <p>, <ul> tags — render it directly
-- If faq exists, parse the JSON string and render as collapsible Q&A items
+- The html field is already formatted with <section>, <h2>, <p>, <ul> tags — render it directly
+- faq is already a parsed array of {question, answer} objects — render as collapsible Q&A
 - All pages must match my existing site's design (fonts, colors, layout, spacing)
-- CRITICAL: Do NOT add CSRF protection, referrer checks, origin validation, or cors() restrictions to /newspal/receive — it receives pushes from an external server and uses x-newspal-key header for authentication
-- CRITICAL: Make sure /newspal/receive is reachable before any security middleware runs — this is the #1 cause of integration failures
-- SITEMAP: Add News Pal articles to the site's sitemap.xml so they get indexed by search engines. If the site already has a sitemap, extend it to include newspal article URLs. If not, create one at /sitemap.xml that includes all newspal articles${automation.site_detail_template ? `
+- CRITICAL: Do NOT add CSRF protection, referrer checks, origin validation, or cors() restrictions to /newspal/receive — it uses x-newspal-key for authentication
+- CRITICAL: Make sure /newspal/receive is reachable before any security middleware runs
+- CRITICAL: Use Replit Database (@replit/database) for storage — NOT JSON files. JSON files on the filesystem get wiped on every redeploy. This is the #1 cause of articles disappearing.
+- SITEMAP: Add News Pal articles to the site's sitemap.xml so they get indexed by search engines${automation.site_detail_template ? `
 
 ## Styling reference
 Below is the extracted HTML/CSS from an existing article page on my site. News Pal articles MUST match this exact styling — same fonts, colors, spacing, layout, header image placement, and typography. Use this as the reference template:
@@ -2580,68 +2618,71 @@ ${automation.site_template}` : ''}`
                         <details className="mt-2">
                           <summary className="text-[11px] text-slate-400 cursor-pointer hover:text-slate-600">View the code manually</summary>
                           <div className="mt-2 relative">
-                            <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto max-h-48 overflow-y-auto"><code id="replit-snippet-code">{`// newspal.ts — News Pal auto-publish receiver
-import fs from 'fs';
-import path from 'path';
-import { Express } from 'express';
+                            <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto max-h-48 overflow-y-auto"><code id="replit-snippet-code">{`// newspal.js — News Pal with Replit Database (survives deploys)
+const Database = require('@replit/database');
+const db = new Database();
+const API_URL = 'https://newspalportal.netlify.app/api/articles/public?automation_id=${automation.id}&limit=50';
 
-const DATA_FILE = path.join(process.cwd(), 'newspal-articles.json');
-
-function loadArticles() {
-  try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
-  catch { return []; }
+function toSlug(title) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
-export function registerNewspal(app: Express) {
+async function syncArticles() {
+  try {
+    const res = await fetch(API_URL);
+    const { articles } = await res.json();
+    const existingSlugs = JSON.parse((await db.get('newspal_slugs')) || '[]');
+    const existingSet = new Set(existingSlugs);
+    let synced = 0;
+    for (const a of articles) {
+      const slug = toSlug(a.title);
+      if (!existingSet.has(slug)) {
+        await db.set('newspal_article_' + slug, JSON.stringify({ ...a, slug }));
+        existingSlugs.push(slug);
+        synced++;
+      }
+    }
+    await db.set('newspal_slugs', JSON.stringify(existingSlugs));
+    console.log('[NewsPal] Synced ' + synced + ' new, ' + existingSlugs.length + ' total');
+    return { synced, total: existingSlugs.length };
+  } catch (e) { console.error('[NewsPal] sync error:', e); return { synced: 0, error: e.message }; }
+}
+
+async function getAllArticles() {
+  const slugs = JSON.parse((await db.get('newspal_slugs')) || '[]');
+  const articles = [];
+  for (const slug of slugs) {
+    const raw = await db.get('newspal_article_' + slug);
+    if (raw) articles.push(typeof raw === 'string' ? JSON.parse(raw) : raw);
+  }
+  return articles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+}
+
+module.exports = function(app) {
+  app.get('/newspal/sync', async (req, res) => res.json(await syncArticles()));
+
   app.post('/newspal/receive', (req, res) => {
     const key = req.headers['x-newspal-key'];
-    if (key !== process.env.NEWSPAL_API_KEY) {
-      return res.status(401).json({ error: 'Invalid API key' });
-    }
-    const existing = loadArticles();
-    const existingSlugs = new Set(existing.map((a: any) => a.slug));
-    const newArticles = (req.body.articles || [])
-      .filter((a: any) => !existingSlugs.has(a.slug));
-    const merged = [...newArticles, ...existing];
-    fs.writeFileSync(DATA_FILE, JSON.stringify(merged, null, 2));
-    res.json({ success: true, received: newArticles.length, total: merged.length });
+    if (key !== process.env.NEWSPAL_API_KEY) return res.status(401).json({ error: 'Unauthorized' });
+    // store via same DB logic
+    (async () => {
+      const slugs = JSON.parse((await db.get('newspal_slugs')) || '[]');
+      const set = new Set(slugs);
+      let received = 0;
+      for (const a of (req.body.articles || [])) {
+        const slug = a.slug || toSlug(a.title);
+        await db.set('newspal_article_' + slug, JSON.stringify({ ...a, slug }));
+        if (!set.has(slug)) { slugs.push(slug); set.add(slug); }
+        received++;
+      }
+      await db.set('newspal_slugs', JSON.stringify(slugs));
+      res.json({ success: true, received, total: slugs.length });
+    })().catch(e => res.status(500).json({ error: e.message }));
   });
 
-  app.get('/news', (req, res) => {
-    const articles = loadArticles();
-    const cards = articles.map(a => \`
-      <article style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:1.5rem;">
-        \${a.imageUrl ? \`<img src="\${a.imageUrl}" style="width:100%;height:200px;object-fit:cover;">\` : ''}
-        <div style="padding:1.25rem;">
-          <span style="font-size:11px;color:#6366f1;font-weight:600;text-transform:uppercase;">\${a.category}</span>
-          <h2 style="margin:0.5rem 0;font-size:1.15rem;"><a href="/news/\${a.slug}" style="color:#1e293b;text-decoration:none;">\${a.title}</a></h2>
-          <p style="color:#64748b;font-size:0.875rem;">\${a.description}</p>
-          <time style="font-size:12px;color:#94a3b8;">\${new Date(a.publishedAt).toLocaleDateString()}</time>
-        </div>
-      </article>\`).join('');
-    res.send(\`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>News</title>
-      <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#f8fafc;padding:2rem}.container{max-width:720px;margin:0 auto}</style></head>
-      <body><div class="container"><h1 style="margin-bottom:2rem">Latest News</h1>\${cards}</div></body></html>\`);
-  });
-
-  app.get('/news/:slug', (req, res) => {
-    const a = loadArticles().find(a => a.slug === req.params.slug);
-    if (!a) return res.status(404).send('Not found');
-    const faqHtml = a.faq ? JSON.parse(a.faq).map(f =>
-      \`<details style="margin-bottom:.75rem"><summary style="cursor:pointer;font-weight:600">\${f.q}</summary><p style="padding:.5rem 0;color:#64748b">\${f.a}</p></details>\`
-    ).join('') : '';
-    res.send(\`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>\${a.title}</title>
-      <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#f8fafc;padding:2rem}.container{max-width:720px;margin:0 auto}.content{line-height:1.8}</style></head>
-      <body><div class="container"><a href="/news" style="color:#6366f1;font-size:13px">&larr; Back</a>
-      <h1 style="margin-top:1rem;font-size:1.75rem">\${a.title}</h1>
-      \${a.subtitle ? \`<p style="font-size:1.1rem;color:#64748b;margin:1rem 0">\${a.subtitle}</p>\` : ''}
-      <div style="font-size:13px;color:#94a3b8;margin-bottom:1.5rem">\${a.category} &middot; \${new Date(a.publishedAt).toLocaleDateString()} &middot; \${a.source}</div>
-      \${a.imageUrl ? \`<img src="\${a.imageUrl}" style="width:100%;border-radius:12px;margin-bottom:1.5rem">\` : ''}
-      <div class="content">\${a.content_html || a.description}</div>
-      \${faqHtml ? \`<div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid #e2e8f0"><h2 style="font-size:1.25rem;margin-bottom:1rem">FAQ</h2>\${faqHtml}</div>\` : ''}
-      </div></body></html>\`);
-  });
-}`}</code></pre>
+  // Sync on startup
+  syncArticles();
+};`}</code></pre>
                             <button
                               onClick={() => {
                                 const snippetEl = document.getElementById('replit-snippet-code')

@@ -79,6 +79,10 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
       })
       response = message.content[0]?.type === 'text' ? message.content[0].text : ''
       if (!response) throw new Error('Claude returned empty response')
+      if (refusalPatterns.some(p => p.test(response))) {
+        console.warn('⚠️ Claude longform refused, falling back to OpenAI:', originalTitle)
+        response = ''
+      }
     } catch (claudeError: any) {
       console.error('Claude longform failed, falling back to OpenAI:', claudeError.message)
       // Fall through to OpenAI below
@@ -130,6 +134,11 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
 
       if (!response) {
         throw new Error('Claude returned empty response')
+      }
+
+      if (refusalPatterns.some(p => p.test(response))) {
+        console.error('⚠️ Claude also refused to rewrite:', originalTitle)
+        throw new Error('Both OpenAI and Claude refused to rewrite this article')
       }
     } catch (claudeError: any) {
       console.error('Claude fallback also failed:', claudeError.message)
@@ -291,8 +300,14 @@ SCHRITT 2 - QUELLEN (KRITISCH):
 - Verknüpfe Quellen natürlich im Text
 
 SCHRITT 3 - VISUELLE ELEMENTE (KRITISCH):
-Füge mindestens 3 Unsplash-Bilder mit diesem Format ein:
-<figure><img src="https://images.unsplash.com/photo-[ID]?w=800&auto=format&fit=crop" alt="[Beschreibung]" style="width:100%;border-radius:8px;margin:1.5rem 0"><figcaption style="text-align:center;font-size:13px;color:#64748b">[Bildunterschrift]</figcaption></figure>
+Füge genau 2 Pexels-Bilder ein (NICHT mehr als 2) mit diesem Format:
+<figure style="margin:2rem 0"><img src="https://images.pexels.com/photos/PHOTO_ID/pexels-photo-PHOTO_ID.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="[Beschreibung]" style="width:100%;border-radius:12px;height:400px;object-fit:cover" /><figcaption style="text-align:center;font-size:13px;color:#64748b;margin-top:8px">[Bildunterschrift]</figcaption></figure>
+Verwende diese Pexels Photo-IDs (wähle 2 VERSCHIEDENE pro Artikel, variiere die Auswahl):
+- Technologie/KI: 8386440, 17483868, 546819, 3861969, 8386434, 373543, 1148820, 2599244, 3183150, 4164418
+- Cybersicherheit: 5380642, 60504, 5380603, 5240547, 207580, 5474295, 1089438, 2882630, 5380659, 4508751
+- Handel/E-Commerce: 1005638, 3962294, 2292953, 3747468, 264636, 953862, 1239291, 230544, 1884581, 135620
+- Business/Marketing: 3184292, 7688336, 3182812, 590016, 265087, 3153198, 1181622, 3183197, 5673488, 7176026
+WICHTIG: Wähle 2 IDs die zum Artikelthema passen. Variiere die Auswahl — verwende NICHT immer die erste ID einer Liste.
 
 Füge außerdem mindestens eines dieser Elemente ein:
 - DATENTABELLE: <table style="width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:14px">
@@ -302,7 +317,7 @@ KRITISCHE ANWEISUNGEN:
 1. KEIN DATUM: Kein Veröffentlichungsdatum im Artikel
 2. ORIGINALE ÜBERSCHRIFTEN: Einzigartige Überschriften basierend auf tatsächlichem Inhalt
 3. KEIN META: Keine "CHECK:" oder Review-Anweisungen in der Ausgabe
-4. VISUELLE ELEMENTE: Mindestens 3 Bilder, 1 Statistikblock oder Tabelle
+4. VISUELLE ELEMENTE: Genau 2 Bilder (nicht mehr), plus 1 Statistikblock oder Tabelle
 
 FORMATIERE DEINE ANTWORT WIE FOLGT:
 [Kraftvoller deutscher Titel OHNE "TITEL:" davor]
@@ -379,15 +394,16 @@ STEP 2 - SOURCES (CRITICAL):
 STEP 3 - VISUAL ELEMENTS AND IMAGES (CRITICAL):
 Include ALL of the following in a longform article (at least 3-4 visual elements total):
 
-A) INLINE IMAGES: Add 3-4 relevant images throughout the article using Pexels:
+A) INLINE IMAGES: Add exactly 2 relevant images throughout the article using Pexels (NOT more than 2):
    <figure style="margin:2rem 0"><img src="https://images.pexels.com/photos/PHOTO_ID/pexels-photo-PHOTO_ID.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="descriptive alt text" style="width:100%;border-radius:12px;height:400px;object-fit:cover" /><figcaption style="text-align:center;font-size:13px;color:#64748b;margin-top:8px">Caption describing the image</figcaption></figure>
-   Use these Pexels photo IDs for common topics:
-   - Technology/AI: 8386440, 17483868, 546819, 3861969, 8386434
-   - Cybersecurity/hacking: 5380642, 60504, 5380603, 5240547, 207580
-   - Marketing/business: 3184292, 7688336, 3182812, 590016, 265087
-   - Data/analytics: 669615, 186461, 590022, 7947541, 6801648
-   - Science/research: 2280571, 256381, 2280547, 3825527, 60582
-   Pick IDs that match the article topic. Use DIFFERENT IDs for each image.
+   Use these Pexels photo IDs for common topics (pick 2 DIFFERENT IDs per article, vary your choices):
+   - Technology/AI: 8386440, 17483868, 546819, 3861969, 8386434, 373543, 1148820, 2599244, 3183150, 4164418
+   - Cybersecurity/hacking: 5380642, 60504, 5380603, 5240547, 207580, 5474295, 1089438, 2882630, 5380659, 4508751
+   - Marketing/business: 3184292, 7688336, 3182812, 590016, 265087, 3153198, 1181622, 3183197, 5673488, 7176026
+   - Data/analytics: 669615, 186461, 590022, 7947541, 6801648, 7788009, 5935791, 590020, 4050291, 7172837
+   - Science/research: 2280571, 256381, 2280547, 3825527, 60582, 2166, 325229, 356040, 2280549, 3912477
+   - Retail/ecommerce: 1005638, 3962294, 2292953, 3747468, 264636, 953862, 1239291, 230544, 1884581, 135620
+   IMPORTANT: Pick 2 IDs that you have NOT used recently. Vary your choices across articles — do NOT always pick the first ID in a list.
 
 B) DATA TABLE: <table style="width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:14px"><thead><tr style="background:#f1f5f9;text-align:left"><th style="padding:10px 14px;border-bottom:2px solid #e2e8f0;font-weight:600">Header</th></tr></thead><tbody><tr style="border-bottom:1px solid #e2e8f0"><td style="padding:10px 14px">Data</td></tr></tbody></table>
 
@@ -405,7 +421,7 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
 3. QUOTES: If people are mentioned, generate 1-2 relevant quotes
 4. LINKS: Integrate subtly in the text, no "Source:" labels
 5. NO META INSTRUCTIONS: Do NOT include any "CHECK:" or review instructions in the output
-6. VISUAL ELEMENTS: MUST include at least 3 images, 1 stat block or table, and 1 chart — never write without visual breaks
+6. VISUAL ELEMENTS: MUST include exactly 2 images (no more), plus 1 stat block or table — never write without visual breaks
 7. NO HEADER IMAGE: Do NOT place an image at the very top of the article (before or directly after the first heading). The CMS adds a separate header image automatically. Start with text content, then place the first image after the first 1-2 paragraphs
 8. SOURCES: MUST include at least 3-5 different sources — never just 1
 

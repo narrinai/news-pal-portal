@@ -1,4 +1,6 @@
-import { getAutomation, getArticles } from '../../../lib/airtable'
+import { getAutomation, getArticles, updateArticle } from '../../../lib/airtable'
+import { rewriteArticle } from '../../../lib/ai-rewriter'
+import { findHeaderImage } from '../../../lib/image-search'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -26,9 +28,54 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: false, error: 'Use the WordPress/HubSpot publish flow instead' })
     }
 
-    // Get published articles — optionally filtered to specific IDs
+    // Get articles — optionally filtered to specific IDs
     const allArticles = await getArticles()
     const idsFilter = article_ids && Array.isArray(article_ids) ? new Set(article_ids) : null
+
+    // Auto-rewrite articles that have no content yet
+    const toRewrite = allArticles.filter(a => {
+      if (idsFilter && !idsFilter.has(a.id)) return false
+      if (!idsFilter && (a.automation_id !== automation_id || a.status === 'pending')) return false
+      return !a.content_html && !a.content_rewritten
+    })
+    for (const a of toRewrite) {
+      try {
+        console.log(`[push-articles] Auto-rewriting: ${a.title?.substring(0, 50)}`)
+        const rewritten = await rewriteArticle(
+          a.title,
+          a.originalContent || a.description,
+          { style: automation.style || 'professional', length: automation.length || 'medium', language: automation.language || 'en', tone: 'informative' },
+          undefined,
+          a.url
+        )
+        let imageUrl = a.imageUrl
+        if (!imageUrl || imageUrl.includes('placehold.co')) {
+          try { imageUrl = await findHeaderImage(rewritten.title, a.matchedKeywords) } catch {}
+        }
+        const cleanTopic = rewritten.category?.replace(/^["']+|["']+$/g, '').trim() || null
+        await updateArticle(a.id, {
+          content_rewritten: rewritten.content,
+          content_html: rewritten.content_html,
+          title: rewritten.title,
+          subtitle: rewritten.subtitle || '',
+          faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
+          ...(imageUrl ? { imageUrl } : {}),
+          ...(cleanTopic ? { topic: cleanTopic } : {}),
+          status: a.status === 'pending' ? 'rewritten' : a.status,
+        })
+        // Update in-memory article for push
+        a.content_html = rewritten.content_html
+        a.content_rewritten = rewritten.content
+        a.title = rewritten.title
+        a.subtitle = rewritten.subtitle || ''
+        a.faq = rewritten.faq ? JSON.stringify(rewritten.faq) : ''
+        a.topic = cleanTopic
+        if (imageUrl) a.imageUrl = imageUrl
+        console.log(`[push-articles] Auto-rewrite done: ${a.title?.substring(0, 50)}`)
+      } catch (err) {
+        console.error(`[push-articles] Auto-rewrite failed for ${a.title?.substring(0, 50)}:`, err.message)
+      }
+    }
     // Derive site category from the site_url path segment
     // e.g. https://repricing.de/news/retail → "Retail"
     // This ensures pushed articles appear under the correct section on the site

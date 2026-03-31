@@ -8,9 +8,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { id, options, customInstructions, sync } = req.body;
+    const { id, options, customInstructions, _background } = req.body;
 
-    console.log('Rewrite request:', { id, options, sync, hasCustomInstructions: !!customInstructions })
+    console.log('Rewrite request:', { id, options, _background, hasCustomInstructions: !!customInstructions })
 
     // Get the original article
     const articles = await getArticles()
@@ -20,7 +20,24 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Article not found' });
     }
 
-    // Always synchronous — Netlify kills the function after response, so fire-and-forget won't work
+    // If not a background call, dispatch the work to a new function invocation and return immediately
+    if (!_background) {
+      // Determine our own URL for the background call
+      const proto = req.headers['x-forwarded-proto'] || 'https'
+      const host = req.headers['x-forwarded-host'] || req.headers.host
+      const selfUrl = `${proto}://${host}/api/articles/rewrite`
+
+      // Fire background invocation — don't await
+      fetch(selfUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, options, customInstructions, _background: true }),
+      }).catch(() => {})
+
+      return res.status(200).json({ success: true, message: 'Rewrite started', articleId: id })
+    }
+
+    // Background execution — do the actual rewrite
     let brandColorInstructions = ''
     if (article.automation_id) {
       try {

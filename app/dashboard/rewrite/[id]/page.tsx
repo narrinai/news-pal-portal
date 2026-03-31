@@ -326,49 +326,7 @@ export default function RewritePage({ params }: RewritePageProps) {
               />
             </div>
 
-            {/* AI Instructions - the main prompt */}
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-medium text-slate-500">Extra AI Instructions <span className="font-normal text-slate-400">(applies to all rewrites)</span></label>
-                <div className="flex items-center gap-2">
-                  {automation && (
-                    <span className="text-[10px] text-slate-400">From: {automation.name}</span>
-                  )}
-                  {automation && (customInstructions !== (automation.extra_context || '') || options.style !== (automation.style || 'news') || options.length !== (automation.length || 'medium') || options.language !== (automation.language || 'nl')) && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          await fetch(`/api/automations/${automation.id}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              extra_context: customInstructions,
-                              style: options.style,
-                              length: options.length,
-                              language: options.language,
-                            }),
-                          })
-                          setAutomation((prev: any) => prev ? { ...prev, extra_context: customInstructions, style: options.style, length: options.length, language: options.language } : prev)
-                          showNotification({ type: 'success', title: 'Saved', message: `Settings saved as default for ${automation.name}` })
-                        } catch {
-                          showNotification({ type: 'error', title: 'Error', message: 'Could not save defaults' })
-                        }
-                      }}
-                      className="text-[10px] text-indigo-600 hover:text-indigo-800 font-medium"
-                    >
-                      Save as default
-                    </button>
-                  )}
-                </div>
-              </div>
-              <textarea
-                value={customInstructions}
-                onChange={(e) => setCustomInstructions(e.target.value)}
-                rows={10}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-xs leading-relaxed"
-                placeholder="Extra instructions for all rewrites in this automation. Loaded from your automation settings. Edit here or click 'Save as default' to update."
-              />
-            </div>
+            {/* Extra AI Instructions loaded from automation but hidden — still sent with rewrite */}
 
             <div className="mt-4 flex gap-2">
               <button

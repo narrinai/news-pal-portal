@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useNotifications } from '../../../../components/NotificationSystem'
-import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown, ChevronRight, ChevronUp, FileText, Calendar, Clock, ArrowRightLeft, ArrowUp, ArrowDown, PenLine, Activity, AlertTriangle, Sparkles, Users, Tag, Settings, HelpCircle } from 'lucide-react'
+import { ArrowLeft, Check, Trash2, Copy, Plus, X, Rss, Shield, Building2, Bot, GraduationCap, Megaphone, Globe, ExternalLink, Link, Search, Loader2, Code, ChevronDown, ChevronRight, ChevronUp, FileText, Calendar, Clock, ArrowRightLeft, ArrowUp, ArrowDown, PenLine, Activity, AlertTriangle, Sparkles, Users, Tag, Settings, HelpCircle, RefreshCw } from 'lucide-react'
 
 interface Automation {
   id: string
@@ -1249,6 +1249,41 @@ export default function AutomationEditPage() {
                         <PenLine className="w-3.5 h-3.5" />
                       </a>
                     )}
+                    {article.status !== 'pending' && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation()
+                          setRewritingArticleIds(prev => { const next = new Set(Array.from(prev)); next.add(article.id); return next })
+                          try {
+                            const res = await fetch('/api/articles/rewrite', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                id: article.id,
+                                options: { style: automation.style || 'news', length: automation.length || 'medium', language: automation.language || 'nl', tone: 'informative', targetAudience: (() => { try { const a = JSON.parse(automation.target_audience || '[]'); return a.join(', ') } catch { return '' } })() || undefined },
+                                customInstructions: automation.extra_context || undefined,
+                              }),
+                            })
+                            if (res.ok) {
+                              showNotification({ type: 'success', title: 'Rewritten', message: `"${article.title}" has been rewritten` })
+                              loadArticles()
+                            } else {
+                              const data = await res.json().catch(() => ({}))
+                              showNotification({ type: 'error', title: 'Rewrite failed', message: data.error || 'Could not rewrite article' })
+                            }
+                          } catch {
+                            showNotification({ type: 'error', title: 'Rewrite failed', message: 'Network error' })
+                          } finally {
+                            setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
+                          }
+                        }}
+                        disabled={rewritingArticleIds.has(article.id)}
+                        className="p-1 rounded text-slate-400 hover:text-orange-600 hover:bg-orange-50 disabled:opacity-50"
+                        title="Rewrite with AI"
+                      >
+                        {rewritingArticleIds.has(article.id) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
                     {!isSlot && article.status !== 'published' && article.status !== 'selected' && (
                       <button
                         onClick={async () => {
@@ -1772,7 +1807,7 @@ export default function AutomationEditPage() {
               )}
             </div>
             <textarea
-              placeholder="Extra context (optional) — e.g. your existing ChatGPT prompt, a description of your site, or specific instructions for the AI..."
+              placeholder="Extra AI instructions (optional) — e.g. 'always mention our brand name', 'focus on Dutch market impact', 'use a casual tone'..."
               value={automation?.extra_context || ''}
               onChange={(e) => update('extra_context', e.target.value)}
               rows={2}

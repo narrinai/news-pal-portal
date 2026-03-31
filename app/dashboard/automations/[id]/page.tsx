@@ -1254,41 +1254,32 @@ export default function AutomationEditPage() {
                         onClick={async (e) => {
                           e.stopPropagation()
                           setRewritingArticleIds(prev => { const next = new Set(Array.from(prev)); next.add(article.id); return next })
-                          try {
-                            const res = await fetch('/api/articles/rewrite', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                id: article.id,
-                                options: { style: automation.style || 'news', length: automation.length || 'medium', language: automation.language || 'nl', tone: 'informative', targetAudience: (() => { try { const a = JSON.parse(automation.target_audience || '[]'); return a.join(', ') } catch { return '' } })() || undefined },
-                                customInstructions: automation.extra_context || undefined,
-                              }),
-                            })
-                            if (res.ok || res.status === 202) {
-                              showNotification({ type: 'info', title: 'Rewriting...', message: `"${article.title}" is being rewritten`, duration: 5000 })
-                              // Poll for completion (check every 5s, max 2 min)
-                              const startContent = article.content_html || ''
-                              for (let i = 0; i < 24; i++) {
-                                await new Promise(r => setTimeout(r, 5000))
-                                try {
-                                  const checkRes = await fetch(`/api/articles/${article.id}`)
-                                  const checkData = await checkRes.json()
-                                  if (checkData.content_html && checkData.content_html !== startContent) {
-                                    showNotification({ type: 'success', title: 'Rewritten', message: `"${checkData.title || article.title}" is done` })
-                                    loadArticles()
-                                    break
-                                  }
-                                } catch {}
+                          const startContent = article.content_html || ''
+                          showNotification({ type: 'info', title: 'Rewriting...', message: `"${article.title}" is being rewritten`, duration: 10000 })
+                          // Fire request — don't await, poll instead
+                          fetch('/api/articles/rewrite', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              id: article.id,
+                              options: { style: automation.style || 'news', length: automation.length || 'medium', language: automation.language || 'nl', tone: 'informative', targetAudience: (() => { try { const a = JSON.parse(automation.target_audience || '[]'); return a.join(', ') } catch { return '' } })() || undefined },
+                              customInstructions: automation.extra_context || undefined,
+                            }),
+                          }).catch(() => {})
+                          // Poll for completion (every 5s, max 2 min)
+                          for (let i = 0; i < 24; i++) {
+                            await new Promise(r => setTimeout(r, 5000))
+                            try {
+                              const checkRes = await fetch(`/api/articles/${article.id}`)
+                              const checkData = await checkRes.json()
+                              if (checkData.content_html && checkData.content_html !== startContent) {
+                                showNotification({ type: 'success', title: 'Rewritten', message: `"${checkData.title || article.title}" is done` })
+                                loadArticles()
+                                break
                               }
-                            } else {
-                              const data = await res.json().catch(() => ({}))
-                              showNotification({ type: 'error', title: 'Rewrite failed', message: data.error || 'Could not rewrite article' })
-                            }
-                          } catch {
-                            showNotification({ type: 'error', title: 'Rewrite failed', message: 'Network error' })
-                          } finally {
-                            setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
+                            } catch {}
                           }
+                          setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
                         }}
                         disabled={rewritingArticleIds.has(article.id)}
                         className="p-1 rounded text-slate-400 hover:text-orange-600 hover:bg-orange-50 disabled:opacity-50"

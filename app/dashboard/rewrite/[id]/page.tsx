@@ -87,28 +87,41 @@ export default function RewritePage({ params }: RewritePageProps) {
 
   const handleRewrite = async () => {
     setRewriting(true)
-    try {
-      const response = await fetch(`/api/articles/rewrite`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: params.id,
-          options,
-          customInstructions: [extraInstructions, customInstructions].filter(Boolean).join('\n\n') || undefined
-        })
+    const startContent = article?.content_html || ''
+    showNotification({ type: 'info', title: 'Rewriting...', message: 'Article is being rewritten by AI. This may take up to a minute.', duration: 10000 })
+
+    // Fire the request — don't await it, let it run server-side
+    fetch(`/api/articles/rewrite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: params.id,
+        options,
+        customInstructions: [extraInstructions, customInstructions].filter(Boolean).join('\n\n') || undefined
       })
-      const result = await response.json()
-      if (response.ok) {
-        setRewritten(result.rewritten)
-        showNotification({ type: 'success', title: 'Article rewritten', message: 'The article has been successfully rewritten', duration: 4000 })
-      } else {
-        showNotification({ type: 'error', title: 'Rewrite failed', message: result.details || result.error || 'An error occurred while rewriting the article' })
-      }
-    } catch (error) {
-      showNotification({ type: 'error', title: 'Network error', message: 'Could not rewrite article' })
-    } finally {
-      setRewriting(false)
+    }).catch(() => {}) // Ignore network errors — we poll instead
+
+    // Poll for completion (every 5s, max 2 min)
+    for (let i = 0; i < 24; i++) {
+      await new Promise(r => setTimeout(r, 5000))
+      try {
+        const checkRes = await fetch(`/api/articles/${params.id}`)
+        const checkData = await checkRes.json()
+        if (checkData.content_html && checkData.content_html !== startContent) {
+          setRewritten({
+            title: checkData.title,
+            content: checkData.content_rewritten || checkData.content_html,
+            content_html: checkData.content_html,
+          })
+          setArticle(prev => prev ? { ...prev, ...checkData } : prev)
+          showNotification({ type: 'success', title: 'Article rewritten', message: 'The article has been successfully rewritten', duration: 4000 })
+          setRewriting(false)
+          return
+        }
+      } catch {}
     }
+    showNotification({ type: 'error', title: 'Rewrite timeout', message: 'Rewrite is taking longer than expected. Check back in a minute.' })
+    setRewriting(false)
   }
 
   const copyToClipboard = async (text: string, tooltipId: string) => {

@@ -1,19 +1,33 @@
-import { updateArticle } from '../../../lib/airtable'
+import { updateArticle, getArticles } from '../../../lib/airtable'
 
 export default async function handler(req, res) {
   console.log('Article request:', req.method, req.query.id)
-  
+
+  if (req.method === 'GET') {
+    return handleGet(req, res)
+  }
+
   if (req.method === 'PATCH') {
-    // Update article
     return handleUpdate(req, res)
   }
-  
+
   if (req.method === 'DELETE') {
-    // Delete article (deselect)
     return handleDelete(req, res)
   }
-  
+
   return res.status(405).json({ error: 'Method not allowed' });
+}
+
+async function handleGet(req, res) {
+  try {
+    const { id } = req.query
+    const articles = await getArticles()
+    const article = articles.find(a => a.id === id)
+    if (!article) return res.status(404).json({ error: 'Not found' })
+    return res.status(200).json(article)
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
 }
 
 async function handleUpdate(req, res) {

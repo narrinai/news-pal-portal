@@ -1264,9 +1264,22 @@ export default function AutomationEditPage() {
                                 customInstructions: automation.extra_context || undefined,
                               }),
                             })
-                            if (res.ok) {
-                              showNotification({ type: 'success', title: 'Rewritten', message: `"${article.title}" has been rewritten` })
-                              loadArticles()
+                            if (res.ok || res.status === 202) {
+                              showNotification({ type: 'info', title: 'Rewriting...', message: `"${article.title}" is being rewritten`, duration: 5000 })
+                              // Poll for completion (check every 5s, max 2 min)
+                              const startContent = article.content_html || ''
+                              for (let i = 0; i < 24; i++) {
+                                await new Promise(r => setTimeout(r, 5000))
+                                try {
+                                  const checkRes = await fetch(`/api/articles/${article.id}`)
+                                  const checkData = await checkRes.json()
+                                  if (checkData.content_html && checkData.content_html !== startContent) {
+                                    showNotification({ type: 'success', title: 'Rewritten', message: `"${checkData.title || article.title}" is done` })
+                                    loadArticles()
+                                    break
+                                  }
+                                } catch {}
+                              }
                             } else {
                               const data = await res.json().catch(() => ({}))
                               showNotification({ type: 'error', title: 'Rewrite failed', message: data.error || 'Could not rewrite article' })

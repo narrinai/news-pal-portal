@@ -16,6 +16,16 @@
 
 [functions]
   directory = "netlify/functions"
+  external_node_modules = ["openai", "@anthropic-ai/sdk"]
+  node_bundler = "esbuild"
+
+[functions."__api-handler*"]
+  schedule = ""
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Netlify-CDN-Cache-Control = "no-store"
 
 # Environment variables you need to set in Netlify dashboard:
 # AIRTABLE_API_KEY - Your Airtable API key

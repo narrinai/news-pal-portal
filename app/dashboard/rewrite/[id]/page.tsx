@@ -316,20 +316,20 @@ export default function RewritePage({ params }: RewritePageProps) {
 
             {/* Extra instructions - quick one-off tweaks */}
             <div className="mt-4">
-              <label className="block text-xs font-medium text-slate-500 mb-1">Quick instructions</label>
+              <label className="block text-xs font-medium text-slate-500 mb-1">One-off instructions <span className="font-normal text-slate-400">(only for this rewrite)</span></label>
               <textarea
                 value={extraInstructions}
                 onChange={(e) => setExtraInstructions(e.target.value)}
                 rows={2}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="One-off tweaks for this rewrite, e.g. 'Focus on the pricing aspect' or 'Make it more concise'"
+                placeholder="e.g. 'Focus on the pricing aspect' or 'Make it shorter'"
               />
             </div>
 
             {/* AI Instructions - the main prompt */}
             <div className="mt-4">
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-medium text-slate-500">AI Instructions</label>
+                <label className="block text-xs font-medium text-slate-500">Extra AI Instructions <span className="font-normal text-slate-400">(applies to all rewrites)</span></label>
                 <div className="flex items-center gap-2">
                   {automation && (
                     <span className="text-[10px] text-slate-400">From: {automation.name}</span>
@@ -366,7 +366,7 @@ export default function RewritePage({ params }: RewritePageProps) {
                 onChange={(e) => setCustomInstructions(e.target.value)}
                 rows={10}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-xs leading-relaxed"
-                placeholder="System-level instructions for the AI rewriter. These are loaded from your automation's extra context field. Edit here for a one-off change, or click 'Save as default' to update the automation."
+                placeholder="Extra instructions for all rewrites in this automation. Loaded from your automation settings. Edit here or click 'Save as default' to update."
               />
             </div>
 

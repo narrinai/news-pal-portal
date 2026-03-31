@@ -52,6 +52,10 @@ export default async function handler(req, res) {
 
     const cleanTopic = rewritten.category?.replace(/^["']+|["']+$/g, '').trim() || null
 
+    // Remember old slug before updating title
+    const oldSlug = (article.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80)
+    const newSlug = (rewritten.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80)
+
     await updateArticle(id, {
       content_rewritten: rewritten.content,
       content_html: rewritten.content_html,
@@ -62,6 +66,22 @@ export default async function handler(req, res) {
       ...(cleanTopic ? { topic: cleanTopic } : {}),
       status: (article.status === 'published' || article.status === 'selected') ? article.status : 'rewritten'
     })
+
+    // If title changed, delete old slug from connected site
+    if (oldSlug && newSlug && oldSlug !== newSlug && article.automation_id) {
+      try {
+        const automation = await getAutomation(article.automation_id)
+        if (automation?.site_url && automation?.site_api_key) {
+          const origin = new URL(automation.replit_url || automation.site_url).origin
+          console.log(`[rewrite] Title changed, deleting old slug "${oldSlug}" from ${origin}`)
+          fetch(`${origin}/newspal/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-newspal-key': automation.site_api_key },
+            body: JSON.stringify({ slugs: [oldSlug] }),
+          }).catch(() => {})
+        }
+      } catch {}
+    }
 
     return res.status(200).json({
       success: true,

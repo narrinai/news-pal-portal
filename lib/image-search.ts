@@ -32,28 +32,80 @@ export async function findHeaderImage(title: string, keywords?: string[]): Promi
 }
 
 function buildSearchQuery(title: string, keywords?: string[]): string {
-  // Remove common stop words and get meaningful terms
+  // Map brand/company names to relevant visual search terms
+  const brandMap: Record<string, string> = {
+    'openai': 'artificial intelligence technology',
+    'mistral': 'artificial intelligence data center',
+    'anthropic': 'artificial intelligence technology',
+    'google': 'technology office',
+    'apple': 'technology smartphone',
+    'amazon': 'ecommerce warehouse',
+    'microsoft': 'technology software',
+    'nvidia': 'computer chip gpu',
+    'meta': 'social media technology',
+    'tesla': 'electric car technology',
+    'deepseek': 'artificial intelligence',
+    'chatgpt': 'artificial intelligence chatbot',
+    'claude': 'artificial intelligence',
+    'rewe': 'supermarket retail grocery',
+    'lidl': 'supermarket retail grocery',
+    'edeka': 'supermarket retail grocery',
+    'zalando': 'fashion ecommerce',
+    'otto': 'ecommerce retail',
+    'mediamarkt': 'electronics retail store',
+    'temu': 'ecommerce shopping',
+    'shein': 'fashion ecommerce',
+  }
+
+  const titleLower = title.toLowerCase()
+
+  // Check if title contains a known brand — use mapped search term instead
+  for (const [brand, query] of Object.entries(brandMap)) {
+    if (titleLower.includes(brand)) {
+      return query
+    }
+  }
+
+  // Topic-based search terms for common themes
+  const topicMap: [RegExp, string][] = [
+    [/cybersecur|hack|breach|vulnerabilit/i, 'cybersecurity digital security'],
+    [/ai |artificial intellig|machine learn/i, 'artificial intelligence technology'],
+    [/market|seo|advertis|brand/i, 'digital marketing business'],
+    [/retail|pricing|ecommerce|e-commerce|shop/i, 'retail shopping store'],
+    [/crypto|blockchain|bitcoin/i, 'cryptocurrency blockchain'],
+    [/privacy|data protect|gdpr|surveillance/i, 'data privacy digital security'],
+    [/robot|automat/i, 'robotics automation'],
+    [/cloud|server|data center/i, 'cloud computing server'],
+    [/smartphone|mobile|app /i, 'smartphone mobile technology'],
+    [/wearable|smartwatch|ring/i, 'wearable technology smartwatch'],
+  ]
+
+  for (const [pattern, query] of topicMap) {
+    if (pattern.test(title)) {
+      return query
+    }
+  }
+
+  // Fallback: extract meaningful terms from title
   const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
     'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
     'shall', 'can', 'need', 'must', 'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from',
     'as', 'into', 'through', 'during', 'before', 'after', 'and', 'but', 'or', 'not', 'no',
     'this', 'that', 'these', 'those', 'it', 'its', 'how', 'why', 'what', 'when', 'where', 'who',
-    'new', 'now', 'just', 'more', 'also', 'than', 'very', 'get', 'got', 'your', 'you',
+    'new', 'now', 'just', 'more', 'also', 'than', 'very', 'get', 'got', 'your', 'you', 'raises',
+    'launches', 'announces', 'reveals', 'says', 'makes', 'takes', 'enters', 'becomes',
     'de', 'het', 'een', 'van', 'en', 'in', 'op', 'voor', 'met', 'naar', 'zijn', 'worden',
     'die', 'dat', 'er', 'niet', 'maar', 'ook', 'nog', 'wel', 'al', 'dan', 'uit', 'bij'])
 
-  const words = title.toLowerCase()
+  const words = titleLower
     .replace(/[^a-z0-9\s]/g, ' ')
     .split(/\s+/)
     .filter(w => w.length > 2 && !stopWords.has(w))
 
-  // Take top 3 terms from title + first keyword if available
-  const terms = words.slice(0, 3)
-  if (keywords?.length) {
-    terms.push(keywords[0].toLowerCase())
-  }
+  // Use keyword if available, otherwise top title terms
+  const terms = keywords?.length ? [keywords[0].toLowerCase(), ...words.slice(0, 2)] : words.slice(0, 3)
 
-  return [...new Set(terms)].slice(0, 4).join(' ')
+  return [...new Set(terms)].slice(0, 3).join(' ') + ' technology'
 }
 
 async function searchUnsplash(query: string): Promise<string | null> {
@@ -73,7 +125,7 @@ async function searchUnsplash(query: string): Promise<string | null> {
 }
 
 async function searchPexels(query: string): Promise<string | null> {
-  const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`
+  const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=10&orientation=landscape`
   const res = await fetch(url, {
     headers: { Authorization: process.env.PEXELS_API_KEY! },
   })
@@ -81,10 +133,11 @@ async function searchPexels(query: string): Promise<string | null> {
   if (!res.ok) return null
 
   const data = await res.json()
-  const photo = data.photos?.[0]
-  if (!photo) return null
+  const photos = data.photos
+  if (!photos?.length) return null
 
-  // Use landscape size
+  // Pick a random photo from top results for variety
+  const photo = photos[Math.floor(Math.random() * Math.min(photos.length, 5))]
   return photo.src?.landscape || photo.src?.large || null
 }
 

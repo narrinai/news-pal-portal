@@ -245,6 +245,19 @@ function parseRewriteResponse(response: string, originalTitle: string) {
     content_html = generateWordPressHTML(title, content)
   }
 
+  // Add responsive CSS to make inline-styled elements mobile-friendly
+  const responsiveStyles = `<style>
+@media(max-width:640px){
+figure{margin:1rem 0!important}
+figure img{height:auto!important;max-height:250px!important}
+div[style*="display:flex"]{flex-direction:column!important}
+div[style*="min-width"]{min-width:0!important;width:100%!important}
+table{font-size:12px!important;display:block!important;overflow-x:auto!important}
+div[style*="gap:1rem"]{gap:0.5rem!important}
+}
+</style>`
+  content_html = responsiveStyles + content_html
+
   return { title, content, content_html, subtitle, category, faq }
 }
 

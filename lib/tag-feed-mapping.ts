@@ -221,28 +221,35 @@ export const TAG_MAPPINGS: Record<string, TagMapping> = {
     ]
   },
   'pricing': {
-    category: 'marketingtoolz',
+    category: 'retail-pricing',
     feeds: [
+      'retail-dive', 'modern-retail', 'retailwire', 'retail-touchpoints',
+      'price-intelligently', 'competera-blog',
       'techcrunch-ai', 'venturebeat-ai', 'forbes-ai', 'zdnet-ai',
-      'reuters-marketing', 'bbc-marketing',
-      'de-handelsblatt', 'de-manager-magazin', 'de-t3n'
+      'de-handelsblatt', 'de-manager-magazin', 'de-t3n', 'de-lebensmittelzeitung'
     ],
     keywords: [
       'pricing', 'price optimization', 'dynamic pricing', 'repricing',
       'price intelligence', 'competitive pricing', 'price monitoring',
-      'revenue management', 'price strategy', 'yield management'
+      'revenue management', 'price strategy', 'yield management',
+      'pricing software', 'pricing tools', 'price elasticity',
+      'markdown optimization', 'promotional pricing', 'price war',
+      'Preisgestaltung', 'Preisoptimierung', 'dynamische Preise', 'Preisstrategie'
     ]
   },
   'retail': {
-    category: 'marketingtoolz',
+    category: 'retail-pricing',
     feeds: [
+      'retail-dive', 'grocery-dive', 'modern-retail', 'retailwire', 'retail-touchpoints',
+      'de-lebensmittelzeitung',
       'techcrunch-ai', 'venturebeat-ai', 'forbes-ai', 'reuters-marketing',
       'de-handelsblatt', 'de-manager-magazin', 'de-t3n', 'de-heise-news'
     ],
     keywords: [
       'retail', 'retail technology', 'retail tech', 'omnichannel',
       'brick and mortar', 'point of sale', 'inventory management',
-      'supply chain', 'fulfillment', 'last mile delivery'
+      'supply chain', 'fulfillment', 'last mile delivery',
+      'grocery', 'supermarket', 'ecommerce', 'Einzelhandel', 'Lebensmittelhandel'
     ]
   },
 

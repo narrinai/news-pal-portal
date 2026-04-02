@@ -553,6 +553,74 @@ const GERMAN_FEEDS: RSSFeedConfig[] = [
   }
 ]
 
+// === Retail & Pricing Feeds ===
+const RETAIL_PRICING_FEEDS: RSSFeedConfig[] = [
+  {
+    id: 'retail-dive',
+    url: 'https://www.retaildive.com/feeds/news/',
+    name: 'Retail Dive',
+    category: 'retail-pricing',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'grocery-dive',
+    url: 'https://www.grocerydive.com/feeds/news/',
+    name: 'Grocery Dive',
+    category: 'retail-pricing',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'modern-retail',
+    url: 'https://www.modernretail.co/feed/',
+    name: 'Modern Retail',
+    category: 'retail-pricing',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'retailwire',
+    url: 'https://retailwire.com/feed/',
+    name: 'RetailWire',
+    category: 'retail-pricing',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'retail-touchpoints',
+    url: 'https://www.retailtouchpoints.com/feed',
+    name: 'Retail TouchPoints',
+    category: 'retail-pricing',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'price-intelligently',
+    url: 'https://www.priceintelligently.com/blog/rss.xml',
+    name: 'Price Intelligently',
+    category: 'retail-pricing',
+    enabled: true,
+    maxArticles: 20
+  },
+  {
+    id: 'competera-blog',
+    url: 'https://competera.net/blog/rss',
+    name: 'Competera (Pricing)',
+    category: 'retail-pricing',
+    enabled: true,
+    maxArticles: 20
+  },
+  {
+    id: 'de-lebensmittelzeitung',
+    url: 'https://www.lebensmittelzeitung.net/rss/',
+    name: 'Lebensmittelzeitung',
+    category: 'retail-pricing',
+    enabled: true,
+    maxArticles: 40
+  }
+]
+
 // GECOMBINEERDE FEED LIJST
 export const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
   ...CYBERSECURITY_FEEDS,
@@ -560,7 +628,8 @@ export const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
   ...AI_FEEDS,
   ...MARKETING_FEEDS,
   ...EUROPEAN_PURPOSE_FEEDS,
-  ...GERMAN_FEEDS
+  ...GERMAN_FEEDS,
+  ...RETAIL_PRICING_FEEDS
 ]
 
 // Global keywords for all feeds

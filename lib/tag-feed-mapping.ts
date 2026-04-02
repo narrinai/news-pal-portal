@@ -87,11 +87,11 @@ export const TAG_MAPPINGS: Record<string, TagMapping> = {
   },
   'seo': {
     category: 'marketingtoolz',
-    feeds: ['reuters-marketing', 'bbc-marketing', 'techcrunch-ai', 'zdnet-ai', 'forbes-ai', 'ars-technica-ai'],
+    feeds: ['searchenginejournal', 'searchengineland', 'martech-org', 'reuters-marketing', 'techcrunch-ai', 'zdnet-ai', 'forbes-ai', 'ars-technica-ai'],
     keywords: [
       'seo', 'search engine optimization', 'google ranking', 'organic traffic',
       'keyword research', 'backlink', 'serp', 'search algorithm', 'core web vitals',
-      'technical seo', 'on-page seo', 'off-page seo'
+      'technical seo', 'on-page seo', 'off-page seo', 'ai search', 'geo', 'sge'
     ]
   },
   'seo tools': {
@@ -168,11 +168,41 @@ export const TAG_MAPPINGS: Record<string, TagMapping> = {
   },
   'marketing': {
     category: 'marketingtoolz',
-    feeds: ['reuters-marketing', 'bbc-marketing', 'techcrunch-ai', 'venturebeat-ai', 'zdnet-ai', 'forbes-ai'],
+    feeds: [
+      'hubspot-blog', 'searchenginejournal', 'searchengineland', 'martech-org',
+      'contentmarketinginstitute', 'socialmediaexaminer', 'marketingbrew', 'adweek', 'digiday',
+      'reuters-marketing', 'techcrunch-ai', 'venturebeat-ai', 'zdnet-ai', 'forbes-ai'
+    ],
     keywords: [
       'marketing', 'digital marketing', 'growth marketing', 'performance marketing',
       'conversion', 'lead generation', 'customer acquisition', 'branding',
-      'advertising', 'ppc', 'google ads'
+      'advertising', 'ppc', 'google ads', 'marketing automation', 'crm',
+      'marketing tools', 'martech', 'marketing stack'
+    ]
+  },
+  'marketing-ai': {
+    category: 'marketing-ai',
+    feeds: [
+      'hubspot-blog', 'martech-org', 'contentmarketinginstitute', 'marketingbrew', 'adweek', 'digiday',
+      'techcrunch-ai', 'venturebeat-ai', 'zdnet-ai', 'forbes-ai'
+    ],
+    keywords: [
+      'ai marketing', 'marketing ai', 'ai tools', 'ai content', 'ai copywriting',
+      'chatgpt marketing', 'ai automation', 'generative ai marketing',
+      'ai analytics', 'predictive marketing', 'ai personalization',
+      'marketing software', 'marketing platform', 'marketing tool'
+    ]
+  },
+  'marketing-tools': {
+    category: 'marketing-ai',
+    feeds: [
+      'hubspot-blog', 'martech-org', 'searchenginejournal', 'practicalecommerce',
+      'techcrunch-ai', 'venturebeat-ai', 'producthunt'
+    ],
+    keywords: [
+      'marketing tool', 'marketing software', 'marketing platform', 'saas marketing',
+      'hubspot', 'mailchimp', 'semrush', 'ahrefs', 'hootsuite', 'buffer',
+      'marketing automation', 'email marketing', 'crm', 'analytics tool'
     ]
   },
 
@@ -328,11 +358,21 @@ export function discoverFromTags(tags: string[]): {
 
   for (const tag of tags) {
     const normalized = tag.toLowerCase().trim()
-    const mapping = TAG_MAPPINGS[normalized]
-    if (mapping) {
-      mapping.feeds.forEach(f => feedSet.add(f))
-      mapping.keywords.forEach(k => keywordSet.add(k))
-      categorySet.add(mapping.category)
+    // Exact match first
+    const exact = TAG_MAPPINGS[normalized]
+    if (exact) {
+      exact.feeds.forEach(f => feedSet.add(f))
+      exact.keywords.forEach(k => keywordSet.add(k))
+      categorySet.add(exact.category)
+      continue
+    }
+    // Fuzzy: check if tag contains a mapping key or vice versa
+    for (const [key, mapping] of Object.entries(TAG_MAPPINGS)) {
+      if (normalized.includes(key) || key.includes(normalized)) {
+        mapping.feeds.forEach(f => feedSet.add(f))
+        mapping.keywords.forEach(k => keywordSet.add(k))
+        categorySet.add(mapping.category)
+      }
     }
   }
 

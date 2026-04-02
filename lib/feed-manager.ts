@@ -382,6 +382,86 @@ const MARKETING_FEEDS: RSSFeedConfig[] = [
     category: 'marketingtoolz',
     enabled: true,
     maxArticles: 50
+  },
+  {
+    id: 'hubspot-blog',
+    url: 'https://blog.hubspot.com/marketing/rss.xml',
+    name: 'HubSpot Marketing Blog',
+    category: 'marketing-ai',
+    enabled: true,
+    maxArticles: 30
+  },
+  {
+    id: 'searchenginejournal',
+    url: 'https://www.searchenginejournal.com/feed/',
+    name: 'Search Engine Journal',
+    category: 'marketing-ai',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'searchengineland',
+    url: 'https://searchengineland.com/feed',
+    name: 'Search Engine Land',
+    category: 'marketing-ai',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'martech-org',
+    url: 'https://martech.org/feed/',
+    name: 'MarTech',
+    category: 'marketing-ai',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'contentmarketinginstitute',
+    url: 'https://contentmarketinginstitute.com/feed/',
+    name: 'Content Marketing Institute',
+    category: 'marketing-ai',
+    enabled: true,
+    maxArticles: 30
+  },
+  {
+    id: 'socialmediaexaminer',
+    url: 'https://www.socialmediaexaminer.com/feed/',
+    name: 'Social Media Examiner',
+    category: 'marketing-ai',
+    enabled: true,
+    maxArticles: 30
+  },
+  {
+    id: 'marketingbrew',
+    url: 'https://www.marketingbrew.com/feed',
+    name: 'Marketing Brew',
+    category: 'marketing-ai',
+    enabled: true,
+    maxArticles: 30
+  },
+  {
+    id: 'adweek',
+    url: 'https://www.adweek.com/feed/',
+    name: 'Adweek',
+    category: 'marketing-ai',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'digiday',
+    url: 'https://digiday.com/feed/',
+    name: 'Digiday',
+    category: 'marketing-ai',
+    enabled: true,
+    maxArticles: 40
+  },
+  {
+    id: 'practicalecommerce',
+    url: 'https://www.practicalecommerce.com/feed',
+    name: 'Practical Ecommerce',
+    category: 'marketing-ai',
+    enabled: true,
+    maxArticles: 30
   }
 ]
 

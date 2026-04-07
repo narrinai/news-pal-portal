@@ -97,7 +97,12 @@ export default async function handler(req, res) {
         id: a.id,
         slug: (a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
         title: a.title,
-        description: (a.description || '').replace(/<[^>]+>/g, '').substring(0, 200).trim() + ((a.description || '').length > 200 ? '...' : ''),
+        // Prefer rewritten subtitle (in target language) over original description (often English)
+        description: (() => {
+          const text = a.subtitle || a.description || ''
+          const clean = text.replace(/<[^>]+>/g, '').trim()
+          return clean.length > 200 ? clean.substring(0, 200).trim() + '...' : clean
+        })(),
         content_html: a.content_html || a.content_rewritten || `<p>${(a.description || '').replace(/<[^>]+>/g, '')}</p>`,
         category: primaryCategory || a.topic || a.category,
         source: a.source,

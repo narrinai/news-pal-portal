@@ -38,10 +38,15 @@ export default async function handler(req, res) {
     }
 
     // Background execution — do the actual rewrite
+    // Get language and brand colors from automation if available
     let brandColorInstructions = ''
+    let automationLanguage = null
     if (article.automation_id) {
       try {
         const automation = await getAutomation(article.automation_id)
+        if (automation?.language) {
+          automationLanguage = automation.language
+        }
         if (automation?.site_brand_colors) {
           const brandColors = JSON.parse(automation.site_brand_colors)
           if (brandColors?.primary) {
@@ -51,10 +56,16 @@ export default async function handler(req, res) {
       } catch {}
     }
 
+    // Merge automation language into options (options.language takes precedence if explicitly set)
+    const mergedOptions = automationLanguage && !options?.language
+      ? { ...options, language: automationLanguage }
+      : options
+
+    // Rewrite the article using AI
     const rewritten = await rewriteArticle(
       article.title,
       article.originalContent || article.description,
-      options,
+      mergedOptions,
       (customInstructions || '') + brandColorInstructions || undefined,
       article.url
     )

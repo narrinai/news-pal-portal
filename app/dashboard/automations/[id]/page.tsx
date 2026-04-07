@@ -284,7 +284,7 @@ export default function AutomationEditPage() {
     else setLoadingMore(true)
     try {
       const offset = append ? publishedOffset : 0
-      const res = await fetch(`/api/articles/by-automation?automation_id=${id}&limit=20&offset=${offset}`)
+      const res = await fetch(`/api/articles/by-automation?automation_id=${id}&limit=100&offset=${offset}`)
       if (res.ok) {
         const data = await res.json()
         if (append) {
@@ -1253,9 +1253,10 @@ export default function AutomationEditPage() {
                       <button
                         onClick={async (e) => {
                           e.stopPropagation()
+                          const wasPublished = article.status === 'published'
                           setRewritingArticleIds(prev => { const next = new Set(Array.from(prev)); next.add(article.id); return next })
                           const startContent = article.content_html || ''
-                          showNotification({ type: 'info', title: 'Rewriting...', message: `"${article.title}" is being rewritten`, duration: 10000 })
+                          showNotification({ type: 'info', title: wasPublished ? 'Rewriting & republishing...' : 'Rewriting...', message: `"${article.title}" is being rewritten`, duration: 10000 })
                           // Fire request — don't await, poll instead
                           fetch('/api/articles/rewrite', {
                             method: 'POST',
@@ -1273,7 +1274,36 @@ export default function AutomationEditPage() {
                               const checkRes = await fetch(`/api/articles/${article.id}`)
                               const checkData = await checkRes.json()
                               if (checkData.content_html && checkData.content_html !== startContent) {
-                                showNotification({ type: 'success', title: 'Rewritten', message: `"${checkData.title || article.title}" is done` })
+                                // Auto-republish if it was published before
+                                if (wasPublished && usesPushMechanism(automation)) {
+                                  try {
+                                    // Delete old slug from site (in case title changed)
+                                    const oldSlug = (article.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80)
+                                    if (oldSlug) {
+                                      await fetch('/api/sites/delete-articles', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ automation_id: id, slugs: [oldSlug] }),
+                                      }).catch(() => {})
+                                    }
+                                    // Push new version
+                                    const pushRes = await fetch('/api/sites/push-articles', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ automation_id: id, article_ids: [article.id] }),
+                                    })
+                                    const pushData = await pushRes.json()
+                                    if (pushData.success && pushData.pushed > 0) {
+                                      showNotification({ type: 'success', title: 'Rewritten & republished', message: `"${checkData.title || article.title}" is live with the new version` })
+                                    } else {
+                                      showNotification({ type: 'success', title: 'Rewritten', message: `"${checkData.title || article.title}" is done (push failed: ${pushData.error || 'unknown'})` })
+                                    }
+                                  } catch {
+                                    showNotification({ type: 'success', title: 'Rewritten', message: `"${checkData.title || article.title}" is done (republish failed)` })
+                                  }
+                                } else {
+                                  showNotification({ type: 'success', title: 'Rewritten', message: `"${checkData.title || article.title}" is done` })
+                                }
                                 loadArticles()
                                 break
                               }
@@ -1283,7 +1313,7 @@ export default function AutomationEditPage() {
                         }}
                         disabled={rewritingArticleIds.has(article.id)}
                         className="p-1 rounded text-slate-400 hover:text-orange-600 hover:bg-orange-50 disabled:opacity-50"
-                        title="Rewrite with AI"
+                        title={article.status === 'published' ? 'Rewrite & Republish' : 'Rewrite with AI'}
                       >
                         {rewritingArticleIds.has(article.id) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                       </button>

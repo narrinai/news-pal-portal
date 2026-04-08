@@ -32,11 +32,14 @@ export default async function handler(req, res) {
     const allArticles = await getArticles()
     const idsFilter = article_ids && Array.isArray(article_ids) ? new Set(article_ids) : null
 
-    // Auto-rewrite articles that have no content yet
+    const hasRealContent = a => !!(a.content_html && a.content_html.trim()) || !!(a.content_rewritten && a.content_rewritten.trim())
+    const hasRealImage = a => !!(a.imageUrl && !a.imageUrl.includes('placehold.co'))
+
+    // Auto-rewrite articles that have no real content yet
     const toRewrite = allArticles.filter(a => {
       if (idsFilter && !idsFilter.has(a.id)) return false
       if (!idsFilter && (a.automation_id !== automation_id || a.status === 'pending')) return false
-      return !a.content_html && !a.content_rewritten
+      return !hasRealContent(a)
     })
     for (const a of toRewrite) {
       try {
@@ -44,12 +47,12 @@ export default async function handler(req, res) {
         const rewritten = await rewriteArticle(
           a.title,
           a.originalContent || a.description,
-          { style: automation.style || 'professional', length: automation.length || 'medium', language: automation.language || 'en', tone: 'informative' },
-          undefined,
+          { style: automation.style || 'news', length: automation.length || 'medium', language: automation.language || 'nl', tone: 'informative' },
+          automation.extra_context || undefined,
           a.url
         )
-        let imageUrl = a.imageUrl
-        if (!imageUrl || imageUrl.includes('placehold.co')) {
+        let imageUrl = hasRealImage(a) ? a.imageUrl : null
+        if (!imageUrl) {
           try { imageUrl = await findHeaderImage(rewritten.title, a.matchedKeywords) } catch {}
         }
         const cleanTopic = rewritten.category?.replace(/^["']+|["']+$/g, '').trim() || null
@@ -63,7 +66,6 @@ export default async function handler(req, res) {
           ...(cleanTopic ? { topic: cleanTopic } : {}),
           status: a.status === 'pending' ? 'rewritten' : a.status,
         })
-        // Update in-memory article for push
         a.content_html = rewritten.content_html
         a.content_rewritten = rewritten.content
         a.title = rewritten.title
@@ -74,6 +76,26 @@ export default async function handler(req, res) {
         console.log(`[push-articles] Auto-rewrite done: ${a.title?.substring(0, 50)}`)
       } catch (err) {
         console.error(`[push-articles] Auto-rewrite failed for ${a.title?.substring(0, 50)}:`, err.message)
+      }
+    }
+
+    // For articles that already have content but no real image, search for one (no rewrite)
+    const toFindImage = allArticles.filter(a => {
+      if (idsFilter && !idsFilter.has(a.id)) return false
+      if (!idsFilter && (a.automation_id !== automation_id || a.status === 'pending')) return false
+      return hasRealContent(a) && !hasRealImage(a)
+    })
+    for (const a of toFindImage) {
+      try {
+        console.log(`[push-articles] Finding image for: ${a.title?.substring(0, 50)}`)
+        const imageUrl = await findHeaderImage(a.title, a.matchedKeywords)
+        if (imageUrl && !imageUrl.includes('placehold.co')) {
+          await updateArticle(a.id, { imageUrl })
+          a.imageUrl = imageUrl
+          console.log(`[push-articles] Image found: ${imageUrl.substring(0, 80)}`)
+        }
+      } catch (err) {
+        console.error(`[push-articles] Image search failed for ${a.title?.substring(0, 50)}:`, err.message)
       }
     }
     // Derive site category from the site_url path segment

@@ -11,9 +11,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const allArticles = await getArticles()
+    const allArticles = await getArticles(undefined, undefined, automation_id)
     const filtered = allArticles
-      .filter(a => a.automation_id === automation_id)
       .sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0))
 
     const counts = {

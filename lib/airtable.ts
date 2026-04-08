@@ -109,7 +109,7 @@ export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt
   }
 }
 
-export async function getArticles(status?: string, categories?: string | string[]): Promise<NewsArticle[]> {
+export async function getArticles(status?: string, categories?: string | string[], automationId?: string): Promise<NewsArticle[]> {
   if (!base) {
     console.log('Using mock Airtable for getArticles')
     const articles = await mockAirtable.getArticles()
@@ -121,6 +121,9 @@ export async function getArticles(status?: string, categories?: string | string[
     if (categories) {
       const categoryArray = Array.isArray(categories) ? categories : [categories]
       filtered = filtered.filter(a => categoryArray.includes(a.category))
+    }
+    if (automationId) {
+      filtered = filtered.filter(a => (a as any).automation_id === automationId)
     }
     return filtered
   }
@@ -146,6 +149,10 @@ export async function getArticles(status?: string, categories?: string | string[
       }
     }
 
+    if (automationId) {
+      filters.push(`{automation_id} = '${automationId}'`)
+    }
+
     if (filters.length > 0) {
       filterFormula = filters.length > 1 ? `AND(${filters.join(', ')})` : filters[0]
     }
@@ -153,7 +160,7 @@ export async function getArticles(status?: string, categories?: string | string[
     const records = await base('Table 1').select({
       ...(filterFormula && { filterByFormula: filterFormula }),
       sort: [{ field: 'publishedAt', direction: 'desc' }],
-      maxRecords: 100
+      maxRecords: automationId ? 500 : 100
     }).all()
 
     const articles = records.map(record => ({

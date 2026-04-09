@@ -38,8 +38,7 @@ export default async function handler(req, res) {
     }
 
     // Background execution — do the actual rewrite
-    // Get language and brand colors from automation if available
-    let brandColorInstructions = ''
+    let extraInstructions = ''
     let automationLanguage = null
     if (article.automation_id) {
       try {
@@ -50,8 +49,17 @@ export default async function handler(req, res) {
         if (automation?.site_brand_colors) {
           const brandColors = JSON.parse(automation.site_brand_colors)
           if (brandColors?.primary) {
-            brandColorInstructions = `\n\nBRAND COLORS: Use these colors for all visual elements (stat blocks, charts, bar charts, tables, highlights):\n- Primary accent: ${brandColors.primary}\n- Secondary: ${brandColors.secondary || brandColors.primary}\n- Text: ${brandColors.text || '#374151'}\nDo NOT use the default indigo (#4f46e5). Use the brand colors above instead.`
+            extraInstructions += `\n\nBRAND COLORS: Use these colors for all visual elements (stat blocks, charts, bar charts, tables, highlights):\n- Primary accent: ${brandColors.primary}\n- Secondary: ${brandColors.secondary || brandColors.primary}\n- Text: ${brandColors.text || '#374151'}\nDo NOT use the default indigo (#4f46e5). Use the brand colors above instead.`
           }
+        }
+        // SEO context: tell AI about the website so it picks relevant keywords
+        const seoContext = []
+        if (automation?.site_name) seoContext.push(`Website: ${automation.site_name}`)
+        if (automation?.site_url) seoContext.push(`URL: ${automation.site_url}`)
+        if (automation?.keywords) seoContext.push(`Site niche keywords: ${automation.keywords}`)
+        if (automation?.tags) seoContext.push(`Content tags/topics: ${automation.tags}`)
+        if (seoContext.length > 0) {
+          extraInstructions += `\n\nSEO CONTEXT — Choose focus keywords and SEO keywords that are relevant for this website and its audience:\n${seoContext.join('\n')}\nThe focus keyword should match what this site's target audience would search for. Combine the article topic with the site's niche to find the best keyword angle.`
         }
       } catch {}
     }
@@ -61,12 +69,11 @@ export default async function handler(req, res) {
       ? { ...options, language: automationLanguage }
       : options
 
-    // Rewrite the article using AI
     const rewritten = await rewriteArticle(
       article.title,
       article.originalContent || article.description,
       mergedOptions,
-      (customInstructions || '') + brandColorInstructions || undefined,
+      (customInstructions || '') + extraInstructions || undefined,
       article.url
     )
 
@@ -90,6 +97,9 @@ export default async function handler(req, res) {
       title: rewritten.title,
       subtitle: rewritten.subtitle || '',
       faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
+      ...(rewritten.focus_keyword ? { focus_keyword: rewritten.focus_keyword } : {}),
+      ...(rewritten.meta_description ? { meta_description: rewritten.meta_description } : {}),
+      ...(rewritten.seo_keywords?.length ? { seo_keywords: rewritten.seo_keywords.join(', ') } : {}),
       ...(imageUrl ? { imageUrl } : {}),
       ...(cleanTopic ? { topic: cleanTopic } : {}),
       status: (article.status === 'published' || article.status === 'selected') ? article.status : 'rewritten'
@@ -118,7 +128,10 @@ export default async function handler(req, res) {
         subtitle: rewritten.subtitle,
         content: rewritten.content,
         content_html: rewritten.content_html,
-        faq: rewritten.faq
+        faq: rewritten.faq,
+        focus_keyword: rewritten.focus_keyword,
+        meta_description: rewritten.meta_description,
+        seo_keywords: rewritten.seo_keywords
       }
     })
   } catch (error) {

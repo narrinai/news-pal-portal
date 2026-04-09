@@ -40,6 +40,9 @@ export interface NewsArticle {
   wordpressPostId?: string
   matchedKeywords?: string[]
   automation_id?: string
+  focus_keyword?: string
+  meta_description?: string
+  seo_keywords?: string
   createdAt?: string
 }
 
@@ -182,6 +185,9 @@ export async function getArticles(status?: string, categories?: string | string[
         ? (record.fields.matchedKeywords as string).split(', ').filter(k => k.trim())
         : [],
       automation_id: record.fields.automation_id as string | undefined,
+      focus_keyword: record.fields.focus_keyword as string | undefined,
+      meta_description: record.fields.meta_description as string | undefined,
+      seo_keywords: record.fields.seo_keywords as string | undefined,
       createdAt: record.fields.createdAt as string,
     }))
     console.log(`✅ Retrieved ${articles.length} articles from Airtable`)

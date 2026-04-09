@@ -192,6 +192,9 @@ class CronService {
               content_rewritten: rewritten.content,
               content_html: rewritten.content_html,
               faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
+              ...(rewritten.focus_keyword ? { focus_keyword: rewritten.focus_keyword } : {}),
+              ...(rewritten.meta_description ? { meta_description: rewritten.meta_description } : {}),
+              ...(rewritten.seo_keywords?.length ? { seo_keywords: rewritten.seo_keywords.join(', ') } : {}),
               status: 'published',
             })
 

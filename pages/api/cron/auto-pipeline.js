@@ -336,6 +336,16 @@ export default async function handler(req, res) {
             instructions.push(`KEYWORD LINKS (always apply these):\n${rules}`)
           }
 
+          // SEO context: tell AI about the website so it picks relevant keywords
+          const seoContext = []
+          if (automation.site_name) seoContext.push(`Website: ${automation.site_name}`)
+          if (automation.site_url) seoContext.push(`URL: ${automation.site_url}`)
+          if (automation.keywords) seoContext.push(`Site niche keywords: ${automation.keywords}`)
+          if (automation.tags) seoContext.push(`Content tags/topics: ${automation.tags}`)
+          if (seoContext.length > 0) {
+            instructions.push(`SEO CONTEXT — Choose focus keywords and SEO keywords that are relevant for this website and its audience:\n${seoContext.join('\n')}\nThe focus keyword should match what this site's target audience would search for. Combine the article topic with the site's niche to find the best keyword angle.`)
+          }
+
           // Brand colors from site template analysis
           let brandColors = null
           try { if (automation.site_brand_colors) brandColors = JSON.parse(automation.site_brand_colors) } catch {}
@@ -375,6 +385,9 @@ export default async function handler(req, res) {
             content_html: rewritten.content_html,
             subtitle: rewritten.subtitle || '',
             faq: (Array.isArray(rewritten.faq) && rewritten.faq.length > 0) ? JSON.stringify(rewritten.faq) : '',
+            ...(rewritten.focus_keyword ? { focus_keyword: rewritten.focus_keyword } : {}),
+            ...(rewritten.meta_description ? { meta_description: rewritten.meta_description } : {}),
+            ...(rewritten.seo_keywords?.length ? { seo_keywords: rewritten.seo_keywords.join(', ') } : {}),
             ...(headerImage ? { imageUrl: headerImage } : {}),
             ...(cleanTopic ? { topic: cleanTopic } : {}),
             status: 'selected',

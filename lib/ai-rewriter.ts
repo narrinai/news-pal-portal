@@ -32,7 +32,7 @@ export async function rewriteArticle(
   },
   customInstructions?: string,
   originalUrl?: string
-): Promise<{ title: string; content: string; content_html: string; subtitle?: string; category?: string; faq?: { question: string; answer: string }[] }> {
+): Promise<{ title: string; content: string; content_html: string; subtitle?: string; category?: string; faq?: { question: string; answer: string }[]; focus_keyword?: string; meta_description?: string; seo_keywords?: string[] }> {
   const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
   const baseSystemPrompt = options.language === 'en'
     ? `You are a professional journalist who rewrites news articles for a broad audience.
@@ -187,10 +187,13 @@ function parseRewriteResponse(response: string, originalTitle: string) {
   let headerPart = sections[0]?.trim() || ''
   let content = sections[1]?.replace(/^CONTENT:\s*/i, '').trim() || (sections.length === 1 ? '' : '')
 
-  // Extract title, subtitle, and category from header
+  // Extract title, subtitle, category, and SEO fields from header
   let title = originalTitle
   let subtitle = ''
   let category = ''
+  let focus_keyword = ''
+  let meta_description = ''
+  let seo_keywords: string[] = []
 
   const headerLines = headerPart.split('\n').filter(l => l.trim())
   if (headerLines.length >= 1) {
@@ -204,6 +207,18 @@ function parseRewriteResponse(response: string, originalTitle: string) {
     const catMatch = line.match(/^CATEGORY:\s*(.+)/i)
     if (catMatch) {
       category = catMatch[1].trim()
+    }
+    const fkMatch = line.match(/^FOCUS_KEYWORD:\s*(.+)/i)
+    if (fkMatch) {
+      focus_keyword = fkMatch[1].trim()
+    }
+    const mdMatch = line.match(/^META_DESCRIPTION:\s*(.+)/i)
+    if (mdMatch) {
+      meta_description = mdMatch[1].trim()
+    }
+    const skMatch = line.match(/^SEO_KEYWORDS:\s*(.+)/i)
+    if (skMatch) {
+      seo_keywords = skMatch[1].split(',').map(k => k.trim()).filter(k => k)
     }
   }
 
@@ -258,7 +273,7 @@ div[style*="gap:1rem"]{gap:0.5rem!important}
 </style>`
   content_html = responsiveStyles + content_html
 
-  return { title, content, content_html, subtitle, category, faq }
+  return { title, content, content_html, subtitle, category, faq, focus_keyword: focus_keyword || undefined, meta_description: meta_description || undefined, seo_keywords: seo_keywords.length ? seo_keywords : undefined }
 }
 
 function createRewritePrompt(
@@ -315,6 +330,7 @@ SCHRITT 1 - UMSCHREIBEN:
 - ${toneInstructions[options.tone]}
 - Schreibe auf Deutsch als Nachrichtenartikel/Pressemitteilung
 - Behalte die Kernbotschaft bei und bereichere mit Kontext wo möglich
+- WICHTIG: Wenn der Originalinhalt kurz ist (z.B. nur eine Überschrift oder kurze Zusammenfassung), MUSST du den Artikel selbstständig auf die geforderte Wortanzahl erweitern. Recherchiere das Thema eigenständig — füge Hintergrund, Kontext, Branchentrends, Expertenperspektiven, Auswirkungen und Analyse hinzu. Die Quelle ist ein Ausgangspunkt, keine Grenze. Erreiche IMMER die geforderte Wortanzahl, unabhängig davon, wie kurz das Quellmaterial ist.
 - ORIGINALE ÜBERSCHRIFTEN: Erstelle einzigartige Überschriften basierend auf dem tatsächlichen Inhalt
 - ZITATE: Wenn Personen erwähnt werden, generiere 1 relevantes Zitat basierend auf dem Kontext
 - Vermeide Unternehmens-Jargon
@@ -340,16 +356,27 @@ Füge außerdem mindestens eines dieser Elemente ein:
 - DATENTABELLE: <table style="width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:14px">
 - KERNZAHLEN: <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:1.5rem 0"> mit Statistikkarten
 
+SCHRITT 4 - SEO-OPTIMIERUNG (KRITISCH):
+- Bestimme ein FOCUS KEYWORD: eine Suchphrase aus 2-4 Wörtern, die Menschen bei Google eingeben würden, um diesen Artikel zu finden (z.B. "Netflix Kinder Spiele App", "KI Marketing Automatisierung"). Denke an Suchintention und Volumen.
+- Schreibe eine überzeugende META DESCRIPTION (140-155 Zeichen) mit dem Focus Keyword, die Klicks aus Suchergebnissen fördert.
+- Identifiziere 5-8 SEO KEYWORDS: verwandte Suchbegriffe und Long-Tail-Variationen.
+- Verwebe das Focus Keyword NATÜRLICH in: den Titel, den ersten Absatz, mindestens eine <h2>-Überschrift, und 2-3 weitere Male im Artikel. KEIN Keyword-Stuffing — natürlich und lesbar halten.
+- Strukturiere Überschriften (<h2>) als Fragen oder beschreibende Phrasen, nach denen Menschen tatsächlich suchen.
+
 KRITISCHE ANWEISUNGEN:
 1. KEIN DATUM: Kein Veröffentlichungsdatum im Artikel
 2. ORIGINALE ÜBERSCHRIFTEN: Einzigartige Überschriften basierend auf tatsächlichem Inhalt
 3. KEIN META: Keine "CHECK:" oder Review-Anweisungen in der Ausgabe
 4. VISUELLE ELEMENTE: Genau 2 Bilder (nicht mehr), plus 1 Statistikblock oder Tabelle
+5. SEO: Focus Keyword muss im Titel, ersten Absatz und mindestens einer h2 vorkommen. Meta Description muss 140-155 Zeichen lang sein.
 
 FORMATIERE DEINE ANTWORT WIE FOLGT:
-[Kraftvoller deutscher Titel OHNE "TITEL:" davor]
+[Kraftvoller deutscher Titel mit Focus Keyword OHNE "TITEL:" davor]
 SUBTITLE: [Einzeiliger Untertitel der Kontext oder Blickwinkel zum Titel hinzufügt]
 CATEGORY: [Ein oder zwei Wörter als Themen-Label, z.B. "KI Sicherheit", "Marketing", "Cybersicherheit"]
+FOCUS_KEYWORD: [Die primäre Suchphrase aus 2-4 Wörtern für diesen Artikel]
+META_DESCRIPTION: [140-155 Zeichen überzeugende Beschreibung für Suchmaschinen, enthält Focus Keyword]
+SEO_KEYWORDS: [5-8 komma-getrennte verwandte Suchbegriffe]
 ---
 <section class="content-section" id="[slug-der-überschrift]">
 <h2>[Originale Überschrift basierend auf Inhalt]</h2>
@@ -403,6 +430,7 @@ STEP 1 - REWRITING:
 - ${toneInstructions[options.tone]}
 - Write in English as a news article/press release
 - Maintain the core message and enrich with context where possible
+- IMPORTANT: If the original content is short (e.g. just a headline or brief summary), you MUST use your knowledge to expand the article to the required word count. Research the topic independently — add background, context, industry trends, expert perspectives, implications, and analysis. The source is a starting point, not a limit. ALWAYS meet the required word count regardless of how short the source material is.
 - ORIGINAL HEADINGS: Create unique headings based on actual content - NEVER standard formulas
 - QUOTES: If people are mentioned, generate 1 relevant quote based on context
 - Avoid corporate jargon like 'Executive Summary' or 'Business Impact'
@@ -441,6 +469,14 @@ D) CSS BAR CHART for market data or comparisons:
    <div style="display:flex;align-items:center;margin-bottom:8px"><span style="width:120px;font-size:13px;color:#374151">Label</span><div style="flex:1;background:#e2e8f0;border-radius:4px;height:24px"><div style="width:75%;background:#4f46e5;border-radius:4px;height:24px;display:flex;align-items:center;padding-left:8px"><span style="font-size:12px;color:white;font-weight:600">75%</span></div></div></div>
    </div>
 
+STEP 4 - SEO OPTIMIZATION (CRITICAL):
+- Determine a FOCUS KEYWORD: a 2-4 word search phrase that people would Google to find this article (e.g. "Netflix kids games app", "AI marketing automation tools"). Think about search intent and volume.
+- Write a compelling META DESCRIPTION (140-155 characters) that includes the focus keyword and encourages clicks from search results.
+- Identify 5-8 SEO KEYWORDS: related search terms and long-tail variations that support the focus keyword.
+- NATURALLY weave the focus keyword into: the title, the first paragraph, at least one <h2> heading, and 2-3 more times throughout the article. Do NOT keyword-stuff — keep it natural and readable.
+- Use SEO keywords as variations throughout the article to cover semantic search.
+- Structure headings (<h2>) as questions or descriptive phrases people actually search for.
+
 CRITICAL INSTRUCTIONS - READ CAREFULLY:
 
 1. NO DATE: Do NOT include any publication date in the article - the CMS handles dates
@@ -451,11 +487,15 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
 6. VISUAL ELEMENTS: MUST include exactly 2 images (no more), plus 1 stat block or table — never write without visual breaks
 7. NO HEADER IMAGE: Do NOT place an image at the very top of the article (before or directly after the first heading). The CMS adds a separate header image automatically. Start with text content, then place the first image after the first 1-2 paragraphs
 8. SOURCES: MUST include at least 3-5 different sources — never just 1
+9. SEO: Focus keyword must appear in title, first paragraph, and at least one h2. Meta description must be 140-155 characters.
 
 FORMAT YOUR ANSWER AS FOLLOWS:
-[Powerful English title WITHOUT "TITLE:" before it]
+[Powerful English title that includes the focus keyword WITHOUT "TITLE:" before it]
 SUBTITLE: [One-line subtitle that adds context or angle to the title]
 CATEGORY: [One or two word topic label for this article, e.g. "AI Security", "SEO", "Marketing", "Cybersecurity", "Enterprise AI", "Data Privacy". Be specific to the article content.]
+FOCUS_KEYWORD: [The primary 2-4 word search phrase for this article]
+META_DESCRIPTION: [140-155 character compelling description for search engines, includes focus keyword]
+SEO_KEYWORDS: [5-8 comma-separated related search terms]
 ---
 <section class="content-section" id="[slug-of-heading]">
 <h2>[Original heading based on content]</h2>
@@ -518,6 +558,7 @@ STAP 1 - HERSCHRIJVEN:
 - ${toneInstructions[options.tone]}
 - Schrijf in het Nederlands als een nieuwsbericht/persbericht
 - Behoud de kernboodschap en verrijk met context waar mogelijk
+- BELANGRIJK: Als de originele content kort is (bijv. alleen een kop of korte samenvatting), MOET je het artikel zelfstandig uitbreiden tot het vereiste aantal woorden. Onderzoek het onderwerp onafhankelijk — voeg achtergrond, context, trends, expertperspectieven, implicaties en analyse toe. De bron is een startpunt, geen limiet. Haal ALTIJD het vereiste aantal woorden, ongeacht hoe kort het bronmateriaal is.
 - ORIGINELE KOPPEN: Creëer unieke koppen op basis van de werkelijke inhoud - NOOIT standaard formules
 - QUOTES: Als er personen worden genoemd, genereer 1 relevante quote gebaseerd op de context
 - Vermijd corporate jargon zoals 'Executive Summary' of 'Business Impact'
@@ -538,6 +579,14 @@ Voeg minimaal 1-2 van de volgende visuele elementen toe waar relevant (met inlin
 - TIJDLIJN: Gebruik een genummerde lijst met vetgedrukte datums/mijlpalen
 - PRO/CON of CHECKLIST: Gebruik <ul> met ✅ en ❌ emoji prefixes
 
+STAP 4 - SEO OPTIMALISATIE (KRITIEK):
+- Bepaal een FOCUS KEYWORD: een zoekterm van 2-4 woorden die mensen zouden Googlen om dit artikel te vinden (bijv. "Netflix kids games app", "AI marketing automation tools"). Denk na over zoekintentie en volume. Gebruik de taal van de doelgroep (Engels is prima voor vakjargon).
+- Schrijf een pakkende META DESCRIPTION (140-155 tekens) die het focus keyword bevat en kliks aanmoedigt vanuit zoekresultaten.
+- Identificeer 5-8 SEO KEYWORDS: gerelateerde zoektermen en long-tail variaties die het focus keyword ondersteunen.
+- Verwerk het focus keyword NATUURLIJK in: de titel, de eerste paragraaf, minimaal één <h2> kop, en 2-3 keer meer door het artikel. NIET keyword-stuffing — houd het natuurlijk en leesbaar.
+- Gebruik SEO keywords als variaties door het artikel heen voor semantisch zoeken.
+- Structureer koppen (<h2>) als vragen of beschrijvende zinnen waar mensen daadwerkelijk naar zoeken.
+
 KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 
 1. GEEN DATUM: Voeg GEEN publicatiedatum toe aan het artikel - het CMS regelt datums
@@ -546,11 +595,15 @@ KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 4. LINKS: Verwerk subtiel in de tekst, geen "Bron:" labels
 5. GEEN META INSTRUCTIES: Voeg GEEN "CONTROLEER:" of review instructies toe aan de output
 6. VISUELE ELEMENTEN: Voeg minimaal 1 tabel of statistiekblok toe — nooit een longform artikel zonder visuele onderbrekingen
+7. SEO: Focus keyword moet in titel, eerste paragraaf, en minimaal één h2 staan. Meta description moet 140-155 tekens zijn.
 
 FORMAT JE ANTWOORD ALS VOLGT:
-[Krachtige Nederlandse titel ZONDER "TITEL:" ervoor]
+[Krachtige Nederlandse titel met het focus keyword erin ZONDER "TITEL:" ervoor]
 SUBTITLE: [Eenregelige ondertitel die context of invalshoek toevoegt aan de titel]
 CATEGORY: [Een of twee woorden als onderwerp-label voor dit artikel, bijv. "AI Security", "SEO", "Marketing", "Cybersecurity", "Enterprise AI", "Data Privacy". Wees specifiek voor de inhoud van het artikel.]
+FOCUS_KEYWORD: [De primaire zoekterm van 2-4 woorden voor dit artikel]
+META_DESCRIPTION: [140-155 tekens pakkende beschrijving voor zoekmachines, bevat focus keyword]
+SEO_KEYWORDS: [5-8 komma-gescheiden gerelateerde zoektermen]
 ---
 <section class="content-section" id="[slug-van-kop]">
 <h2>[Origineel kopje gebaseerd op inhoud]</h2>

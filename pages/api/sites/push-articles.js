@@ -44,11 +44,21 @@ export default async function handler(req, res) {
     for (const a of toRewrite) {
       try {
         console.log(`[push-articles] Auto-rewriting: ${a.title?.substring(0, 50)}`)
+        // Build SEO context for keyword relevance
+        const seoContext = []
+        if (automation.site_name) seoContext.push(`Website: ${automation.site_name}`)
+        if (automation.site_url) seoContext.push(`URL: ${automation.site_url}`)
+        if (automation.keywords) seoContext.push(`Site niche keywords: ${automation.keywords}`)
+        if (automation.tags) seoContext.push(`Content tags/topics: ${automation.tags}`)
+        const seoInstructions = seoContext.length > 0
+          ? `SEO CONTEXT — Choose focus keywords and SEO keywords that are relevant for this website and its audience:\n${seoContext.join('\n')}\nThe focus keyword should match what this site's target audience would search for. Combine the article topic with the site's niche to find the best keyword angle.`
+          : undefined
+        const allInstructions = [automation.extra_context, seoInstructions].filter(Boolean).join('\n\n') || undefined
         const rewritten = await rewriteArticle(
           a.title,
           a.originalContent || a.description,
           { style: automation.style || 'news', length: automation.length || 'medium', language: automation.language || 'nl', tone: 'informative' },
-          automation.extra_context || undefined,
+          allInstructions,
           a.url
         )
         let imageUrl = hasRealImage(a) ? a.imageUrl : null
@@ -62,6 +72,9 @@ export default async function handler(req, res) {
           title: rewritten.title,
           subtitle: rewritten.subtitle || '',
           faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
+          ...(rewritten.focus_keyword ? { focus_keyword: rewritten.focus_keyword } : {}),
+          ...(rewritten.meta_description ? { meta_description: rewritten.meta_description } : {}),
+          ...(rewritten.seo_keywords?.length ? { seo_keywords: rewritten.seo_keywords.join(', ') } : {}),
           ...(imageUrl ? { imageUrl } : {}),
           ...(cleanTopic ? { topic: cleanTopic } : {}),
           status: a.status === 'pending' ? 'rewritten' : a.status,

@@ -919,6 +919,7 @@ export default function AutomationEditPage() {
                   try {
                     const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true }) })
                     const data = await res.json()
+                    if (!res.ok) throw new Error(data.details || data.error || 'Unknown error')
                     const result = data.automations?.find((a: any) => a.automation_id === id)
                     if (result?.rewritten > 0 || result?.pending > 0) {
                       const parts: string[] = []
@@ -929,8 +930,8 @@ export default function AutomationEditPage() {
                       showNotification({ type: 'warning', title: 'Pipeline complete', message: result?.message || 'No new articles found', duration: 4000 })
                     }
                     loadArticles()
-                  } catch {
-                    showNotification({ type: 'error', title: 'Error', message: 'Pipeline failed' })
+                  } catch (err: any) {
+                    showNotification({ type: 'error', title: 'Pipeline failed', message: err.message || 'Unknown error' })
                   } finally {
                     setRunningPipeline(false)
                   }
@@ -3333,6 +3334,7 @@ const { articles } = await res.json();
               try {
                 const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true }) })
                 const data = await res.json()
+                if (!res.ok) throw new Error(data.details || data.error || 'Unknown error')
                 const result = data.automations?.find((a: any) => a.automation_id === id)
                 if (result?.rewritten > 0 || result?.pending > 0) {
                   const parts: string[] = []
@@ -3343,8 +3345,8 @@ const { articles } = await res.json();
                   showNotification({ type: 'warning', title: 'No articles found', message: result?.message || 'Try adding more feeds or broader keywords', duration: 4000 })
                 }
                 loadArticles()
-              } catch {
-                showNotification({ type: 'error', title: 'Error', message: 'Pipeline failed' })
+              } catch (err: any) {
+                showNotification({ type: 'error', title: 'Pipeline failed', message: err.message || 'Unknown error' })
               } finally {
                 setRunningPipeline(false)
               }

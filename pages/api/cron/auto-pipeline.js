@@ -3,6 +3,7 @@ import { createArticle, getArticles, updateArticle, getAutomations } from '../..
 import { rewriteArticle } from '../../../lib/ai-rewriter'
 import { findHeaderImage } from '../../../lib/image-search'
 import { discoverFromTags } from '../../../lib/tag-feed-mapping'
+import { scrapeArticleContent } from '../../../lib/article-scraper'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -240,6 +241,23 @@ export default async function handler(req, res) {
       const toPending = shouldAutoSchedule ? allCandidates.slice(maxArticles) : allCandidates
 
       console.log(`[AUTO-PIPELINE] [${automation.name}] ${allCandidates.length} candidates: ${toAutoSchedule.length} to auto-schedule, ${toPending.length} as pending`)
+
+      // Scrape full article content for candidates with short RSS snippets
+      const MIN_CONTENT_LENGTH = 300
+      for (const article of allCandidates) {
+        const currentContent = article.originalContent || article.description || ''
+        if (currentContent.replace(/<[^>]+>/g, '').length < MIN_CONTENT_LENGTH && article.url) {
+          try {
+            const scraped = await scrapeArticleContent(article.url)
+            if (scraped.length > currentContent.replace(/<[^>]+>/g, '').length) {
+              article.originalContent = scraped
+              console.log(`[AUTO-PIPELINE] [${automation.name}] Scraped full content for: ${article.title.substring(0, 50)} (${scraped.length} chars)`)
+            }
+          } catch (err) {
+            console.error(`[AUTO-PIPELINE] [${automation.name}] Scrape failed for ${article.url}:`, err.message)
+          }
+        }
+      }
 
       // Save pending candidates first (no AI rewrite, fast)
       for (const article of toPending) {

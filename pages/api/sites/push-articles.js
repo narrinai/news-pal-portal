@@ -1,6 +1,7 @@
 import { getAutomation, getArticles, updateArticle } from '../../../lib/airtable'
 import { rewriteArticle } from '../../../lib/ai-rewriter'
 import { findHeaderImage } from '../../../lib/image-search'
+import { scrapeArticleContent } from '../../../lib/article-scraper'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -44,6 +45,17 @@ export default async function handler(req, res) {
     for (const a of toRewrite) {
       try {
         console.log(`[push-articles] Auto-rewriting: ${a.title?.substring(0, 50)}`)
+        // Scrape full article content if RSS snippet is too short
+        let sourceContent = a.originalContent || a.description || ''
+        if (sourceContent.replace(/<[^>]+>/g, '').length < 300 && a.url) {
+          try {
+            const scraped = await scrapeArticleContent(a.url)
+            if (scraped.length > sourceContent.replace(/<[^>]+>/g, '').length) {
+              sourceContent = scraped
+              console.log(`[push-articles] Scraped full content for: ${a.title?.substring(0, 50)} (${scraped.length} chars)`)
+            }
+          } catch {}
+        }
         // Build SEO context for keyword relevance
         const seoContext = []
         if (automation.site_name) seoContext.push(`Website: ${automation.site_name}`)
@@ -56,7 +68,7 @@ export default async function handler(req, res) {
         const allInstructions = [automation.extra_context, seoInstructions].filter(Boolean).join('\n\n') || undefined
         const rewritten = await rewriteArticle(
           a.title,
-          a.originalContent || a.description,
+          sourceContent,
           { style: automation.style || 'news', length: automation.length || 'medium', language: automation.language || 'nl', tone: 'informative' },
           allInstructions,
           a.url

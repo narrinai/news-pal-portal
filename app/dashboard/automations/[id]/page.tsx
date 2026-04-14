@@ -1387,8 +1387,10 @@ export default function AutomationEditPage() {
                         onClick={async () => {
                           setRewritingArticleIds(prev => { const next = new Set(Array.from(prev)); next.add(article.id); return next })
                           try {
-                            // Rewrite first if no content
-                            if (!article.content_html && !article.content_rewritten) {
+                            const needsRewrite = !article.content_html && !article.content_rewritten
+                            if (needsRewrite) {
+                              showNotification({ type: 'info', title: 'Rewriting...', message: `"${article.title}" is being rewritten before publishing`, duration: 60000 })
+                              // Fire background rewrite
                               await fetch('/api/articles/rewrite', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -1398,7 +1400,26 @@ export default function AutomationEditPage() {
                                   customInstructions: automation.extra_context || undefined,
                                 }),
                               })
+                              // Poll until rewrite is complete (every 5s, max 3 min)
+                              let rewriteDone = false
+                              for (let i = 0; i < 36; i++) {
+                                await new Promise(r => setTimeout(r, 5000))
+                                try {
+                                  const checkRes = await fetch(`/api/articles/${article.id}`)
+                                  const checkData = await checkRes.json()
+                                  if (checkData.content_html && checkData.content_html.trim()) {
+                                    rewriteDone = true
+                                    break
+                                  }
+                                } catch {}
+                              }
+                              if (!rewriteDone) {
+                                showNotification({ type: 'error', title: 'Rewrite timeout', message: 'Article rewrite is still running. Try publishing again in a minute.' })
+                                setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
+                                return
+                              }
                             }
+                            // Set status to published
                             await fetch(`/api/articles/${article.id}`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
@@ -1408,8 +1429,8 @@ export default function AutomationEditPage() {
                             showNotification({ type: 'success', title: 'Published', message: `"${article.title}" is now published` })
                             setPublishedBanner({ title: article.title, siteUrl: automation.site_url || undefined })
                             loadArticles()
-                            // Push only this article to connected site
-                            if (automation.site_platform === 'replit' && automation.site_api_key && automation.site_url) {
+                            // Push to connected site (push-articles handles image search if needed)
+                            if (usesPushMechanism(automation) && automation.site_api_key && automation.site_url) {
                               try {
                                 const pushRes = await fetch('/api/sites/push-articles', {
                                   method: 'POST',

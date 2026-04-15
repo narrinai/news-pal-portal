@@ -140,9 +140,17 @@ export default async function handler(req, res) {
         // Full sync: require both automation_id match and published status
         return a.automation_id === automation_id && a.status === 'published'
       })
+      .filter(a => {
+        // Skip articles that were never rewritten — pushing original English content is wrong
+        if (!hasRealContent(a)) {
+          console.warn(`[push-articles] Skipping article without rewritten content: ${a.title?.substring(0, 60)}`)
+          return false
+        }
+        return true
+      })
       .map(a => ({
         id: a.id,
-        slug: (a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
+        slug: (a.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
         title: a.title,
         // Prefer rewritten subtitle (in target language) over original description (often English)
         description: (() => {

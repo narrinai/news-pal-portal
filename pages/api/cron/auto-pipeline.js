@@ -487,11 +487,21 @@ export default async function handler(req, res) {
       if (automation.site_platform !== 'replit' || !automation.site_api_key || !automation.site_url) continue
 
       try {
-        const publishedArticles = toPush.map(a => ({
+        const publishedArticles = toPush.filter(a => {
+          const hasContent = !!(a.content_html?.trim() || a.content_rewritten?.trim())
+          if (!hasContent) {
+            console.warn(`[AUTO-PIPELINE] Skipping push for article without rewritten content: ${a.title?.substring(0, 60)}`)
+          }
+          return hasContent
+        }).map(a => ({
           id: a.id,
-          slug: (a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
+          slug: (a.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
           title: a.title,
-          description: (a.description || '').replace(/<[^>]+>/g, '').substring(0, 200).trim() + ((a.description || '').length > 200 ? '...' : ''),
+          description: (() => {
+            const text = a.subtitle || a.description || ''
+            const clean = text.replace(/<[^>]+>/g, '').trim()
+            return clean.length > 200 ? clean.substring(0, 200).trim() + '...' : clean
+          })(),
           content_html: a.content_html || a.content_rewritten || `<p>${(a.description || '').replace(/<[^>]+>/g, '')}</p>`,
           category: a.topic || a.category,
           source: a.source,

@@ -19,11 +19,16 @@ export default async function handler(req, res) {
   const force = req.body?.force === true || req.query?.force === 'true'
   // fetchOnly: only fetch and save pipeline candidates, don't auto-schedule or rewrite
   const fetchOnly = req.body?.fetchOnly === true
+  // Optional: only process a specific automation (faster, avoids timeout)
+  const singleAutomationId = req.body?.automation_id || null
 
   try {
     // Step 1: Get all enabled automations
     const automations = await getAutomations()
-    const enabled = automations.filter(a => a.enabled)
+    let enabled = automations.filter(a => a.enabled)
+    if (singleAutomationId) {
+      enabled = enabled.filter(a => a.id === singleAutomationId)
+    }
 
     console.log(`[AUTO-PIPELINE] Found ${automations.length} automations, ${enabled.length} enabled`)
 

@@ -917,7 +917,7 @@ export default function AutomationEditPage() {
                 onClick={async () => {
                   setRunningPipeline(true)
                   try {
-                    const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true }) })
+                    const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true, automation_id: id }) })
                     const data = await res.json()
                     if (!res.ok) throw new Error(data.details || data.error || 'Unknown error')
                     const result = data.automations?.find((a: any) => a.automation_id === id)

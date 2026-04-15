@@ -243,18 +243,21 @@ export default async function handler(req, res) {
       console.log(`[AUTO-PIPELINE] [${automation.name}] ${allCandidates.length} candidates: ${toAutoSchedule.length} to auto-schedule, ${toPending.length} as pending`)
 
       // Scrape full article content for candidates with short RSS snippets
-      const MIN_CONTENT_LENGTH = 300
-      for (const article of allCandidates) {
-        const currentContent = article.originalContent || article.description || ''
-        if (currentContent.replace(/<[^>]+>/g, '').length < MIN_CONTENT_LENGTH && article.url) {
-          try {
-            const scraped = await scrapeArticleContent(article.url)
-            if (scraped.length > currentContent.replace(/<[^>]+>/g, '').length) {
-              article.originalContent = scraped
-              console.log(`[AUTO-PIPELINE] [${automation.name}] Scraped full content for: ${article.title.substring(0, 50)} (${scraped.length} chars)`)
+      // Skip scraping in fetchOnly mode to stay within Netlify function timeout
+      if (!fetchOnly) {
+        const MIN_CONTENT_LENGTH = 300
+        for (const article of allCandidates) {
+          const currentContent = article.originalContent || article.description || ''
+          if (currentContent.replace(/<[^>]+>/g, '').length < MIN_CONTENT_LENGTH && article.url) {
+            try {
+              const scraped = await scrapeArticleContent(article.url)
+              if (scraped.length > currentContent.replace(/<[^>]+>/g, '').length) {
+                article.originalContent = scraped
+                console.log(`[AUTO-PIPELINE] [${automation.name}] Scraped full content for: ${article.title.substring(0, 50)} (${scraped.length} chars)`)
+              }
+            } catch (err) {
+              console.error(`[AUTO-PIPELINE] [${automation.name}] Scrape failed for ${article.url}:`, err.message)
             }
-          } catch (err) {
-            console.error(`[AUTO-PIPELINE] [${automation.name}] Scrape failed for ${article.url}:`, err.message)
           }
         }
       }

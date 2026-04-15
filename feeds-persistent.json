@@ -376,11 +376,11 @@
     "maxArticles": 40
   },
   {
-    "id": "practicalecommerce",
-    "url": "https://www.practicalecommerce.com/feed",
-    "name": "Practical Ecommerce",
-    "category": "marketing-ai",
+    "url": "https://www.omniaretail.com/blog/rss.xml",
+    "name": "www.omniaretail.com",
+    "category": "german-business",
     "enabled": true,
-    "maxArticles": 30
+    "id": "www-omniaretail-com",
+    "maxArticles": 25
   }
 ]

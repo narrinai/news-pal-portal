@@ -230,12 +230,15 @@ function extractImageFromRSSItem(item: any): string | undefined {
   }
 }
 
-export async function fetchAllFeeds(disableFiltering = false, categoryKeywords?: {[key: string]: string[]}): Promise<RSSArticle[]> {
+export async function fetchAllFeeds(disableFiltering = false, categoryKeywords?: {[key: string]: string[]}, feedIdFilter?: Set<string>): Promise<RSSArticle[]> {
   const allArticles: RSSArticle[] = []
-  
+
   // Get configurable feeds or fallback to defaults
   const feedConfigs = await getFeedConfigs()
-  const enabledFeeds = feedConfigs.filter(feed => feed.enabled)
+  let enabledFeeds = feedConfigs.filter(feed => feed.enabled)
+  if (feedIdFilter && feedIdFilter.size > 0) {
+    enabledFeeds = enabledFeeds.filter(feed => feedIdFilter.has(feed.id))
+  }
   
   console.log(`Processing ${enabledFeeds.length} enabled RSS feeds`)
   

@@ -40,9 +40,24 @@ export default async function handler(req, res) {
       })
     }
 
-    // Step 2: Fetch articles from RSS feeds (once, shared across automations)
+    // Step 2: Fetch articles from RSS feeds
+    // When processing a single automation, only fetch its feeds (much faster)
+    let feedIdFilter = null
+    if (singleAutomationId) {
+      const auto = enabled[0]
+      if (auto) {
+        const autoTags = (() => { try { return JSON.parse(auto.tags || '[]') } catch { return [] } })()
+        const discovered = autoTags.length > 0 ? discoverFromTags(autoTags) : { feeds: [] }
+        const manualFeeds = auto.feeds ? auto.feeds.split(',').filter(Boolean) : []
+        const allFeedIds = [...new Set([...discovered.feeds, ...manualFeeds])]
+        if (allFeedIds.length > 0) {
+          feedIdFilter = new Set(allFeedIds)
+          console.log(`[AUTO-PIPELINE] Filtering to ${feedIdFilter.size} feeds for automation ${auto.name}`)
+        }
+      }
+    }
     // Disable built-in keyword filtering — each automation does its own filtering
-    const articles = await fetchAllFeeds(true)
+    const articles = await fetchAllFeeds(true, undefined, feedIdFilter)
     console.log(`[AUTO-PIPELINE] Fetched ${articles.length} articles from RSS feeds`)
 
     // Step 3: Get existing articles to avoid duplicates

@@ -112,6 +112,50 @@ export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt
   }
 }
 
+export async function createArticlesBatch(articles: Omit<NewsArticle, 'id' | 'createdAt'>[]) {
+  if (articles.length === 0) return []
+  if (!base) {
+    const results: any[] = []
+    for (const a of articles) results.push(await mockAirtable.createArticle(a))
+    return results
+  }
+
+  const results: any[] = []
+  for (let i = 0; i < articles.length; i += 10) {
+    const chunk = articles.slice(i, i + 10).map(article => ({
+      fields: {
+        title: article.title,
+        description: article.description,
+        url: article.url,
+        source: article.source,
+        publishedAt: article.publishedAt,
+        status: article.status,
+        category: article.category,
+        originalContent: article.originalContent || '',
+        content_rewritten: article.content_rewritten || '',
+        content_html: article.content_html || '',
+        imageUrl: article.imageUrl || '',
+        matchedKeywords: article.matchedKeywords ? article.matchedKeywords.join(', ') : '',
+        ...(article.automation_id ? { automation_id: article.automation_id } : {}),
+      }
+    }))
+    try {
+      const records = await base('Table 1').create(chunk)
+      results.push(...records)
+    } catch (error) {
+      console.error(`❌ Batch create failed (${chunk.length} records), falling back to per-record:`, error)
+      for (const a of articles.slice(i, i + 10)) {
+        try {
+          results.push(await createArticle(a))
+        } catch (e) {
+          console.error('  per-record fallback failed:', e)
+        }
+      }
+    }
+  }
+  return results
+}
+
 export async function getArticles(status?: string, categories?: string | string[], automationId?: string): Promise<NewsArticle[]> {
   if (!base) {
     console.log('Using mock Airtable for getArticles')

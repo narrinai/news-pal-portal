@@ -1,5 +1,5 @@
 import { fetchAllFeeds } from '../../../lib/rss-parser'
-import { createArticle, getArticles, updateArticle, getAutomations } from '../../../lib/airtable'
+import { createArticle, createArticlesBatch, getArticles, updateArticle, getAutomations } from '../../../lib/airtable'
 import { rewriteArticle } from '../../../lib/ai-rewriter'
 import { findHeaderImage } from '../../../lib/image-search'
 import { discoverFromTags } from '../../../lib/tag-feed-mapping'
@@ -282,25 +282,26 @@ export default async function handler(req, res) {
         }
       }
 
-      // Save pending candidates first (no AI rewrite, fast)
-      for (const article of toPending) {
+      // Save pending candidates in batches of 10 (Airtable max per request)
+      if (toPending.length > 0) {
+        const pendingPayload = toPending.map(article => ({
+          title: article.title,
+          description: article.description,
+          url: article.url,
+          source: article.source,
+          publishedAt: new Date().toISOString(),
+          status: 'pending',
+          category: article.category,
+          originalContent: article.originalContent || '',
+          imageUrl: article.imageUrl || '',
+          matchedKeywords: article.matchedKeywords || [],
+          automation_id: automation.id,
+        }))
         try {
-          await createArticle({
-            title: article.title,
-            description: article.description,
-            url: article.url,
-            source: article.source,
-            publishedAt: new Date().toISOString(),
-            status: 'pending',
-            category: article.category,
-            originalContent: article.originalContent || '',
-            imageUrl: article.imageUrl || '',
-            matchedKeywords: article.matchedKeywords || [],
-            automation_id: automation.id,
-          })
-          existingUrls.add(article.url)
+          await createArticlesBatch(pendingPayload)
+          for (const a of toPending) existingUrls.add(a.url)
         } catch (err) {
-          console.error(`[AUTO-PIPELINE] [${automation.name}] Failed to save pending: ${article.title}:`, err.message)
+          console.error(`[AUTO-PIPELINE] [${automation.name}] Batch save pending failed:`, err.message)
         }
       }
 

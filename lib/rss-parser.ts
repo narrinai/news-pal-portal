@@ -246,7 +246,7 @@ export async function fetchAllFeeds(disableFiltering = false, categoryKeywords?:
   const feedsToProcess = enabledFeeds
   console.log(`Processing all ${feedsToProcess.length} enabled feeds`)
   
-  const batchSize = 3
+  const batchSize = 8
   for (let i = 0; i < feedsToProcess.length; i += batchSize) {
     const batch = feedsToProcess.slice(i, i + batchSize)
     console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(feedsToProcess.length/batchSize)}`)

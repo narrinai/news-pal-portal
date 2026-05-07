@@ -318,6 +318,29 @@ export default function AutomationEditPage() {
     }
   }
 
+  // Poll the by-automation endpoint after dispatching the background pipeline.
+  // Resolves with the new total once it grows beyond initialTotal, or null on timeout.
+  const pollForNewArticles = async (initialTotal: number, maxSeconds = 120, intervalMs = 5000): Promise<number | null> => {
+    const start = Date.now()
+    while (Date.now() - start < maxSeconds * 1000) {
+      await new Promise(r => setTimeout(r, intervalMs))
+      try {
+        const res = await fetch(`/api/articles/by-automation?automation_id=${id}&limit=100`)
+        if (res.ok) {
+          const data = await res.json()
+          const total = data.counts?.total || 0
+          if (total > initialTotal) {
+            setArticles(data.articles)
+            setArticleCounts(data.counts)
+            setHasMorePublished(data.pagination?.hasMore || false)
+            return total
+          }
+        }
+      } catch { /* keep polling */ }
+    }
+    return null
+  }
+
   const handleDeleteArticle = async (article: Article) => {
     const confirmed = await showConfirm({
       title: 'Delete article',
@@ -916,20 +939,18 @@ export default function AutomationEditPage() {
               <button
                 onClick={async () => {
                   setRunningPipeline(true)
+                  const initialTotal = articleCounts.total
                   try {
                     const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true, automation_id: id }) })
                     const data = await res.json()
                     if (!res.ok) throw new Error(data.details || data.error || 'Unknown error')
-                    const result = data.automations?.find((a: any) => a.automation_id === id)
-                    if (result?.rewritten > 0 || result?.pending > 0) {
-                      const parts: string[] = []
-                      if (result.rewritten > 0) parts.push(`${result.rewritten} scheduled`)
-                      if (result.pending > 0) parts.push(`${result.pending} in pipeline`)
-                      showNotification({ type: 'success', title: 'Pipeline complete', message: parts.join(', '), duration: 4000 })
+                    showNotification({ type: 'info', title: 'Pipeline gestart', message: 'Artikelen worden op de achtergrond opgehaald (~1-2 min)', duration: 4000 })
+                    const newTotal = await pollForNewArticles(initialTotal)
+                    if (newTotal !== null) {
+                      showNotification({ type: 'success', title: 'Pipeline klaar', message: `${newTotal - initialTotal} nieuwe artikelen toegevoegd`, duration: 4000 })
                     } else {
-                      showNotification({ type: 'warning', title: 'Pipeline complete', message: result?.message || 'No new articles found', duration: 4000 })
+                      showNotification({ type: 'warning', title: 'Geen nieuwe artikelen', message: 'Pipeline draait mogelijk nog — ververs later', duration: 4000 })
                     }
-                    loadArticles()
                   } catch (err: any) {
                     showNotification({ type: 'error', title: 'Pipeline failed', message: err.message || 'Unknown error' })
                   } finally {
@@ -3352,20 +3373,18 @@ const { articles } = await res.json();
               }
               window.scrollTo({ top: 0, behavior: 'smooth' })
               setRunningPipeline(true)
+              const initialTotal = articleCounts.total
               try {
-                const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true }) })
+                const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true, automation_id: id }) })
                 const data = await res.json()
                 if (!res.ok) throw new Error(data.details || data.error || 'Unknown error')
-                const result = data.automations?.find((a: any) => a.automation_id === id)
-                if (result?.rewritten > 0 || result?.pending > 0) {
-                  const parts: string[] = []
-                  if (result.rewritten > 0) parts.push(`${result.rewritten} scheduled`)
-                  if (result.pending > 0) parts.push(`${result.pending} in pipeline`)
-                  showNotification({ type: 'success', title: 'Articles fetched', message: parts.join(', '), duration: 4000 })
+                showNotification({ type: 'info', title: 'Pipeline gestart', message: 'Artikelen worden op de achtergrond opgehaald (~1-2 min)', duration: 4000 })
+                const newTotal = await pollForNewArticles(initialTotal)
+                if (newTotal !== null) {
+                  showNotification({ type: 'success', title: 'Articles fetched', message: `${newTotal - initialTotal} nieuwe artikelen toegevoegd`, duration: 4000 })
                 } else {
-                  showNotification({ type: 'warning', title: 'No articles found', message: result?.message || 'Try adding more feeds or broader keywords', duration: 4000 })
+                  showNotification({ type: 'warning', title: 'No articles found', message: 'Pipeline draait mogelijk nog — ververs later, of voeg meer feeds/keywords toe', duration: 4000 })
                 }
-                loadArticles()
               } catch (err: any) {
                 showNotification({ type: 'error', title: 'Pipeline failed', message: err.message || 'Unknown error' })
               } finally {

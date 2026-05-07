@@ -21,7 +21,39 @@ export default async function handler(req, res) {
   const fetchOnly = req.body?.fetchOnly === true
   // Optional: only process a specific automation (faster, avoids timeout)
   const singleAutomationId = req.body?.automation_id || null
+  // Background dispatch flag — set when this handler invokes itself
+  const isBackground = req.body?._background === true
 
+  // Foreground dashboard call: dispatch a background invocation and return immediately
+  // so the UI doesn't hang and the function timeout doesn't surface as a 502.
+  // GET (cron) and self-dispatched (_background) calls fall through to runPipeline.
+  if (req.method === 'POST' && !isBackground) {
+    const proto = (req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim()
+    const host = req.headers.host || 'localhost:3000'
+    const selfUrl = `${proto}://${host}/api/cron/auto-pipeline`
+
+    console.log(`[AUTO-PIPELINE] Dispatching background call to: ${selfUrl}`)
+    fetch(selfUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
+      },
+      body: JSON.stringify({ force, fetchOnly, automation_id: singleAutomationId, _background: true }),
+    }).catch((err) => console.error('[AUTO-PIPELINE] Background dispatch failed:', err.message))
+
+    return res.status(202).json({
+      success: true,
+      started: true,
+      message: 'Pipeline started in background',
+      automation_id: singleAutomationId,
+    })
+  }
+
+  return runPipeline(req, res, { force, fetchOnly, singleAutomationId })
+}
+
+async function runPipeline(req, res, { force, fetchOnly, singleAutomationId }) {
   try {
     // Step 1: Get all enabled automations
     const automations = await getAutomations()

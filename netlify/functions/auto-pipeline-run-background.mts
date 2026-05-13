@@ -1,3 +1,4 @@
+console.log("[AUTO-PIPELINE-BG] cold start, node:", process.version)
 import { runAutoPipeline } from "../../lib/run-auto-pipeline.js"
 
 // Netlify Background Function: 15-min timeout, returns 202 to caller instantly.

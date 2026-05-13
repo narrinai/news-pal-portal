@@ -9,9 +9,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Skip middleware for API routes, static files, and login page
+  // Skip middleware for API routes, Netlify functions, static files, and login page
   if (
     pathname.startsWith('/api/') ||
+    pathname.startsWith('/.netlify/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/static/') ||
     pathname === '/login' ||

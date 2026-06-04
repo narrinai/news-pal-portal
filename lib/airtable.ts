@@ -106,9 +106,12 @@ export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt
     ])
     console.log('✅ Article created successfully in Airtable')
     return records[0]
-  } catch (error) {
-    console.error('❌ Error creating article in Airtable, falling back to mock:', error)
-    return await mockAirtable.createArticle(article)
+  } catch (error: any) {
+    // Credentials exist but the write failed — surface the error instead of
+    // silently writing to the ephemeral in-memory mock (which is per-instance
+    // on serverless and disappears, making articles vanish after creation).
+    console.error('❌ Error creating article in Airtable:', error?.message || error)
+    throw new Error(`Failed to create article in Airtable: ${error?.message || 'Unknown error'}`)
   }
 }
 
@@ -236,9 +239,13 @@ export async function getArticles(status?: string, categories?: string | string[
     }))
     console.log(`✅ Retrieved ${articles.length} articles from Airtable`)
     return articles
-  } catch (error) {
-    console.error('❌ Error fetching articles from Airtable, falling back to mock:', error)
-    return await mockAirtable.getArticles()
+  } catch (error: any) {
+    // Credentials exist but the read failed — surface the error instead of
+    // returning ephemeral mock data. A silent mock fallback here makes the
+    // rewrite/publish flow believe articles don't exist, so writes target the
+    // wrong (mock) store and changes are lost.
+    console.error('❌ Error fetching articles from Airtable:', error?.message || error)
+    throw new Error(`Failed to fetch articles from Airtable: ${error?.message || 'Unknown error'}`)
   }
 }
 
@@ -273,9 +280,9 @@ export async function deleteArticle(id: string): Promise<void> {
     console.log(`Deleting article ${id} from real Airtable`)
     await base('Table 1').destroy(id)
     console.log('✅ Article deleted successfully from Airtable')
-  } catch (error) {
-    console.error(`❌ Error deleting article ${id} from Airtable, falling back to mock:`, error)
-    return await mockAirtable.deleteArticle(id)
+  } catch (error: any) {
+    console.error(`❌ Error deleting article ${id} from Airtable:`, error?.message || error)
+    throw new Error(`Failed to delete article in Airtable: ${error?.message || 'Unknown error'}`)
   }
 }
 
@@ -369,9 +376,9 @@ export async function createAutomation(data: Omit<Automation, 'id'>): Promise<Au
     }
     const records = await base('automation_settings').create([{ fields: cleaned }])
     return recordToAutomation(records[0])
-  } catch (error) {
-    console.error('Error creating automation:', error)
-    return mockAirtable.createAutomation(data)
+  } catch (error: any) {
+    console.error('Error creating automation:', error?.message || error)
+    throw new Error(`Failed to create automation in Airtable: ${error?.message || 'Unknown error'}`)
   }
 }
 
@@ -414,11 +421,7 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
     return recordToAutomation(record)
   } catch (error: any) {
     console.error(`Error updating automation ${id}:`, error?.message || error)
-    // If Airtable rejects unknown fields, retry with only base fields
-    if (error?.message?.includes('UNKNOWN_FIELD_NAME') || error?.statusCode === 422) {
-      throw error
-    }
-    return mockAirtable.updateAutomation(id, data)
+    throw new Error(`Failed to update automation in Airtable: ${error?.message || 'Unknown error'}`)
   }
 }
 
@@ -429,9 +432,9 @@ export async function deleteAutomation(id: string): Promise<void> {
 
   try {
     await base('automation_settings').destroy(id)
-  } catch (error) {
-    console.error(`Error deleting automation ${id}:`, error)
-    return mockAirtable.deleteAutomation(id)
+  } catch (error: any) {
+    console.error(`Error deleting automation ${id}:`, error?.message || error)
+    throw new Error(`Failed to delete automation in Airtable: ${error?.message || 'Unknown error'}`)
   }
 }
 

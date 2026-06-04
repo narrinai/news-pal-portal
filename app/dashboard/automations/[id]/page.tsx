@@ -115,21 +115,36 @@ export default function AutomationEditPage() {
     const due = articleList.filter(a => a.status === 'selected' && a.publishedAt && new Date(a.publishedAt) <= now)
     if (due.length === 0) return
 
+    // Only the articles whose write actually persisted count as published —
+    // a failed PATCH must not be treated as success or pushed to the site.
+    const published: Article[] = []
+    const failed: Article[] = []
     for (const article of due) {
       try {
-        await fetch(`/api/articles/${article.id}`, {
+        const res = await fetch(`/api/articles/${article.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'published', automation_id: id }),
         })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        published.push(article)
         console.log(`[auto-publish] Published: ${article.title}`)
       } catch (err) {
+        failed.push(article)
         console.error(`[auto-publish] Failed: ${article.title}`, err)
       }
     }
 
+    if (failed.length > 0) {
+      showNotification({ type: 'error', title: `${failed.length} article(s) failed to publish`, message: 'Could not save to database. They remain scheduled and will be retried.' })
+    }
+    if (published.length === 0) {
+      if (failed.length > 0) loadArticles()
+      return
+    }
+
     // Push only the newly published articles to site
-    const dueIds = due.map(a => a.id)
+    const dueIds = published.map(a => a.id)
     if (usesPushMechanism(automation)) {
       try {
         const pushRes = await fetch('/api/sites/push-articles', {
@@ -146,7 +161,7 @@ export default function AutomationEditPage() {
       }
     }
     if (automation?.site_platform === 'hubspot' && automation?.site_api_key) {
-      for (const article of due) {
+      for (const article of published) {
         try {
           await fetch('/api/hubspot/publish', {
             method: 'POST',
@@ -167,7 +182,7 @@ export default function AutomationEditPage() {
       const wpUser = colonIdx > -1 ? automation.site_api_key.slice(0, colonIdx) : ''
       const wpPass = colonIdx > -1 ? automation.site_api_key.slice(colonIdx + 1) : ''
       if (wpUser && wpPass) {
-        for (const article of due) {
+        for (const article of published) {
           try {
             await fetch('/api/wordpress/publish-post', {
               method: 'POST',
@@ -191,8 +206,8 @@ export default function AutomationEditPage() {
       try { await fetch(automation.deploy_webhook_url, { method: 'POST' }) } catch { /* silent */ }
     }
 
-    if (due.length > 0) {
-      showNotification({ type: 'success', title: `${due.length} article(s) auto-published`, message: 'Scheduled articles whose time arrived have been published', duration: 4000 })
+    if (published.length > 0) {
+      showNotification({ type: 'success', title: `${published.length} article(s) auto-published`, message: 'Scheduled articles whose time arrived have been published', duration: 4000 })
       loadArticles()
     }
   }, [id, automation])
@@ -1440,12 +1455,20 @@ export default function AutomationEditPage() {
                                 return
                               }
                             }
-                            // Set status to published
-                            await fetch(`/api/articles/${article.id}`, {
+                            // Set status to published — verify it actually persisted.
+                            // A failed write must NOT be reported as success, otherwise the
+                            // article silently never reaches the database or the site.
+                            const pubRes = await fetch(`/api/articles/${article.id}`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ status: 'published', automation_id: id }),
                             })
+                            if (!pubRes.ok) {
+                              const errData = await pubRes.json().catch(() => ({}))
+                              setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
+                              showNotification({ type: 'error', title: 'Publish failed', message: errData.details || errData.error || `Could not save to database (HTTP ${pubRes.status}). The article was NOT published — try again.` })
+                              return
+                            }
                             setRewritingArticleIds(prev => { const next = new Set(prev); next.delete(article.id); return next })
                             showNotification({ type: 'success', title: 'Published', message: `"${article.title}" is now published` })
                             setPublishedBanner({ title: article.title, siteUrl: automation.site_url || undefined })

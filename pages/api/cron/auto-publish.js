@@ -1,4 +1,5 @@
 import { getArticles, updateArticle, getAutomations } from '../../../lib/airtable'
+import { buildArticlePayload, pushArticlesToSite } from '../../../lib/pushToSite'
 
 /**
  * Lightweight cron endpoint that runs every hour to:
@@ -76,47 +77,25 @@ export default async function handler(req, res) {
       const automation = automationMap[automationId]
       if (!automation) continue
 
-      // Push to Replit site
-      if (automation.site_platform === 'replit' && automation.site_api_key && automation.site_url) {
+      // Push to connected site (push mechanism) — WordPress/HubSpot use their own APIs.
+      const usesPush = automation.site_platform !== 'wordpress' && automation.site_platform !== 'hubspot'
+      if (usesPush && automation.site_api_key && automation.site_url) {
         try {
-          const publishedArticles = articles.map(a => ({
-            id: a.id,
-            slug: (a.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
-            title: a.title,
-            description: (a.description || '').replace(/<[^>]+>/g, '').substring(0, 200).trim() + ((a.description || '').length > 200 ? '...' : ''),
-            content_html: a.content_html || a.content_rewritten || `<p>${(a.description || '').replace(/<[^>]+>/g, '')}</p>`,
-            category: a.topic || a.category,
-            source: a.source,
-            sourceUrl: a.url,
-            imageUrl: a.imageUrl || `https://placehold.co/1200x630/4f46e5/ffffff?text=${encodeURIComponent((a.title || 'Article').substring(0, 30))}`,
-            subtitle: a.subtitle || '',
-            publishedAt: a.publishedAt,
-            faq: a.faq || null,
-          }))
-
-          const targetUrl = automation.replit_url || automation.site_url
-          const origin = new URL(targetUrl).origin
-          const pushUrl = `${origin}/newspal/receive`
-
-          const pushRes = await fetch(pushUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-newspal-key': automation.site_api_key,
-              'X-Requested-With': 'XMLHttpRequest',
-              'Origin': origin,
-            },
-            body: JSON.stringify({ articles: publishedArticles }),
-          })
-
-          const pushData = await pushRes.json().catch(() => ({}))
+          // Shared payload builder + verified push — same contract as the manual push API.
+          const payloads = articles.map(a => buildArticlePayload(a))
+          const result = await pushArticlesToSite({ automation, payloads })
           pushResults.push({
             automation: automation.name,
-            pushed: publishedArticles.length,
-            received: pushData.received || 0,
-            status: pushRes.status,
+            pushed: payloads.length,
+            received: result.pushed,
+            success: result.success,
+            ...(result.error ? { error: result.error } : {}),
           })
-          console.log(`[AUTO-PUBLISH] Pushed ${pushData.received || 0} articles to ${automation.name}: ${pushRes.status}`)
+          if (result.success) {
+            console.log(`[AUTO-PUBLISH] Pushed ${result.pushed} articles to ${automation.name}`)
+          } else {
+            console.error(`[AUTO-PUBLISH] Push not confirmed for ${automation.name}: ${result.error}`)
+          }
         } catch (err) {
           pushResults.push({ automation: automation.name, error: err.message })
           console.error(`[AUTO-PUBLISH] Push failed for ${automation.name}:`, err.message)

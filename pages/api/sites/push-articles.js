@@ -2,6 +2,7 @@ import { getAutomation, getArticles, updateArticle } from '../../../lib/airtable
 import { rewriteArticle } from '../../../lib/ai-rewriter'
 import { findHeaderImage } from '../../../lib/image-search'
 import { scrapeArticleContent } from '../../../lib/article-scraper'
+import { buildArticlePayload, pushArticlesToSite } from '../../../lib/pushToSite'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -148,71 +149,23 @@ export default async function handler(req, res) {
         }
         return true
       })
-      .map(a => ({
-        id: a.id,
-        slug: (a.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80),
-        title: a.title,
-        // Prefer rewritten subtitle (in target language) over original description (often English)
-        description: (() => {
-          const text = a.subtitle || a.description || ''
-          const clean = text.replace(/<[^>]+>/g, '').trim()
-          return clean.length > 200 ? clean.substring(0, 200).trim() + '...' : clean
-        })(),
-        content_html: a.content_html || a.content_rewritten || `<p>${(a.description || '').replace(/<[^>]+>/g, '')}</p>`,
-        category: primaryCategory || a.topic || a.category,
-        source: a.source,
-        sourceUrl: a.url,
-        imageUrl: a.imageUrl || `https://placehold.co/1200x630/4f46e5/ffffff?text=${encodeURIComponent((a.title || 'Article').substring(0, 30))}`,
-        subtitle: a.subtitle || '',
-        publishedAt: a.publishedAt,
-        faq: a.faq || null,
-      }))
+      .map(a => buildArticlePayload(a, { category: primaryCategory }))
 
     if (publishedArticles.length === 0) {
       return res.status(200).json({ success: true, pushed: 0, message: 'No published articles to push' })
     }
 
-    const targetUrl = automation.replit_url || automation.site_url
-    const origin = new URL(targetUrl).origin
-    const pushUrl = `${origin}/newspal/receive`
-    console.log(`[push-articles] Pushing ${publishedArticles.length} article(s) to ${pushUrl} with key ${automation.site_api_key?.slice(0, 10)}...`)
-
-    // Push in batches of 3 to avoid 413 Payload Too Large
-    const BATCH_SIZE = 3
-    let totalReceived = 0
-    let totalOnSite = 0
-
-    for (let i = 0; i < publishedArticles.length; i += BATCH_SIZE) {
-      const batch = publishedArticles.slice(i, i + BATCH_SIZE)
-      const pushRes = await fetch(pushUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-newspal-key': automation.site_api_key,
-        },
-        body: JSON.stringify({ articles: batch }),
-      })
-
-      const data = await pushRes.json().catch(() => ({}))
-      console.log(`[push-articles] Response: ${pushRes.status}`, JSON.stringify(data).slice(0, 200))
-
-      if (!pushRes.ok) {
-        console.error(`[push-articles] Batch ${i / BATCH_SIZE + 1} failed: ${pushRes.status}`)
-        return res.status(200).json({
-          success: false,
-          error: `Site returned ${pushRes.status} on batch ${Math.floor(i / BATCH_SIZE) + 1}`,
-          pushed: totalReceived,
-        })
-      }
-
-      totalReceived += data.received ?? batch.length
-      totalOnSite = data.total || totalOnSite
+    // Batches of 3 keep payloads under the site's 413 limit; the helper verifies each
+    // batch was genuinely accepted (not a 200 from a missing-route HTML fallback).
+    const result = await pushArticlesToSite({ automation, payloads: publishedArticles, batchSize: 3 })
+    if (!result.success) {
+      console.error(`[push-articles] ${result.error}`)
     }
-
     return res.status(200).json({
-      success: true,
-      pushed: totalReceived,
-      total: totalOnSite,
+      success: result.success,
+      pushed: result.pushed,
+      total: result.total,
+      ...(result.error ? { error: result.error } : {}),
     })
   } catch (error) {
     console.error('[push-articles] Error:', error.message)

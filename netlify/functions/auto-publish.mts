@@ -5,9 +5,9 @@ export default async () => {
 
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 120_000) // 2 min timeout
+    const timeout = setTimeout(() => controller.abort(), 60_000) // 1 min timeout
 
-    const res = await fetch(`${siteUrl}/api/cron/auto-pipeline`, {
+    const res = await fetch(`${siteUrl}/api/cron/auto-publish`, {
       method: 'POST',
       headers: {
         ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
@@ -17,10 +17,10 @@ export default async () => {
 
     clearTimeout(timeout)
     const data = await res.json()
-    console.log('[SCHEDULED] Auto-pipeline result:', JSON.stringify(data))
+    console.log('[SCHEDULED] Auto-publish result:', JSON.stringify(data))
     return new Response(JSON.stringify(data), { status: 200 })
   } catch (error: any) {
-    console.error('[SCHEDULED] Auto-pipeline failed:', error.message)
+    console.error('[SCHEDULED] Auto-publish failed:', error.message)
     return new Response(JSON.stringify({ error: error.message }), { status: 500 })
   }
 }

@@ -21,6 +21,11 @@ function readFeedsFromFile() {
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
+      // Owner visibility: a feed is visible if it's global (no owner) OR owned by the
+      // requesting automation. Without automation_id, only global feeds are returned.
+      const { automation_id } = req.query
+      const isVisible = (f) => !f.owner || f.owner === automation_id
+
       // PRIORITY 1: Try loading from Airtable first
       console.log('📡 Attempting to load feeds from Airtable...')
       const airtableFeeds = await loadFeedsFromAirtable()
@@ -29,14 +34,14 @@ export default async function handler(req, res) {
         // Merge: include DEFAULT_RSS_FEEDS that aren't already in Airtable (by id)
         const airtableIds = new Set(airtableFeeds.map(f => f.id))
         const missingDefaults = DEFAULT_RSS_FEEDS.filter(f => !airtableIds.has(f.id))
-        const merged = [...airtableFeeds, ...missingDefaults]
-        console.log(`✅ Returning ${merged.length} feeds (${airtableFeeds.length} Airtable + ${missingDefaults.length} defaults)`)
+        const merged = [...airtableFeeds, ...missingDefaults].filter(isVisible)
+        console.log(`✅ Returning ${merged.length} feeds (owner filter: ${automation_id || 'globals only'})`)
         return res.status(200).json(merged)
       }
 
       // PRIORITY 2: Fallback to local feed manager
       console.log('⚠️ No Airtable feeds found, falling back to local storage')
-      let feeds = await getFeedConfigs()
+      let feeds = (await getFeedConfigs()).filter(isVisible)
       console.log(`✅ Returning ${feeds.length} feeds from local storage`)
 
       return res.status(200).json(feeds)
@@ -182,10 +187,17 @@ export default async function handler(req, res) {
   if (req.method === 'DELETE') {
     // Delete feed
     try {
-      const { feedId } = req.query
+      const { feedId, automation_id } = req.query
 
       if (!feedId) {
         return res.status(400).json({ error: 'Feed ID is required' })
+      }
+
+      // A private custom feed may only be deleted by its owner. Global feeds (no owner)
+      // can be deleted from the global settings page.
+      const existing = (await loadFeedsFromAirtable()).find(f => f.id === feedId)
+      if (existing?.owner && existing.owner !== automation_id) {
+        return res.status(403).json({ error: 'This feed belongs to another automation and cannot be deleted here' })
       }
 
       console.log('DELETE /api/feeds - Deleting feed:', feedId)

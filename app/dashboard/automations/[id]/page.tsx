@@ -287,7 +287,8 @@ export default function AutomationEditPage() {
 
   const loadFeeds = async () => {
     try {
-      const res = await fetch('/api/feeds')
+      // Pass automation_id so the picker shows global feeds + this automation's own custom feeds
+      const res = await fetch(`/api/feeds?automation_id=${id}`)
       if (res.ok) setAllFeeds(await res.json())
     } catch (error) {
       console.error('Error loading feeds:', error)
@@ -2158,6 +2159,7 @@ export default function AutomationEditPage() {
                           name: feedName || new URL(feedUrl).hostname,
                           category: activeCats[0] || 'other',
                           enabled: true,
+                          owner: id, // private to this automation; not shown to other automations
                         }),
                       })
                       if (res.ok) {

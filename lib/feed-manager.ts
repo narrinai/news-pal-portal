@@ -9,6 +9,7 @@ export interface RSSFeedConfig {
   maxArticles?: number // Max articles to fetch per run
   lastFetched?: string
   disableFiltering?: boolean // If true, accept all articles from this feed without keyword filtering
+  owner?: string // automation_id that added this custom feed; empty/undefined = global/shared feed
 }
 
 // ======================================

@@ -33,7 +33,8 @@ export async function addFeedToAirtable(feed: RSSFeedConfig): Promise<RSSFeedCon
       url: feed.url,
       category: feed.category,
       enabled: feed.enabled,
-      maxarticles: feed.maxArticles || 25
+      maxarticles: feed.maxArticles || 25,
+      ...(feed.owner ? { owner: feed.owner } : {}) // owner = automation_id for private custom feeds; omit for global feeds
     }, { typecast: true }) // typecast: auto-create the category singleSelect option if it doesn't exist yet
 
     console.log(`✅ Feed "${feed.name}" added to Airtable`)
@@ -43,7 +44,8 @@ export async function addFeedToAirtable(feed: RSSFeedConfig): Promise<RSSFeedCon
       url: record.fields.url,
       category: record.fields.category,
       enabled: record.fields.enabled,
-      maxArticles: record.fields.maxarticles
+      maxArticles: record.fields.maxarticles,
+      owner: record.fields.owner || undefined
     }
   } catch (error) {
     console.error('❌ Error adding feed to Airtable:', error)
@@ -126,7 +128,8 @@ export async function loadFeedsFromAirtable(): Promise<RSSFeedConfig[]> {
       url: record.fields.url as string,
       category: record.fields.category as string,
       enabled: record.fields.enabled === true,
-      maxArticles: (record.fields.maxarticles as number) || 25
+      maxArticles: (record.fields.maxarticles as number) || 25,
+      owner: (record.fields.owner as string) || undefined
     }))
 
     console.log(`✅ Loaded ${feeds.length} RSS feeds from Airtable`)
@@ -149,8 +152,10 @@ export async function syncFeedsToAirtable(feeds: RSSFeedConfig[]): Promise<void>
     const existingById = new Map(existingRecords.map((r: any) => [r.fields.id, r]))
     const newFeedIds = new Set(feeds.map(f => f.id))
 
-    // Delete feeds that are not in the new list
-    const recordsToDelete = existingRecords.filter((r: any) => !newFeedIds.has(r.fields.id))
+    // Delete feeds that are not in the new list — but NEVER delete private custom
+    // feeds (those with an owner). The global settings page only knows about shared
+    // feeds, so syncing its list back must not wipe other automations' custom feeds.
+    const recordsToDelete = existingRecords.filter((r: any) => !newFeedIds.has(r.fields.id) && !r.fields.owner)
     if (recordsToDelete.length > 0) {
       await base(TABLE_NAME).destroy(recordsToDelete.map((r: any) => r.id))
       console.log(`🗑️ Deleted ${recordsToDelete.length} feeds from Airtable`)
@@ -179,7 +184,8 @@ export async function syncFeedsToAirtable(feeds: RSSFeedConfig[]): Promise<void>
           url: feed.url,
           category: feed.category,
           enabled: feed.enabled,
-          maxarticles: feed.maxArticles || 25
+          maxarticles: feed.maxArticles || 25,
+          ...(feed.owner ? { owner: feed.owner } : {})
         }, { typecast: true }) // typecast: auto-create the category singleSelect option if it doesn't exist yet
         console.log(`✅ Added new feed: ${feed.name}`)
       }

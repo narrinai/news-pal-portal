@@ -103,7 +103,7 @@ export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt
           ...(article.automation_id ? { automation_id: article.automation_id } : {}),
         }
       }
-    ])
+    ], { typecast: true }) // typecast: per-automation feed categories are dynamic, so auto-create the category option instead of rejecting the article
     console.log('✅ Article created successfully in Airtable')
     return records[0]
   } catch (error: any) {
@@ -143,7 +143,7 @@ export async function createArticlesBatch(articles: Omit<NewsArticle, 'id' | 'cr
       }
     }))
     try {
-      const records = await base('Table 1').create(chunk)
+      const records = await base('Table 1').create(chunk, { typecast: true })
       results.push(...records)
     } catch (error) {
       console.error(`❌ Batch create failed (${chunk.length} records), falling back to per-record:`, error)

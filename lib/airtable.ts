@@ -327,6 +327,7 @@ function recordToAutomation(record: any): Automation {
     extra_context: (f.extra_context as string) || '',
     analyze_urls: (f.analyze_urls as string) || '',
     ai_settings: (f.ai_settings as string) || '',
+    auto_schedule: !!f.auto_schedule,
   }
 }
 

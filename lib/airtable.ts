@@ -400,6 +400,7 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
       'integration_type', 'deploy_webhook_url',
       'site_platform', 'site_api_key', 'replit_url',
       'extra_context', 'analyze_urls', 'ai_settings',
+      'auto_schedule',
     ])
 
     const cleaned: Record<string, any> = {}

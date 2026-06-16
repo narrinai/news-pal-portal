@@ -73,10 +73,10 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
 
   if ((options.length === 'longform' || options.length === 'extra-long') && anthropic) {
     console.log(`🔄 Using Claude directly for ${options.length} content`)
-    usedModel = 'claude-sonnet-4-20250514'
+    usedModel = 'claude-sonnet-4-6'
     try {
       const message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: maxTokens,
         system: systemPrompt,
         messages: [{ role: 'user', content: prompt }],
@@ -117,9 +117,9 @@ BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk allee
     if (!response && anthropic) {
       try {
         console.log('🔄 Falling back to Claude for:', originalTitle.substring(0, 50))
-        usedModel = 'claude-sonnet-4-20250514'
+        usedModel = 'claude-sonnet-4-6'
         const message = await anthropic.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: maxTokens,
           system: systemPrompt,
           messages: [{ role: 'user', content: prompt }],

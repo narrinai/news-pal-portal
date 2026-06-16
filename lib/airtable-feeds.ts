@@ -34,7 +34,7 @@ export async function addFeedToAirtable(feed: RSSFeedConfig): Promise<RSSFeedCon
       category: feed.category,
       enabled: feed.enabled,
       maxarticles: feed.maxArticles || 25
-    })
+    }, { typecast: true }) // typecast: auto-create the category singleSelect option if it doesn't exist yet
 
     console.log(`✅ Feed "${feed.name}" added to Airtable`)
     return {
@@ -180,7 +180,7 @@ export async function syncFeedsToAirtable(feeds: RSSFeedConfig[]): Promise<void>
           category: feed.category,
           enabled: feed.enabled,
           maxarticles: feed.maxArticles || 25
-        })
+        }, { typecast: true }) // typecast: auto-create the category singleSelect option if it doesn't exist yet
         console.log(`✅ Added new feed: ${feed.name}`)
       }
     }

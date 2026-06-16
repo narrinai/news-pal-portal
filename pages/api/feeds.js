@@ -142,18 +142,28 @@ export default async function handler(req, res) {
       }
       console.log('Feed with defaults:', feedWithDefaults)
 
-      // PRIORITY 1: Add to Airtable
+      // PRIORITY 1: Add to Airtable. Airtable is the source of truth (local storage
+      // doesn't persist on serverless), so a failure here means the feed is genuinely
+      // lost — surface it instead of returning a fake-success the UI would trust.
       try {
         await addFeedToAirtable(feedWithDefaults)
         console.log('✅ Feed added to Airtable')
       } catch (airtableError) {
-        console.warn('⚠️ Airtable add failed:', airtableError.message)
+        console.error('❌ Airtable add failed:', airtableError.message)
+        return res.status(502).json({
+          error: 'Could not save feed to Airtable',
+          details: airtableError.message,
+        })
       }
 
-      // PRIORITY 2: Also save to local storage
-      const updatedFeeds = [...currentFeeds, feedWithDefaults]
-      await saveFeedConfigs(updatedFeeds)
-      console.log('✅ Feed saved to local storage')
+      // PRIORITY 2: Also save to local storage (best-effort backup)
+      try {
+        const updatedFeeds = [...currentFeeds, feedWithDefaults]
+        await saveFeedConfigs(updatedFeeds)
+        console.log('✅ Feed saved to local storage')
+      } catch (localError) {
+        console.warn('⚠️ Local storage save failed (non-fatal):', localError.message)
+      }
 
       return res.status(201).json({
         success: true,

@@ -39,18 +39,24 @@ export async function rewriteArticle(
 
 Your task is to rewrite news articles while preserving the core message.
 
-IMPORTANT: You do NOT have access to web browsing or external sources. Work only with the information provided.`
+IMPORTANT: You do NOT have access to web browsing or external sources. Work only with the information provided.
+
+CRITICAL — factual accuracy: NEVER invent or guess facts, years, dates, numbers, scores, names, or places that are not in the source text. If the source says "the World Cup" without a year, do NOT add a year. Do not infer the current year. Keep every concrete fact exactly as the source states it; if a detail is missing, leave it out rather than guessing.`
     : options.language === 'de'
     ? `Du bist ein professioneller Journalist, der Nachrichtenartikel für ein breites Publikum umschreibt.
 
 Deine Aufgabe ist es, Nachrichtenartikel umzuschreiben und dabei die Kernbotschaft zu erhalten.
 
-WICHTIG: Du hast KEINEN Zugang zum Internet oder externen Quellen. Arbeite nur mit den bereitgestellten Informationen.`
+WICHTIG: Du hast KEINEN Zugang zum Internet oder externen Quellen. Arbeite nur mit den bereitgestellten Informationen.
+
+KRITISCH — Faktentreue: Erfinde oder errate NIEMALS Fakten, Jahreszahlen, Daten, Zahlen, Ergebnisse, Namen oder Orte, die nicht im Quelltext stehen. Wenn die Quelle "die WM" ohne Jahr nennt, füge KEIN Jahr hinzu. Leite nicht das aktuelle Jahr ab. Übernimm jede konkrete Tatsache genau so, wie die Quelle sie angibt; fehlt ein Detail, lass es weg, statt zu raten.`
     : `Je bent een professionele journalist die nieuwsartikelen herschrijft voor een breed publiek.
 
 Je taak is om nieuwsartikelen te herschrijven, waarbij je de kernboodschap behoudt.
 
-BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk alleen met de informatie die je krijgt.`
+BELANGRIJK: Je hebt GEEN toegang tot web browsing of externe bronnen. Werk alleen met de informatie die je krijgt.
+
+CRUCIAAL — feitelijke nauwkeurigheid: Verzin of gok NOOIT feiten, jaartallen, datums, cijfers, uitslagen, namen of plaatsen die niet in de brontekst staan. Als de bron "het WK" zegt zonder jaartal, voeg er dan GEEN jaartal aan toe. Leid het huidige jaar niet af. Neem elk concreet feit exact over zoals de bron het stelt; ontbreekt een detail, laat het dan weg in plaats van te gokken.`
 
   const systemPrompt = customInstructions
     ? `${baseSystemPrompt}\n\nADDITIONAL CONTEXT:\n${customInstructions}`

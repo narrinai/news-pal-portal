@@ -75,6 +75,7 @@ export interface Automation {
   pipeline_hour?: number
   auto_schedule?: boolean
   instant_publish?: boolean
+  prioritize_recency?: boolean
   ai_settings?: string
 }
 
@@ -330,6 +331,7 @@ function recordToAutomation(record: any): Automation {
     ai_settings: (f.ai_settings as string) || '',
     auto_schedule: !!f.auto_schedule,
     instant_publish: !!f.instant_publish,
+    prioritize_recency: !!f.prioritize_recency,
   }
 }
 
@@ -403,7 +405,7 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
       'integration_type', 'deploy_webhook_url',
       'site_platform', 'site_api_key', 'replit_url',
       'extra_context', 'analyze_urls', 'ai_settings',
-      'auto_schedule', 'instant_publish',
+      'auto_schedule', 'instant_publish', 'prioritize_recency',
     ])
 
     const cleaned: Record<string, any> = {}

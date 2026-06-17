@@ -35,6 +35,7 @@ interface Automation {
   pipeline_hour: number
   auto_schedule: boolean
   instant_publish: boolean
+  prioritize_recency: boolean
 }
 
 interface Feed {
@@ -250,6 +251,7 @@ export default function AutomationEditPage() {
           pipeline_hour: data.pipeline_hour ?? 7,
           auto_schedule: data.auto_schedule ?? false,
           instant_publish: data.instant_publish ?? false,
+          prioritize_recency: data.prioritize_recency ?? false,
         })
         // Initialize analyzeUrls from analyze_urls field
         if (data.analyze_urls) {
@@ -1866,6 +1868,31 @@ export default function AutomationEditPage() {
                 For fast-moving sites. Each hourly run picks the most relevant fresh article and publishes it immediately,
                 paced across the day up to your articles-per-day target — so content is always recent. When off, articles are
                 scheduled ahead in daily time slots.
+              </p>
+            </div>
+          </div>
+          )}
+
+          {/* Selection strategy for instant mode */}
+          {automation.auto_schedule && automation.instant_publish && (
+          <div className="mt-3 ml-6 flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <button
+              onClick={() => update('prioritize_recency', !automation.prioritize_recency)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 mt-0.5 ${
+                automation.prioritize_recency ? 'bg-indigo-600' : 'bg-slate-300'
+              }`}
+              role="switch"
+            >
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${
+                automation.prioritize_recency ? 'translate-x-[18px]' : 'translate-x-[3px]'
+              }`} />
+            </button>
+            <div>
+              <p className="text-sm font-medium text-slate-700">Prioritize recency over relevance</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {automation.prioritize_recency
+                  ? 'On: pick the MOST RECENT article that fits the site (relevance breaks ties).'
+                  : 'Off: pick the BEST-matching article for the site that isn’t too old (max 3 days).'}
               </p>
             </div>
           </div>

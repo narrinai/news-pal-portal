@@ -34,6 +34,7 @@ interface Automation {
   analyze_urls: string
   pipeline_hour: number
   auto_schedule: boolean
+  instant_publish: boolean
 }
 
 interface Feed {
@@ -248,6 +249,7 @@ export default function AutomationEditPage() {
           analyze_urls: data.analyze_urls || '',
           pipeline_hour: data.pipeline_hour ?? 7,
           auto_schedule: data.auto_schedule ?? false,
+          instant_publish: data.instant_publish ?? false,
         })
         // Initialize analyzeUrls from analyze_urls field
         if (data.analyze_urls) {
@@ -1843,6 +1845,31 @@ export default function AutomationEditPage() {
               </p>
             </div>
           </div>
+
+          {/* Instant-publish toggle (only meaningful with auto-schedule on) */}
+          {automation.auto_schedule && (
+          <div className="mt-3 flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <button
+              onClick={() => update('instant_publish', !automation.instant_publish)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 mt-0.5 ${
+                automation.instant_publish ? 'bg-indigo-600' : 'bg-slate-300'
+              }`}
+              role="switch"
+            >
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${
+                automation.instant_publish ? 'translate-x-[18px]' : 'translate-x-[3px]'
+              }`} />
+            </button>
+            <div>
+              <p className="text-sm font-medium text-slate-700">Instant publish (fresh news mode)</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                For fast-moving sites. Each hourly run picks the most relevant fresh article and publishes it immediately,
+                paced across the day up to your articles-per-day target — so content is always recent. When off, articles are
+                scheduled ahead in daily time slots.
+              </p>
+            </div>
+          </div>
+          )}
         </div>
 
         {/* Section 4: Advanced — collapsible */}

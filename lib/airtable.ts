@@ -74,6 +74,7 @@ export interface Automation {
   analyze_urls?: string
   pipeline_hour?: number
   auto_schedule?: boolean
+  instant_publish?: boolean
   ai_settings?: string
 }
 
@@ -328,6 +329,7 @@ function recordToAutomation(record: any): Automation {
     analyze_urls: (f.analyze_urls as string) || '',
     ai_settings: (f.ai_settings as string) || '',
     auto_schedule: !!f.auto_schedule,
+    instant_publish: !!f.instant_publish,
   }
 }
 
@@ -401,7 +403,7 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
       'integration_type', 'deploy_webhook_url',
       'site_platform', 'site_api_key', 'replit_url',
       'extra_context', 'analyze_urls', 'ai_settings',
-      'auto_schedule',
+      'auto_schedule', 'instant_publish',
     ])
 
     const cleaned: Record<string, any> = {}

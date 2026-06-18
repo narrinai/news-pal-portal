@@ -2744,7 +2744,7 @@ Returns: { success: true, total: number, articles: [...] }
 - POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against env var NEWSPAL_API_KEY. Upsert into newspal_articles by slug (same as sync). WRAP all DB work in try/catch and on error return res.status(500).json({ error: err.message }) — never let it throw a bare HTML 500. An empty articles array must succeed with received:0. Return { success: true, received, total }. This is the primary push endpoint.
 - POST /newspal/delete — accepts { slugs: ["slug1", "slug2"] } with header x-newspal-key validated against NEWSPAL_API_KEY. Delete the specified slugs from newspal_articles. Return { success, deleted: number, remaining: number }.
 - GET ${sitePath} — read all articles from newspal_articles, render a listing page showing BOTH existing site articles AND News Pal articles together, sorted by date. Use cards (image, category badge, title linking to ${slugPath}, description, date). Style it to match the existing site design. CRITICAL: If the listing has a featured/highlight/hero section AND a grid section, the same article must NEVER appear in both — exclude the featured article(s) from the grid below by slug.
-- GET ${slugPath} — read single article from newspal_articles by slug, render a full article detail page with title, subtitle, meta info, image, HTML content, and FAQ section (collapsible). Must work for both existing articles and News Pal articles. Style it to match the existing site. Include ALL page elements that existing article pages have — such as sidebars, breadcrumbs, social share buttons, navigation between articles, etc.
+- GET ${slugPath} — read single article from newspal_articles by slug, render a full article detail page with title, subtitle, meta info, image, HTML content, and FAQ section (collapsible). Must work for both existing articles and News Pal articles. Style it to match the existing site. Include ALL page elements that existing article pages have — such as sidebars, breadcrumbs, social share buttons, navigation between articles, etc. Also emit ALL SEO tags from the "SEO & indexing" section below (indexable — NO noindex, canonical, OG/Twitter, NewsArticle JSON-LD), server-rendered.
 - Register the /newspal/receive route BEFORE any security middleware (helmet, cors, csrf, etc.)
 - Add NEWSPAL_API_KEY to the secrets — and make sure it is ALSO set in the DEPLOYMENT secrets (separate from dev), value: ${automation.site_api_key || '(generate key in News Pal first)'}
 - On server startup, call syncArticles() once to automatically pull any new articles from the API
@@ -2773,6 +2773,19 @@ async function syncArticles() {
 - On detail pages (${slugPath}), check both existing content and News Pal storage to find the article by slug
 - If the site already has routes for ${sitePath} or ${slugPath}, extend those route handlers to also include News Pal articles — do not create duplicate routes
 
+## SEO & indexing (REQUIRED — the whole point is that these articles RANK and INDEX on Google)
+- NEVER output \`<meta name="robots" content="noindex">\` or \`nofollow\` on article or listing pages. They MUST be indexable. If the base layout/template has a leftover dev/staging \`noindex\` (very common), REMOVE it for these pages — use \`<meta name="robots" content="index, follow">\` or omit the tag entirely. A leftover noindex is the #1 reason News Pal articles never get indexed (this exact bug shipped on a previous site).
+- Server-render the FULL article HTML so crawlers see the content with NO JavaScript required (never render the article body client-side only).
+- Every article detail page (${slugPath}) MUST include, server-side:
+  - \`<title>\` = article title; a unique \`<meta name="description">\` from the article description
+  - \`<link rel="canonical" href="https://THIS-DOMAIN${slugPath.replace(':slug', '<slug>')}">\` — absolute URL on the domain actually being deployed (use the real host, including subdomain)
+  - Open Graph + Twitter: \`og:type=article\`, \`og:title\`, \`og:description\`, \`og:image\` (the article imageUrl), \`og:url\` (= canonical), \`article:published_time\` (= publishedAt), \`twitter:card=summary_large_image\`
+  - JSON-LD \`<script type="application/ld+json">\` of @type "NewsArticle": headline, description, image, datePublished (= publishedAt), dateModified, author, publisher (name + logo), mainEntityOfPage (= canonical URL)
+  - If the article has \`faq\`, ALSO emit a separate FAQPage JSON-LD block
+- Sitemap: include EVERY News Pal article URL in \`/sitemap.xml\` with an absolute \`<loc>\` and a \`<lastmod>\` (the article's published/updated date). Extend/regenerate the sitemap whenever articles are received or synced.
+- \`/robots.txt\` MUST allow crawling (\`User-agent: *\` / \`Allow: /\`) and its \`Sitemap:\` line MUST point to THIS exact domain's sitemap (including the subdomain if the site runs on one — e.g. https://news.example.com/sitemap.xml, not the apex domain).
+- Use the provided lowercase hyphenated slugs; keep each article's URL stable forever (never change a published URL). Make sure the listing page links to every article so crawlers can reach them.
+
 ## Article data format from API
 Each article has:
 {
@@ -2797,7 +2810,7 @@ Each article has:
 - CRITICAL: Do NOT add CSRF protection, referrer checks, origin validation, or cors() restrictions to /newspal/receive — it uses x-newspal-key for authentication
 - CRITICAL: Make sure /newspal/receive is reachable before any security middleware runs
 - CRITICAL: Store articles in a PERSISTENT SQL DATABASE (PostgreSQL via Drizzle/Prisma). Do NOT use @replit/database — its REPLIT_DB_URL is absent in production Deployments and throws there (works only in dev). Do NOT use JSON files — wiped on every redeploy. Wrong storage is the #1 cause of articles 500-ing or disappearing in production.
-- SITEMAP: Add News Pal articles to the site's sitemap.xml so they get indexed by search engines${automation.site_detail_template ? `
+- CRITICAL — INDEXING: article pages must be indexable (NO noindex/nofollow), server-rendered, with canonical + NewsArticle JSON-LD + Open Graph, and every article in /sitemap.xml with <lastmod>, robots.txt pointing to this domain's sitemap. See the "SEO & indexing" section — the entire goal is that these articles rank and index on Google. A leftover noindex (as shipped on a previous site) silently blocks ALL indexing.${automation.site_detail_template ? `
 
 ## Styling reference
 Below is the extracted HTML/CSS from an existing article page on my site. News Pal articles MUST match this exact styling — same fonts, colors, spacing, layout, header image placement, and typography. Use this as the reference template:

@@ -10,7 +10,7 @@
   {
     "id": "ai-adult",
     "name": "AI Adult",
-    "url": "https://rss.app/feeds/tNuJy2d6Kop70Q6B.xml",
+    "url": "https://news.google.com/rss/search?q=%22NSFW%20AI%22%20OR%20%22AI%20hentai%22%20OR%20%22uncensored%20AI%22%20OR%20%22AI%20porn%22%20OR%20%22AI%20sexbot%22%20OR%20%22AI%20anime%20girlfriend%22&hl=en-US&gl=US&ceid=US:en",
     "category": "ai-companion",
     "enabled": true,
     "maxArticles": 50
@@ -18,7 +18,7 @@
   {
     "id": "ai-girlfriend",
     "name": "AI Girlfriend",
-    "url": "https://rss.app/feeds/t7J1yCCO5QGLQvF0.xml",
+    "url": "https://news.google.com/rss/search?q=%22AI%20girlfriend%22%20OR%20%22AI%20companion%22%20OR%20%22virtual%20girlfriend%22%20OR%20Replika%20OR%20%22Character.AI%22%20OR%20%22Nomi%20AI%22&hl=en-US&gl=US&ceid=US:en",
     "category": "ai-companion",
     "enabled": true,
     "maxArticles": 50

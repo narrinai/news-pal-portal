@@ -42,7 +42,9 @@ export const TAG_MAPPINGS: Record<string, TagMapping> = {
     feeds: [
       'techcrunch-ai', 'ars-technica-ai', 'wired-ai', 'wired-ai-specific',
       'theverge-ai', 'mit-tech-review', 'venturebeat-ai', 'zdnet-ai',
-      'artificialintelligence-news', 'unite-ai'
+      'artificialintelligence-news', 'unite-ai',
+      // Dedicated rss.app niche feeds — girlfriend/adult/nsfw content
+      'ai-adult', 'ai-girlfriend'
     ],
     keywords: [
       'AI companion', 'AI girlfriend', 'AI boyfriend', 'AI romance', 'AI relationship',

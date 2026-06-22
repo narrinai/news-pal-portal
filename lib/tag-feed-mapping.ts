@@ -47,7 +47,9 @@ export const TAG_MAPPINGS: Record<string, TagMapping> = {
     keywords: [
       'AI companion', 'AI girlfriend', 'AI boyfriend', 'AI romance', 'AI relationship',
       'virtual companion', 'Replika', 'Character.AI', 'Chai AI', 'Nomi AI',
-      'roleplay AI', 'NSFW AI', 'emotional AI', 'companion chatbot'
+      'roleplay AI', 'NSFW AI', 'emotional AI', 'companion chatbot',
+      'AI adult', 'AI NSFW', 'AI sex', 'AI girl', 'AI gf', 'AI anime', 'AI hentai',
+      'AI porn', 'uncensored AI'
     ]
   },
   'ai chatbot': {

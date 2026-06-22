@@ -75,6 +75,13 @@ export async function parseArticlesFromFeed(
       'AI friend', 'companion chatbot', 'roleplay AI', 'NSFW AI', 'AI sexting',
       'emotional AI', 'AI loneliness', 'AI emotional support',
 
+      // Explicit / adult / NSFW niche
+      'AI adult', 'adult AI', 'AI NSFW', 'AI sex', 'AI sexbot', 'sexbot',
+      'AI porn', 'AI pornography', 'AI girl', 'AI girls', 'AI gf', 'AI bf',
+      'AI anime', 'anime AI', 'AI hentai', 'hentai AI', 'AI waifu generator',
+      'AI character', 'AI roleplay', 'erotic AI', 'AI erotica', 'AI nude',
+      'AI image generator NSFW', 'uncensored AI', 'uncensored chatbot',
+
       // Platforms — companion/romance focused
       'Replika', 'Character.AI', 'Chai AI', 'Nomi AI', 'Kindroid', 'Talkie AI',
       'Crushon AI', 'Janitor AI', 'Candy AI', 'DreamGF', 'Kupid AI', 'Intimate AI',

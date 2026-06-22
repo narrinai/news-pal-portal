@@ -382,5 +382,29 @@
     "enabled": true,
     "id": "www-omniaretail-com",
     "maxArticles": 25
+  },
+  {
+    "id": "eu-policy-news",
+    "name": "EU Digital Policy (Google News)",
+    "category": "europeanpurpose",
+    "enabled": true,
+    "maxArticles": 25,
+    "url": "https://news.google.com/rss/search?q=%22European%20Commission%22%20OR%20%22European%20Union%22%20OR%20Brussels%20OR%20GDPR%20OR%20%22Digital%20Markets%20Act%22%20OR%20%22Digital%20Services%20Act%22%20OR%20%22EU%20AI%20Act%22%20OR%20%22digital%20sovereignty%22&hl=en-US&gl=NL&ceid=NL:en"
+  },
+  {
+    "id": "eu-tech-news",
+    "name": "European Tech & Startups (Google News)",
+    "category": "europeanpurpose",
+    "enabled": true,
+    "maxArticles": 25,
+    "url": "https://news.google.com/rss/search?q=%22European%20startup%22%20OR%20%22European%20tech%22%20OR%20%22European%20scaleup%22%20OR%20%22EU%20funding%22%20OR%20%22European%20AI%22&hl=en-US&gl=NL&ceid=NL:en"
+  },
+  {
+    "id": "euobserver",
+    "name": "EU Observer",
+    "category": "europeanpurpose",
+    "enabled": true,
+    "maxArticles": 25,
+    "url": "https://euobserver.com/rss"
   }
 ]

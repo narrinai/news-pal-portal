@@ -215,30 +215,7 @@ export async function getArticles(status?: string, categories?: string | string[
       maxRecords: automationId ? 500 : 100
     }).all()
 
-    const articles = records.map(record => ({
-      id: record.id,
-      title: record.fields.title as string,
-      description: record.fields.description as string,
-      url: record.fields.url as string,
-      source: record.fields.source as string,
-      publishedAt: record.fields.publishedAt as string,
-      status: record.fields.status as NewsArticle['status'],
-      category: record.fields.category as NewsArticle['category'],
-      originalContent: record.fields.originalContent as string,
-      content_rewritten: record.fields.content_rewritten as string,
-      content_html: record.fields.content_html as string,
-      imageUrl: record.fields.imageUrl as string,
-      subtitle: record.fields.subtitle as string,
-      faq: record.fields.faq as string,
-      matchedKeywords: record.fields.matchedKeywords
-        ? (record.fields.matchedKeywords as string).split(', ').filter(k => k.trim())
-        : [],
-      automation_id: record.fields.automation_id as string | undefined,
-      focus_keyword: record.fields.focus_keyword as string | undefined,
-      meta_description: record.fields.meta_description as string | undefined,
-      seo_keywords: record.fields.seo_keywords as string | undefined,
-      createdAt: record.fields.createdAt as string,
-    }))
+    const articles = records.map(mapArticleRecord)
     console.log(`✅ Retrieved ${articles.length} articles from Airtable`)
     return articles
   } catch (error: any) {
@@ -248,6 +225,114 @@ export async function getArticles(status?: string, categories?: string | string[
     // wrong (mock) store and changes are lost.
     console.error('❌ Error fetching articles from Airtable:', error?.message || error)
     throw new Error(`Failed to fetch articles from Airtable: ${error?.message || 'Unknown error'}`)
+  }
+}
+
+// Shared record → article mapper (used by getArticles and the dashboard list reads).
+function mapArticleRecord(record: any): NewsArticle {
+  return {
+    id: record.id,
+    title: record.fields.title as string,
+    description: record.fields.description as string,
+    url: record.fields.url as string,
+    source: record.fields.source as string,
+    publishedAt: record.fields.publishedAt as string,
+    status: record.fields.status as NewsArticle['status'],
+    category: record.fields.category as NewsArticle['category'],
+    originalContent: record.fields.originalContent as string,
+    content_rewritten: record.fields.content_rewritten as string,
+    content_html: record.fields.content_html as string,
+    imageUrl: record.fields.imageUrl as string,
+    subtitle: record.fields.subtitle as string,
+    faq: record.fields.faq as string,
+    matchedKeywords: record.fields.matchedKeywords
+      ? (record.fields.matchedKeywords as string).split(', ').filter((k: string) => k.trim())
+      : [],
+    automation_id: record.fields.automation_id as string | undefined,
+    focus_keyword: record.fields.focus_keyword as string | undefined,
+    meta_description: record.fields.meta_description as string | undefined,
+    seo_keywords: record.fields.seo_keywords as string | undefined,
+    createdAt: record.fields.createdAt as string,
+  } as NewsArticle
+}
+
+// Dashboard list fields — everything except the heavy `originalContent` (the
+// full scraped source text), which the list/publish UI never reads. Dropping it
+// shrinks the per-article payload dramatically.
+const LIST_FIELDS = [
+  'title', 'description', 'url', 'source', 'publishedAt', 'status', 'category',
+  'content_rewritten', 'content_html', 'imageUrl', 'subtitle', 'faq',
+  'matchedKeywords', 'automation_id', 'focus_keyword', 'meta_description',
+  'seo_keywords', 'createdAt',
+]
+
+/**
+ * Lightweight, paginated article read for the dashboard automation list.
+ * This is the UI path only — the auto-pipeline uses getArticles() and is
+ * unaffected, so the scheduler keeps its full candidate visibility.
+ *
+ * - counts: status-only scan (cheap) so the badges stay accurate
+ * - active (scheduled/pending/other): fetched in full (small set)
+ * - published: only the requested page (offset..offset+limit), heavy
+ *   originalContent omitted
+ */
+export async function getAutomationArticleList(
+  automationId: string,
+  limit: number,
+  offset: number
+): Promise<{ active: NewsArticle[]; published: NewsArticle[]; counts: { total: number; selected: number; published: number; pending: number }; publishedTotal: number }> {
+  if (!base) {
+    const all = (await mockAirtable.getArticles()).filter((a: any) => a.automation_id === automationId)
+    const counts = {
+      total: all.length,
+      selected: all.filter((a: any) => a.status === 'selected').length,
+      published: all.filter((a: any) => a.status === 'published').length,
+      pending: all.filter((a: any) => a.status === 'pending').length,
+    }
+    const active = all.filter((a: any) => a.status !== 'published')
+    const published = all.filter((a: any) => a.status === 'published').slice(offset, offset + limit)
+    return { active, published, counts, publishedTotal: counts.published }
+  }
+
+  const filter = `{automation_id} = '${automationId}'`
+
+  // The three reads are independent — run them in parallel.
+  const [countRecords, activeRecords, publishedRecords] = await Promise.all([
+    // 1. Counts — status field only.
+    base('Table 1').select({
+      filterByFormula: filter,
+      fields: ['status'],
+    }).all(),
+    // 2. Active (everything not yet published) — full list fields, small set.
+    base('Table 1').select({
+      filterByFormula: `AND(${filter}, NOT({status} = 'published'))`,
+      sort: [{ field: 'publishedAt', direction: 'desc' }],
+      fields: LIST_FIELDS,
+    }).all(),
+    // 3. Published — only up to the requested page, then slice to the window.
+    base('Table 1').select({
+      filterByFormula: `AND(${filter}, {status} = 'published')`,
+      sort: [{ field: 'publishedAt', direction: 'desc' }],
+      fields: LIST_FIELDS,
+      maxRecords: offset + limit,
+    }).all(),
+  ])
+
+  const counts = { total: countRecords.length, selected: 0, published: 0, pending: 0 }
+  for (const r of countRecords) {
+    const s = r.fields.status as string
+    if (s === 'selected') counts.selected++
+    else if (s === 'published') counts.published++
+    else if (s === 'pending') counts.pending++
+  }
+
+  const pagePublished = publishedRecords.slice(offset, offset + limit)
+
+  return {
+    active: activeRecords.map(mapArticleRecord),
+    published: pagePublished.map(mapArticleRecord),
+    counts,
+    publishedTotal: counts.published,
   }
 }
 

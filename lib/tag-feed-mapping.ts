@@ -257,10 +257,10 @@ export const TAG_MAPPINGS: Record<string, TagMapping> = {
   'pricing': {
     category: 'retail-pricing',
     feeds: [
-      'retail-dive', 'modern-retail', 'retailwire', 'retail-touchpoints',
-      'price-intelligently', 'competera-blog',
-      'techcrunch-ai', 'venturebeat-ai', 'forbes-ai', 'zdnet-ai',
-      'de-handelsblatt', 'de-manager-magazin', 'de-t3n', 'de-lebensmittelzeitung'
+      // Retail & pricing sources first — keep this tag focused on retail
+      'retail-dive', 'modern-retail', 'retailwire', 'retaildetail-eu',
+      'www-omniaretail-com', 'excitingcommerce',
+      'de-handelsblatt', 'de-manager-magazin'
     ],
     keywords: [
       'pricing', 'price optimization', 'dynamic pricing', 'repricing',
@@ -274,10 +274,11 @@ export const TAG_MAPPINGS: Record<string, TagMapping> = {
   'retail': {
     category: 'retail-pricing',
     feeds: [
-      'retail-dive', 'grocery-dive', 'modern-retail', 'retailwire', 'retail-touchpoints',
-      'de-lebensmittelzeitung',
-      'techcrunch-ai', 'venturebeat-ai', 'forbes-ai', 'reuters-marketing',
-      'de-handelsblatt', 'de-manager-magazin', 'de-t3n', 'de-heise-news'
+      // Dedicated retail sources — no generic tech/AI feeds so the tag stays retail-focused
+      'retail-dive', 'grocery-dive', 'modern-retail', 'retailwire',
+      'retail-gazette', 'retaildetail-eu', 'internetretailing',
+      'excitingcommerce', 'horizont-handel',
+      'de-handelsblatt', 'de-manager-magazin'
     ],
     keywords: [
       'retail', 'retail technology', 'retail tech', 'omnichannel',

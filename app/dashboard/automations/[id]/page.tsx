@@ -101,7 +101,7 @@ export default function AutomationEditPage() {
   const [hasMorePublished, setHasMorePublished] = useState(false)
   const [publishedOffset, setPublishedOffset] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [showAllPending, setShowAllPending] = useState(false)
+  const [pendingVisible, setPendingVisible] = useState(10)
   const [publishedBanner, setPublishedBanner] = useState<{ title: string; siteUrl?: string } | null>(null)
   const [autoSaving, setAutoSaving] = useState(false)
   const [rewritingArticleIds, setRewritingArticleIds] = useState<Set<string>>(new Set())
@@ -1669,22 +1669,22 @@ export default function AutomationEditPage() {
                     <p className="text-[11px] font-semibold text-amber-500 uppercase tracking-wide mb-1.5 px-1">
                       Pipeline — available to schedule <span className="text-slate-400 normal-case font-normal">({pending.length})</span>
                     </p>
-                    {(showAllPending ? pending : pending.slice(0, 10)).map((a, i, arr) => (
+                    {pending.slice(0, pendingVisible).map((a, i, arr) => (
                       <div key={a.id} className={i < arr.length - 1 ? 'border-b border-slate-100' : ''}>
                         {renderArticleRow(a, false)}
                       </div>
                     ))}
-                    {pending.length > 10 && !showAllPending && (
+                    {pending.length > pendingVisible && (
                       <button
-                        onClick={() => setShowAllPending(true)}
+                        onClick={() => setPendingVisible(v => v + 25)}
                         className="w-full mt-2 py-2 text-xs font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200 transition-colors"
                       >
-                        Show {pending.length - 10} more articles
+                        Load {Math.min(25, pending.length - pendingVisible)} more articles
                       </button>
                     )}
-                    {showAllPending && pending.length > 10 && (
+                    {pendingVisible > 10 && (
                       <button
-                        onClick={() => setShowAllPending(false)}
+                        onClick={() => setPendingVisible(10)}
                         className="w-full mt-2 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
                       >
                         Show less

@@ -7,6 +7,23 @@ export interface TagMapping {
   keywords: string[]      // filter keywords
 }
 
+// Shared DIY/Home feed set (Airtable rss_feeds, category 'diy-home') — referenced by
+// the many tags an analyzed DIY/home site can produce so they all resolve to the same feeds.
+const DIY_HOME_FEEDS = [
+  'diy-family-handyman', 'diy-apartment-therapy', 'diy-bob-vila', 'diy-remodelista',
+  'diy-young-house-love', 'diy-a-beautiful-mess', 'diy-making-it-lovely', 'diy-centsational-style',
+  'diy-fine-homebuilding', 'diy-chris-loves-julia', 'diy-addicted-2-decorating', 'diy-handymans-daughter',
+  'diy-hometalk', 'diy-house-of-hawthornes', 'diy-gnews-home-improvement', 'diy-gnews-home-renovation',
+  'diy-gnews-home-decor', 'diy-woontrendz', 'diy-interior-junkie', 'diy-stijlvol-styling',
+  'diy-klusidee', 'diy-homedeal', 'diy-gnews-klussen', 'diy-gnews-woontrends', 'diy-gnews-verbouwen',
+]
+const DIY_HOME_KEYWORDS = [
+  'diy', 'home improvement', 'home renovation', 'home decor', 'interior design', 'home design',
+  'remodeling', 'woodworking', 'furniture', 'home projects', 'gardening', 'do it yourself',
+  'klussen', 'wonen', 'interieur', 'verbouwen', 'woontrends', 'doe het zelf', 'woninginrichting',
+]
+const diyHome = () => ({ category: 'diy-home', feeds: DIY_HOME_FEEDS, keywords: DIY_HOME_KEYWORDS })
+
 // Each existing category maps 1:1 as a tag (backward compat)
 // New tags can reference the same underlying feeds with different keyword filters
 export const TAG_MAPPINGS: Record<string, TagMapping> = {
@@ -347,6 +364,31 @@ export const TAG_MAPPINGS: Record<string, TagMapping> = {
       'isolatie', 'ventilatie', 'brandveiligheid'
     ]
   },
+
+  // === DIY & Home ===
+  // Many tag variants an analyzed DIY/home site produces all resolve to the same feed set.
+  'diy': diyHome(),
+  'diy home': diyHome(),
+  'do it yourself': diyHome(),
+  'home improvement': diyHome(),
+  'home renovation': diyHome(),
+  'renovation': diyHome(),
+  'home decor': diyHome(),
+  'home decoration': diyHome(),
+  'home design': diyHome(),
+  'interior design': diyHome(),
+  'interior': diyHome(),
+  'home projects': diyHome(),
+  'woodworking': diyHome(),
+  'home services': diyHome(),
+  'contractor marketplace': diyHome(),
+  'local services': diyHome(),
+  'wonen': diyHome(),
+  'klussen': diyHome(),
+  'interieur': diyHome(),
+  'verbouwen': diyHome(),
+  'woontrends': diyHome(),
+  'doe het zelf': diyHome(),
 }
 
 /**

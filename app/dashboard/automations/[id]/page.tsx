@@ -2076,6 +2076,7 @@ export default function AutomationEditPage() {
               'european': { label: 'European Tech & Privacy', feedIds: [] },
               'dutch-tech': { label: 'Dutch Tech & News', feedIds: [] },
               'german': { label: 'German Tech & News', feedIds: [] },
+              'diy-home': { label: 'DIY & Home', feedIds: [] },
               'other': { label: 'Other', feedIds: [] },
             }
 
@@ -2090,6 +2091,7 @@ export default function AutomationEditPage() {
               'german-news': 'german',
               'german-tech': 'german',
               'german-business': 'german',
+              'diy-home': 'diy-home',
             }
 
             // Some feeds should be in specific groups based on their name/content

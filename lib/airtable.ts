@@ -77,6 +77,7 @@ export interface Automation {
   instant_publish?: boolean
   prioritize_recency?: boolean
   ai_settings?: string
+  gsc_property?: string
 }
 
 export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt'>) {
@@ -417,6 +418,7 @@ function recordToAutomation(record: any): Automation {
     auto_schedule: !!f.auto_schedule,
     instant_publish: !!f.instant_publish,
     prioritize_recency: !!f.prioritize_recency,
+    gsc_property: (f.gsc_property as string) || '',
   }
 }
 
@@ -491,6 +493,7 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
       'site_platform', 'site_api_key', 'replit_url',
       'extra_context', 'analyze_urls', 'ai_settings',
       'auto_schedule', 'instant_publish', 'prioritize_recency',
+      'gsc_property',
     ])
 
     const cleaned: Record<string, any> = {}
@@ -567,4 +570,41 @@ export async function saveAutomationSettings(settings: AutomationSettings): Prom
     await updateAutomation(automations[0].id!, rest)
   }
   return settings
+}
+// ── App config (key/value store, e.g. Google OAuth refresh token) ────────
+// Backed by the `app_config` Airtable table (fields: key, value, updated_at).
+// Falls back to an in-memory map when Airtable creds are absent (local dev).
+
+const memConfig: Record<string, string> = {}
+
+export async function getConfig(key: string): Promise<string | null> {
+  if (!base) return memConfig[key] ?? null
+  try {
+    const records = await base('app_config')
+      .select({ filterByFormula: `{key} = '${key}'`, maxRecords: 1 })
+      .all()
+    if (!records.length) return null
+    return (records[0].fields.value as string) ?? null
+  } catch (error: any) {
+    console.error(`[CONFIG] read '${key}' failed:`, error?.message || error)
+    return null
+  }
+}
+
+export async function setConfig(key: string, value: string): Promise<void> {
+  if (!base) { memConfig[key] = value; return }
+  try {
+    const now = new Date().toISOString()
+    const records = await base('app_config')
+      .select({ filterByFormula: `{key} = '${key}'`, maxRecords: 1 })
+      .all()
+    if (records.length) {
+      await base('app_config').update(records[0].id, { value, updated_at: now })
+    } else {
+      await base('app_config').create([{ fields: { key, value, updated_at: now } }])
+    }
+  } catch (error: any) {
+    console.error(`[CONFIG] write '${key}' failed:`, error?.message || error)
+    throw new Error(`Failed to save config '${key}': ${error?.message || 'Unknown error'}`)
+  }
 }

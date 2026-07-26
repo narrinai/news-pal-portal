@@ -4,58 +4,111 @@ const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null
 
+// A realistic browser User-Agent — some sites 403 obvious bot UAs.
+const BROWSER_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+
+// Prepend https:// when the user omits the scheme (bare "example.com" makes fetch throw).
+function normalizeUrl(raw) {
+  const t = String(raw).trim()
+  return /^https?:\/\//i.test(t) ? t : `https://${t}`
+}
+
+function extractFromHtml(html) {
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+  const title = titleMatch ? titleMatch[1].trim() : ''
+
+  const metaDescMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
+    || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i)
+  const metaDescription = metaDescMatch ? metaDescMatch[1].trim() : ''
+
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
+  const bodyHtml = bodyMatch ? bodyMatch[1] : html
+  const textContent = bodyHtml
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 3000)
+
+  return { title, metaDescription, textContent }
+}
+
+// Direct fetch first; on any block/failure fall back to Jina AI Reader, which renders
+// the page from its own infra and bypasses Cloudflare/IP bot blocks (the reason
+// datacenter-hosted fetches get a 403 while the site loads fine in a browser).
+async function fetchPageContent(url) {
+  // 1) direct fetch with a browser UA
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': BROWSER_UA,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    }).finally(() => clearTimeout(timeout))
+    if (response.ok) {
+      return { ...extractFromHtml(await response.text()), via: 'direct' }
+    }
+    console.warn(`[analyze-url] direct fetch ${url} -> ${response.status}, trying reader`)
+  } catch (e) {
+    console.warn(`[analyze-url] direct fetch ${url} failed (${e.message}), trying reader`)
+  }
+
+  // 2) fallback: Jina AI Reader returns cleaned text (with a "Title:" header)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 20000)
+  const r = await fetch(`https://r.jina.ai/${url}`, {
+    signal: controller.signal,
+    headers: { 'Accept': 'text/plain', 'User-Agent': BROWSER_UA },
+  }).finally(() => clearTimeout(timeout))
+  if (!r.ok) {
+    const err = new Error(`reader returned ${r.status}`)
+    err.blocked = true
+    throw err
+  }
+  const text = await r.text()
+  const titleMatch = text.match(/^Title:\s*(.+)$/m)
+  const title = titleMatch ? titleMatch[1].trim() : ''
+  const textContent = text.replace(/\s+/g, ' ').trim().substring(0, 3000)
+  return { title, metaDescription: '', textContent, via: 'reader' }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { url, extraContext } = req.body
+  const { url: rawUrl, extraContext } = req.body
 
-  if (!url) {
+  if (!rawUrl || !String(rawUrl).trim()) {
     return res.status(400).json({ error: 'URL is required' })
   }
 
+  const url = normalizeUrl(rawUrl)
+
   try {
-    // Fetch the URL HTML
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000)
-
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; NewsPal/1.0)',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-    })
-    clearTimeout(timeout)
-
-    if (!response.ok) {
-      return res.status(400).json({ error: `Could not fetch URL: ${response.status}` })
+    let title, metaDescription, textContent
+    try {
+      ({ title, metaDescription, textContent } = await fetchPageContent(url))
+    } catch (fetchErr) {
+      return res.status(400).json({
+        error: `Kon de site niet ophalen (${url}). De site blokkeert mogelijk geautomatiseerde toegang — vul de tags handmatig in of geef extra context.`,
+      })
     }
 
-    const html = await response.text()
-
-    // Extract title, meta description, and first ~3000 chars of text
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-    const title = titleMatch ? titleMatch[1].trim() : ''
-
-    const metaDescMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
-      || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i)
-    const metaDescription = metaDescMatch ? metaDescMatch[1].trim() : ''
-
-    // Strip HTML tags and get text content
-    const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
-    const bodyHtml = bodyMatch ? bodyMatch[1] : html
-    const textContent = bodyHtml
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
-      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
-      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .substring(0, 3000)
+    if (!textContent) {
+      return res.status(400).json({
+        error: `Geen leesbare inhoud gevonden op ${url}. Vul de tags handmatig in of geef extra context.`,
+      })
+    }
 
     if (!anthropic) {
       return res.status(500).json({ error: 'AI service not configured (missing ANTHROPIC_API_KEY)' })

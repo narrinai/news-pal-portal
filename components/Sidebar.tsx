@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import Logo from './Logo'
-import { Zap, LogOut, ChevronRight } from 'lucide-react'
+import { Zap, LogOut, ChevronRight, ChevronLeft, BarChart3 } from 'lucide-react'
 
 const navGroups = [
   {
@@ -13,11 +13,23 @@ const navGroups = [
       { icon: Zap, label: 'Automations', href: '/dashboard/automations' },
     ],
   },
+  {
+    label: 'ANALYTICS',
+    items: [
+      { icon: BarChart3, label: 'Insights', href: '/dashboard/insights' },
+    ],
+  },
 ]
 
 type AutomationLink = { id: string; name: string }
 
-export default function Sidebar() {
+export default function Sidebar({
+  collapsed = false,
+  onToggle,
+}: {
+  collapsed?: boolean
+  onToggle?: () => void
+}) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -63,19 +75,38 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex flex-col z-30">
-      {/* Logo */}
-      <div className="px-5 py-5 border-b border-slate-100">
-        <Logo size="lg" clickable href="/dashboard/automations" />
+    <aside
+      className={`fixed inset-y-0 left-0 ${
+        collapsed ? 'w-16' : 'w-64'
+      } bg-white border-r border-slate-200 flex flex-col z-30 transition-[width] duration-200`}
+    >
+      {/* Logo + collapse toggle */}
+      <div
+        className={`flex items-center border-b border-slate-100 py-5 ${
+          collapsed ? 'justify-center px-2' : 'justify-between px-5'
+        }`}
+      >
+        {!collapsed && <Logo size="lg" clickable href="/dashboard/automations" />}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+        >
+          {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {navGroups.map((group) => (
           <div key={group.label}>
-            <p className="px-3 mb-2 text-xs font-semibold text-slate-400 tracking-wider">
-              {group.label}
-            </p>
+            {!collapsed && (
+              <p className="px-3 mb-2 text-xs font-semibold text-slate-400 tracking-wider">
+                {group.label}
+              </p>
+            )}
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon
@@ -91,11 +122,21 @@ export default function Sidebar() {
                           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-l-2 border-transparent'
                       }`}
                     >
-                      <Link href={item.href} className="flex items-center flex-1 px-3 py-2">
-                        <Icon className={`w-4 h-4 mr-3 ${active ? 'text-indigo-600' : 'text-slate-400'}`} />
-                        {item.label}
+                      <Link
+                        href={item.href}
+                        title={collapsed ? item.label : undefined}
+                        className={`flex items-center flex-1 py-2 ${
+                          collapsed ? 'justify-center px-2' : 'px-3'
+                        }`}
+                      >
+                        <Icon
+                          className={`w-4 h-4 ${collapsed ? '' : 'mr-3'} ${
+                            active ? 'text-indigo-600' : 'text-slate-400'
+                          }`}
+                        />
+                        {!collapsed && item.label}
                       </Link>
-                      {hasShortcuts && (
+                      {!collapsed && hasShortcuts && (
                         <button
                           type="button"
                           onClick={() => setExpanded((v) => !v)}
@@ -111,7 +152,7 @@ export default function Sidebar() {
                     </div>
 
                     {/* Automation shortcuts */}
-                    {hasShortcuts && expanded && (
+                    {!collapsed && hasShortcuts && expanded && (
                       <div className="mt-0.5 ml-4 pl-3 border-l border-slate-100 space-y-0.5">
                         {automations.map((automation) => {
                           const subActive = isAutomationActive(automation.id)
@@ -144,10 +185,13 @@ export default function Sidebar() {
       <div className="px-3 py-4 border-t border-slate-100">
         <button
           onClick={handleLogout}
-          className="flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+          title={collapsed ? 'Log out' : undefined}
+          className={`flex items-center w-full py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors ${
+            collapsed ? 'justify-center px-2' : 'px-3'
+          }`}
         >
-          <LogOut className="w-4 h-4 mr-3 text-slate-400" />
-          Log out
+          <LogOut className={`w-4 h-4 ${collapsed ? '' : 'mr-3'} text-slate-400`} />
+          {!collapsed && 'Log out'}
         </button>
       </div>
     </aside>

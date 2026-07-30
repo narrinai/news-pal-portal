@@ -5,7 +5,9 @@ import { buildArticlePayload, pushArticlesToSite } from '../../../lib/pushToSite
  * Lightweight cron endpoint that runs every hour to:
  * 1. Publish scheduled articles whose publishedAt time has passed
  * 2. Push newly published articles to connected sites
- * 3. Trigger deploy webhooks
+ *
+ * Deploy webhooks are NOT fired here — they are throttled to once/day by
+ * /api/cron/deploy-sites (firing per run rebuilt each site up to ~8x/day).
  *
  * This is separate from auto-pipeline (which fetches RSS, rewrites, etc.)
  */
@@ -102,15 +104,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // Trigger deploy webhook
-      if (automation.deploy_webhook_url) {
-        try {
-          await fetch(automation.deploy_webhook_url, { method: 'POST' })
-          console.log(`[AUTO-PUBLISH] Triggered webhook for ${automation.name}`)
-        } catch (err) {
-          console.error(`[AUTO-PUBLISH] Webhook failed for ${automation.name}:`, err.message)
-        }
-      }
+      // Deploy webhooks are throttled to once/day by /api/cron/deploy-sites — not fired here.
     }
 
     return res.status(200).json({

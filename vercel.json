@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/auto-publish",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/deploy-sites",
+      "schedule": "0 7 * * *"
     }
   ]
 }

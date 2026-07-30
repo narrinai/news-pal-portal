@@ -24,6 +24,33 @@ const DIY_HOME_KEYWORDS = [
 ]
 const diyHome = () => ({ category: 'diy-home', feeds: DIY_HOME_FEEDS, keywords: DIY_HOME_KEYWORDS })
 
+// Shared Motor feed set (rss_feeds, category 'motor') — general/varied: nieuws, motorsport,
+// motorreizen, motoronderdelen, reviews.
+const MOTOR_FEEDS = [
+  'motor-motor-nl', 'motor-nieuwsmotor', 'motor-promotor', 'motor-rideapart', 'motor-asphalt-rubber',
+  'motor-motorsport-motogp', 'motor-crash-motogp', 'motor-advrider', 'motor-gnews-nieuws',
+  'motor-gnews-reizen', 'motor-gnews-onderdelen', 'motor-gnews-motogp',
+]
+const MOTOR_KEYWORDS = [
+  'motorcycle', 'motorbike', 'motor', 'motorsport', 'motogp', 'superbike', 'racing',
+  'motorcycle travel', 'adventure riding', 'motorcycle parts', 'motorfiets', 'motorrijden',
+  'motorreizen', 'motoronderdelen', 'motor nieuws',
+]
+const motor = () => ({ category: 'motor', feeds: MOTOR_FEEDS, keywords: MOTOR_KEYWORDS })
+
+// Shared Beleggen/Trading feed set (rss_feeds, category 'investing') — general/varied:
+// algemeen beleggen, forex, aandelen/beurs.
+const INVESTING_FEEDS = [
+  'investing-investing-com', 'investing-marketwatch', 'investing-forexlive', 'investing-fxstreet',
+  'investing-beleggers-belangen', 'investing-gnews-beleggen', 'investing-gnews-forex',
+]
+const INVESTING_KEYWORDS = [
+  'investing', 'investment', 'stocks', 'stock market', 'forex', 'forex trading', 'trading',
+  'day trading', 'financial markets', 'beleggen', 'aandelen', 'beurs', 'beleggingen',
+  'trader', 'financiële markten',
+]
+const investing = () => ({ category: 'investing', feeds: INVESTING_FEEDS, keywords: INVESTING_KEYWORDS })
+
 // Each existing category maps 1:1 as a tag (backward compat)
 // New tags can reference the same underlying feeds with different keyword filters
 export const TAG_MAPPINGS: Record<string, TagMapping> = {
@@ -389,6 +416,41 @@ export const TAG_MAPPINGS: Record<string, TagMapping> = {
   'verbouwen': diyHome(),
   'woontrends': diyHome(),
   'doe het zelf': diyHome(),
+
+  // === Motor & Motorsport ===
+  'motor': motor(),
+  'motorcycle': motor(),
+  'motorcycles': motor(),
+  'motorbike': motor(),
+  'motorfiets': motor(),
+  'motorrijden': motor(),
+  'motorsport': motor(),
+  'motogp': motor(),
+  'superbike': motor(),
+  'motorcycle racing': motor(),
+  'motorcycle travel': motor(),
+  'adventure riding': motor(),
+  'motorreizen': motor(),
+  'motorcycle parts': motor(),
+  'motoronderdelen': motor(),
+  'motor nieuws': motor(),
+
+  // === Beleggen & Trading ===
+  'beleggen': investing(),
+  'beleggingen': investing(),
+  'investing': investing(),
+  'investment': investing(),
+  'stocks': investing(),
+  'stock market': investing(),
+  'aandelen': investing(),
+  'beurs': investing(),
+  'forex': investing(),
+  'forex trading': investing(),
+  'trading': investing(),
+  'day trading': investing(),
+  'financial markets': investing(),
+  'financiële markten': investing(),
+  'trader': investing(),
 }
 
 /**

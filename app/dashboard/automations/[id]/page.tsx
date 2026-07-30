@@ -95,6 +95,9 @@ export default function AutomationEditPage() {
   const [runningPipeline, setRunningPipeline] = useState(false)
   const [analyzingUrl, setAnalyzingUrl] = useState(false)
   const [discoveringFeeds, setDiscoveringFeeds] = useState(false)
+  // Per-group open/closed override in the feed picker. Undefined = auto (open when the
+  // group has a selected feed, e.g. after auto-analyze); keeps the page short by default.
+  const [openFeedGroups, setOpenFeedGroups] = useState<Record<string, boolean>>({})
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [analyzeUrls, setAnalyzeUrls] = useState<string[]>([''])
   const [showSetup, setShowSetup] = useState(false)
@@ -2077,6 +2080,8 @@ export default function AutomationEditPage() {
               'dutch-tech': { label: 'Dutch Tech & News', feedIds: [] },
               'german': { label: 'German Tech & News', feedIds: [] },
               'diy-home': { label: 'DIY & Home', feedIds: [] },
+              'motor': { label: 'Motor & Motorsport', feedIds: [] },
+              'investing': { label: 'Beleggen & Trading', feedIds: [] },
               'other': { label: 'Other', feedIds: [] },
             }
 
@@ -2092,6 +2097,8 @@ export default function AutomationEditPage() {
               'german-tech': 'german',
               'german-business': 'german',
               'diy-home': 'diy-home',
+              'motor': 'motor',
+              'investing': 'investing',
             }
 
             // Some feeds should be in specific groups based on their name/content
@@ -2134,6 +2141,10 @@ export default function AutomationEditPage() {
                     update('feeds', updated.join(','))
                   }
 
+                  // Collapsed by default; auto-open when the group has a selection (e.g. after
+                  // auto-analyze). A manual chevron click overrides that until reset.
+                  const isOpen = openFeedGroups[groupKey] !== undefined ? openFeedGroups[groupKey] : selectedCount > 0
+
                   return (
                     <div key={groupKey}>
                       <div className="flex items-center gap-2 mb-1.5">
@@ -2145,11 +2156,20 @@ export default function AutomationEditPage() {
                         >
                           {(allGroupSelected || someGroupSelected) && <Check className="w-2.5 h-2.5 text-white" />}
                         </div>
-                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                          {group.label}
-                        </span>
-                        <span className="text-xs text-slate-400">{selectedCount}/{groupFeeds.length}</span>
+                        <button
+                          type="button"
+                          onClick={() => setOpenFeedGroups(prev => ({ ...prev, [groupKey]: !isOpen }))}
+                          aria-expanded={isOpen}
+                          className="flex items-center gap-2 flex-1 text-left group/feedhdr"
+                        >
+                          <ChevronRight className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                          <span className="text-xs font-semibold uppercase tracking-wide text-slate-600 group-hover/feedhdr:text-slate-900">
+                            {group.label}
+                          </span>
+                          <span className="text-xs text-slate-400">{selectedCount}/{groupFeeds.length}</span>
+                        </button>
                       </div>
+                      {isOpen && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1.5 ml-6">
                         {groupFeeds.map((feed) => {
                           const isSelected = selectedFeedIds.includes(feed.id)
@@ -2173,6 +2193,7 @@ export default function AutomationEditPage() {
                           )
                         })}
                       </div>
+                      )}
                     </div>
                   )
                 })}

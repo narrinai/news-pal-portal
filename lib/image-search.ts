@@ -108,36 +108,49 @@ function buildSearchQuery(title: string, keywords?: string[]): string {
   return [...new Set(terms)].slice(0, 3).join(' ') + ' technology'
 }
 
+// Random 1-based page in [1, max]. Sampling a random result window is the main lever
+// against "same topic → same image": same query otherwise always returns the same top hits.
+function randPage(max: number): number {
+  return 1 + Math.floor(Math.random() * max)
+}
+
 async function searchUnsplash(query: string): Promise<string | null> {
-  const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`
-  const res = await fetch(url, {
-    headers: { Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}` },
-  })
+  const perPage = 30
+  const fetchPage = async (page: number) => {
+    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}&orientation=landscape`
+    const res = await fetch(url, { headers: { Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}` } })
+    if (!res.ok) return null
+    const data = await res.json()
+    return (data.results?.length ? data.results : null) as any[] | null
+  }
 
-  if (!res.ok) return null
+  const page = randPage(3)
+  // If a random deep page overshoots the result count, fall back to page 1.
+  const results = (await fetchPage(page)) || (page > 1 ? await fetchPage(1) : null)
+  if (!results?.length) return null
 
-  const data = await res.json()
-  const photo = data.results?.[0]
-  if (!photo) return null
-
-  // Use regular size (1080px wide) — good for headers
+  // Pick randomly across the whole page (not just the top hit) for variety.
+  const photo = results[Math.floor(Math.random() * results.length)]
   return photo.urls?.regular || photo.urls?.small || null
 }
 
 async function searchPexels(query: string): Promise<string | null> {
-  const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=10&orientation=landscape`
-  const res = await fetch(url, {
-    headers: { Authorization: process.env.PEXELS_API_KEY! },
-  })
+  const perPage = 80
+  const fetchPage = async (page: number) => {
+    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}&orientation=landscape`
+    const res = await fetch(url, { headers: { Authorization: process.env.PEXELS_API_KEY! } })
+    if (!res.ok) return null
+    const data = await res.json()
+    return (data.photos?.length ? data.photos : null) as any[] | null
+  }
 
-  if (!res.ok) return null
-
-  const data = await res.json()
-  const photos = data.photos
+  // Random page over the top ~5 windows (up to 400 results) + random pick across the
+  // whole window. Cuts collision odds from ~1/5 (old top-5 pick) to ~1/400.
+  const page = randPage(5)
+  const photos = (await fetchPage(page)) || (page > 1 ? await fetchPage(1) : null)
   if (!photos?.length) return null
 
-  // Pick a random photo from top results for variety
-  const photo = photos[Math.floor(Math.random() * Math.min(photos.length, 5))]
+  const photo = photos[Math.floor(Math.random() * photos.length)]
   return photo.src?.landscape || photo.src?.large || null
 }
 

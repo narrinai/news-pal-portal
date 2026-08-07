@@ -1,12 +1,14 @@
 import { runAutoPipeline } from '../../../lib/run-auto-pipeline'
+import { isAuthorizedCronRequest } from '../../../lib/cron-auth'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // Verify Vercel Cron secret in production
-  if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Schedulers authenticate with CRON_SECRET; the dashboard "Fetch articles"
+  // button authenticates with the logged-in session cookie.
+  if (!isAuthorizedCronRequest(req)) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 

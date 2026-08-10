@@ -2,6 +2,7 @@ import * as cron from 'node-cron'
 import { fetchAllFeeds } from './rss-parser'
 import { createArticle, getArticles, updateArticle, getAutomations } from './airtable'
 import { rewriteArticle } from './ai-rewriter'
+import { scrapeArticleWithLinks } from './article-scraper'
 
 class CronService {
   private jobs: Map<string, cron.ScheduledTask> = new Map()
@@ -183,7 +184,9 @@ class CronService {
                 tone: 'informative' as any,
               },
               undefined,
-              article.url
+              article.url,
+              // Only the source's own outbound links may be cited — no invented URLs.
+              await scrapeArticleWithLinks(article.url).then(r => r.links).catch(() => [])
             )
 
             await updateArticle(created.id, {

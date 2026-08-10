@@ -1,7 +1,7 @@
 import { getAutomation, getArticles, updateArticle } from '../../../lib/airtable'
 import { rewriteArticle } from '../../../lib/ai-rewriter'
 import { findHeaderImage } from '../../../lib/image-search'
-import { scrapeArticleContent } from '../../../lib/article-scraper'
+import { scrapeArticleWithLinks } from '../../../lib/article-scraper'
 import { buildArticlePayload, pushArticlesToSite } from '../../../lib/pushToSite'
 
 export default async function handler(req, res) {
@@ -48,9 +48,12 @@ export default async function handler(req, res) {
         console.log(`[push-articles] Auto-rewriting: ${a.title?.substring(0, 50)}`)
         // Scrape full article content if RSS snippet is too short
         let sourceContent = a.originalContent || a.description || ''
-        if (sourceContent.replace(/<[^>]+>/g, '').length < 300 && a.url) {
+        let sourceLinks = []
+        if (a.url) {
           try {
-            const scraped = await scrapeArticleContent(a.url)
+            const { content: scraped, links } = await scrapeArticleWithLinks(a.url)
+            // The source's own outbound links are the only URLs the rewrite may cite.
+            sourceLinks = links
             if (scraped.length > sourceContent.replace(/<[^>]+>/g, '').length) {
               sourceContent = scraped
               console.log(`[push-articles] Scraped full content for: ${a.title?.substring(0, 50)} (${scraped.length} chars)`)
@@ -72,7 +75,8 @@ export default async function handler(req, res) {
           sourceContent,
           { style: automation.style || 'news', length: automation.length || 'medium', language: automation.language || 'nl', tone: 'informative' },
           allInstructions,
-          a.url
+          a.url,
+          sourceLinks
         )
         let imageUrl = hasRealImage(a) ? a.imageUrl : null
         if (!imageUrl) {

@@ -36,6 +36,8 @@ interface Automation {
   auto_schedule: boolean
   instant_publish: boolean
   prioritize_recency: boolean
+  longread_enabled: boolean
+  longread_frequency: string
 }
 
 interface Feed {
@@ -60,6 +62,8 @@ interface Article {
   content_rewritten?: string
   imageUrl?: string
   description?: string
+  article_type?: 'news' | 'longread'
+  reading_time?: number
 }
 
 // Any platform that uses the /newspal/receive push mechanism (not WordPress or HubSpot which have their own APIs)
@@ -93,6 +97,8 @@ export default function AutomationEditPage() {
   const [pushSuccess, setPushSuccess] = useState(false)
   const [showReplitHelp, setShowReplitHelp] = useState(false)
   const [runningPipeline, setRunningPipeline] = useState(false)
+  const [generatingLongread, setGeneratingLongread] = useState(false)
+  const [longreadMsg, setLongreadMsg] = useState('')
   const [analyzingUrl, setAnalyzingUrl] = useState(false)
   const [discoveringFeeds, setDiscoveringFeeds] = useState(false)
   // Per-group open/closed override in the feed picker. Undefined = auto (open when the
@@ -255,6 +261,8 @@ export default function AutomationEditPage() {
           auto_schedule: data.auto_schedule ?? false,
           instant_publish: data.instant_publish ?? false,
           prioritize_recency: data.prioritize_recency ?? false,
+          longread_enabled: data.longread_enabled ?? false,
+          longread_frequency: data.longread_frequency || 'weekly',
         })
         // Initialize analyzeUrls from analyze_urls field
         if (data.analyze_urls) {
@@ -732,6 +740,43 @@ export default function AutomationEditPage() {
     autoSave()
   }
 
+  const generateLongread = async () => {
+    setGeneratingLongread(true)
+    setLongreadMsg('')
+    try {
+      // force: skip the cadence check — the operator asked for one right now.
+      const res = await fetch('/api/cron/longread', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ automation_id: id, force: true }),
+      })
+      const data = await res.json()
+
+      if (res.status === 202) {
+        setLongreadMsg('Started — takes a few minutes, then appears in the article list.')
+        showNotification({ type: 'success', title: 'Longread started', message: 'Writing in the background. Refresh the article list in a few minutes.', duration: 6000 })
+        return
+      }
+
+      const result = data.results?.[0]
+      if (res.ok && result && result.skipped === false) {
+        setLongreadMsg('')
+        showNotification({ type: 'success', title: 'Longread written', message: `"${result.title}" — ${result.reading_time} min, ${result.sources} sources`, duration: 8000 })
+        loadArticles()
+      } else if (res.ok && result?.skipped) {
+        setLongreadMsg(`Skipped: ${result.reason}`)
+      } else {
+        setLongreadMsg('')
+        showNotification({ type: 'error', title: 'Longread failed', message: result?.error || data.error || data.details || 'Unknown error' })
+      }
+    } catch {
+      setLongreadMsg('')
+      showNotification({ type: 'error', title: 'Network error', message: 'Could not reach the longread endpoint' })
+    } finally {
+      setGeneratingLongread(false)
+    }
+  }
+
   const copyApiUrl = () => {
     const url = `${window.location.origin}/api/articles/public?automation_id=${id}`
     navigator.clipboard.writeText(url)
@@ -1154,6 +1199,11 @@ export default function AutomationEditPage() {
                       {article.title.length > 70 ? article.title.slice(0, 70) + '...' : article.title}
                     </a>
                     <div className="flex items-center gap-1.5 flex-wrap">
+                      {article.article_type === 'longread' && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          Long read{article.reading_time ? ` · ${article.reading_time} min` : ''}
+                        </span>
+                      )}
                       <span className="text-[11px] text-slate-400">{article.source}</span>
                     </div>
                   </div>
@@ -1900,6 +1950,49 @@ export default function AutomationEditPage() {
             </div>
           </div>
           )}
+
+          {/* Deep-dive longreads — a separate content type, not a longer news article */}
+          <div className="mt-3 flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <button
+              onClick={() => update('longread_enabled', !automation.longread_enabled)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 mt-0.5 ${
+                automation.longread_enabled ? 'bg-indigo-600' : 'bg-slate-300'
+              }`}
+              role="switch"
+            >
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${
+                automation.longread_enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'
+              }`} />
+            </button>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-700">Deep-dive longreads</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Periodically synthesises the recent news into one investigative long read (~3000 words) with its own thesis,
+                built from a dossier of the actual source articles. Needs at least 3 related articles to have something to say.
+              </p>
+              {automation.longread_enabled && (
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <select
+                    value={automation.longread_frequency || 'weekly'}
+                    onChange={(e) => update('longread_frequency', e.target.value)}
+                    className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="weekly">Weekly (Mondays)</option>
+                    <option value="biweekly">Every 2 weeks</option>
+                    <option value="monthly">Monthly (1st)</option>
+                  </select>
+                  <button
+                    onClick={generateLongread}
+                    disabled={generatingLongread}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                  >
+                    {generatingLongread ? 'Generating…' : 'Generate one now'}
+                  </button>
+                  {longreadMsg && <span className="text-xs text-slate-500">{longreadMsg}</span>}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Section 4: Advanced — collapsible */}

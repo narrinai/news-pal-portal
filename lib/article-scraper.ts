@@ -1,10 +1,23 @@
 import * as cheerio from 'cheerio'
+import { extractOutboundLinks, SourceLink } from './source-links'
 
 /**
  * Fetch and extract the main article content from a URL.
  * Uses common article selectors and falls back to largest text block.
  */
 export async function scrapeArticleContent(url: string): Promise<string> {
+  return (await scrapeArticleWithLinks(url)).content
+}
+
+/**
+ * Same fetch as scrapeArticleContent, but also returns the outbound links the source
+ * article itself links to. Those are real, verified URLs on-topic for this story, so
+ * they form the allowlist a rewrite is permitted to cite (see lib/source-links.ts).
+ * One fetch serves both needs — never scrape the same URL twice for this.
+ */
+export async function scrapeArticleWithLinks(
+  url: string
+): Promise<{ content: string; links: SourceLink[] }> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15000)
 
@@ -16,11 +29,17 @@ export async function scrapeArticleContent(url: string): Promise<string> {
         'Accept': 'text/html,application/xhtml+xml',
       },
     })
-    if (!res.ok) return ''
+    if (!res.ok) return { content: '', links: [] }
     const html = await res.text()
-    return extractContent(html)
+    let links: SourceLink[] = []
+    try {
+      links = extractOutboundLinks(html, url)
+    } catch {
+      /* link extraction is best-effort; never let it break content scraping */
+    }
+    return { content: extractContent(html), links }
   } catch {
-    return ''
+    return { content: '', links: [] }
   } finally {
     clearTimeout(timeout)
   }

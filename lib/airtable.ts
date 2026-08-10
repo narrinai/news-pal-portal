@@ -43,6 +43,11 @@ export interface NewsArticle {
   focus_keyword?: string
   meta_description?: string
   seo_keywords?: string
+  /** 'news' = 1 source rewritten. 'longread' = deep-dive synthesised from a dossier. */
+  article_type?: 'news' | 'longread'
+  reading_time?: number
+  /** JSON array of the real sources a longread was built from (audit trail). */
+  longread_sources?: string
   createdAt?: string
 }
 
@@ -78,6 +83,9 @@ export interface Automation {
   prioritize_recency?: boolean
   ai_settings?: string
   gsc_property?: string
+  /** Publish a deep-dive longread alongside the daily news for this automation. */
+  longread_enabled?: boolean
+  longread_frequency?: 'weekly' | 'biweekly' | 'monthly'
 }
 
 export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt'>) {
@@ -104,6 +112,9 @@ export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt
           imageUrl: article.imageUrl || '',
           matchedKeywords: article.matchedKeywords ? article.matchedKeywords.join(', ') : '',
           ...(article.automation_id ? { automation_id: article.automation_id } : {}),
+          ...(article.article_type ? { article_type: article.article_type } : {}),
+          ...(article.reading_time ? { reading_time: article.reading_time } : {}),
+          ...(article.longread_sources ? { longread_sources: article.longread_sources } : {}),
         }
       }
     ], { typecast: true }) // typecast: per-automation feed categories are dynamic, so auto-create the category option instead of rejecting the article
@@ -253,6 +264,9 @@ function mapArticleRecord(record: any): NewsArticle {
     focus_keyword: record.fields.focus_keyword as string | undefined,
     meta_description: record.fields.meta_description as string | undefined,
     seo_keywords: record.fields.seo_keywords as string | undefined,
+    article_type: (record.fields.article_type as NewsArticle['article_type']) || 'news',
+    reading_time: record.fields.reading_time as number | undefined,
+    longread_sources: record.fields.longread_sources as string | undefined,
     createdAt: record.fields.createdAt as string,
   } as NewsArticle
 }
@@ -264,7 +278,7 @@ const LIST_FIELDS = [
   'title', 'description', 'url', 'source', 'publishedAt', 'status', 'category',
   'content_rewritten', 'content_html', 'imageUrl', 'subtitle', 'faq',
   'matchedKeywords', 'automation_id', 'focus_keyword', 'meta_description',
-  'seo_keywords', 'createdAt',
+  'seo_keywords', 'article_type', 'reading_time', 'createdAt',
 ]
 
 /**
@@ -419,6 +433,8 @@ function recordToAutomation(record: any): Automation {
     instant_publish: !!f.instant_publish,
     prioritize_recency: !!f.prioritize_recency,
     gsc_property: (f.gsc_property as string) || '',
+    longread_enabled: !!f.longread_enabled,
+    longread_frequency: (f.longread_frequency as Automation['longread_frequency']) || 'weekly',
   }
 }
 
@@ -459,7 +475,7 @@ export async function createAutomation(data: Omit<Automation, 'id'>): Promise<Au
   try {
     // Clean empty strings for singleSelect and url fields
     const cleaned: Record<string, any> = { ...data }
-    const selectFields = ['integration_type', 'publish_frequency', 'site_platform']
+    const selectFields = ['integration_type', 'publish_frequency', 'site_platform', 'longread_frequency']
     const urlFields = ['site_url', 'deploy_webhook_url', 'replit_url']
     for (const key of [...selectFields, ...urlFields]) {
       if (key in cleaned && cleaned[key] === '') {
@@ -493,7 +509,7 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
       'site_platform', 'site_api_key', 'replit_url',
       'extra_context', 'analyze_urls', 'ai_settings',
       'auto_schedule', 'instant_publish', 'prioritize_recency',
-      'gsc_property',
+      'gsc_property', 'longread_enabled', 'longread_frequency',
     ])
 
     const cleaned: Record<string, any> = {}
@@ -503,7 +519,7 @@ export async function updateAutomation(id: string, data: Partial<Automation>): P
     }
 
     // Airtable requires null (not empty string) to clear singleSelect and url fields
-    const selectFields = ['integration_type', 'publish_frequency', 'site_platform']
+    const selectFields = ['integration_type', 'publish_frequency', 'site_platform', 'longread_frequency']
     const urlFields = ['site_url', 'deploy_webhook_url', 'replit_url']
     for (const key of [...selectFields, ...urlFields]) {
       if (key in cleaned && cleaned[key] === '') {

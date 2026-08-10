@@ -1,5 +1,11 @@
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
+import {
+  SourceLink,
+  buildAllowedSourcesBlock,
+  dedupeSources,
+  sanitizeArticleLinks,
+} from './source-links'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -31,9 +37,21 @@ export async function rewriteArticle(
     tone: 'informative'
   },
   customInstructions?: string,
-  originalUrl?: string
+  originalUrl?: string,
+  allowedSources: SourceLink[] = []
 ): Promise<{ title: string; content: string; content_html: string; subtitle?: string; category?: string; faq?: { question: string; answer: string }[]; focus_keyword?: string; meta_description?: string; seo_keywords?: string[] }> {
-  const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl)
+  // The original article is always citable; anything else must have been really seen.
+  const sources = dedupeSources([
+    ...(originalUrl ? [{ url: originalUrl, title: originalTitle, origin: 'source' as const }] : []),
+    ...allowedSources,
+  ])
+
+  // URLs written into the custom instructions are supplied by the operator (internal
+  // linking rules, keyword links, the site's own pages) — they are known-good and must
+  // survive the link sanitizer even though they aren't scraped sources.
+  const operatorUrls = (customInstructions || '').match(/https?:\/\/[^\s"'<>)\]]+/g) || []
+
+  const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl, sources)
   const baseSystemPrompt = options.language === 'en'
     ? `You are a professional journalist who rewrites news articles for a broad audience.
 
@@ -170,10 +188,21 @@ CRUCIAAL — feitelijke nauwkeurigheid: Verzin of gok NOOIT feiten, jaartallen, 
   console.log(`✅ Article rewritten with ${usedModel}: ${originalTitle.substring(0, 50)}...`)
 
   // Parse the response to extract title and content
-  return parseRewriteResponse(response, originalTitle)
+  return parseRewriteResponse(response, originalTitle, sources, operatorUrls)
 }
 
-function parseRewriteResponse(response: string, originalTitle: string) {
+/**
+ * Parse the model's TITLE / SUBTITLE / SEO-header + HTML body + ---FAQ--- envelope into
+ * article fields, and hard-strip any citation that isn't on the allowlist. Exported so
+ * the longread writer (lib/longread-writer.ts) shares exactly this contract rather than
+ * growing a second, drifting copy of it.
+ */
+export function parseRewriteResponse(
+  response: string,
+  originalTitle: string,
+  sources: SourceLink[] = [],
+  extraAllowedUrls: string[] = []
+) {
   // Split FAQ section first
   let mainContent = response
   let faq: { question: string; answer: string }[] = []
@@ -266,6 +295,14 @@ function parseRewriteResponse(response: string, originalTitle: string) {
     content_html = generateWordPressHTML(title, content)
   }
 
+  // Hard guarantee against hallucinated citations: whatever the prompt asked for, strip
+  // every outbound link the model did not get from a source we actually fetched.
+  const { html: linkSafeHtml, removed } = sanitizeArticleLinks(content_html, sources, extraAllowedUrls)
+  if (removed.length) {
+    console.warn(`⚠️ Removed ${removed.length} hallucinated link(s) from "${originalTitle.substring(0, 50)}": ${removed.slice(0, 5).join(', ')}`)
+  }
+  content_html = linkSafeHtml
+
   // Add responsive CSS to make inline-styled elements mobile-friendly
   const responsiveStyles = `<style>
 @media(max-width:640px){
@@ -287,10 +324,12 @@ function createRewritePrompt(
   content: string,
   options: RewriteOptions,
   customInstructions?: string,
-  originalUrl?: string
+  originalUrl?: string,
+  sources: SourceLink[] = []
 ): string {
   const isEnglish = options.language === 'en'
   const isGerman = options.language === 'de'
+  const allowedSourcesBlock = buildAllowedSourcesBlock(sources, options.language)
 
   const lengthInstructions = {
     short: isEnglish ? 'Keep the text short and concise (200-300 words)' : isGerman ? 'Halte den Text kurz und prägnant (200-300 Wörter)' : 'Houd de tekst kort en bondig (200-300 woorden)',
@@ -343,10 +382,9 @@ SCHRITT 1 - UMSCHREIBEN:
 - Mache es informativ aber lesbar für ein breites Publikum
 ${customInstructions ? `\nSCHRITT 1B - ZUSÄTZLICHE ANWEISUNGEN:\n${customInstructions}\n` : ''}
 SCHRITT 2 - QUELLEN (KRITISCH):
-- Füge mindestens 3-5 verschiedene Quellen ein
-- Füge die Originalquelle ein: ${originalUrl || '[Original-Artikel-URL]'}
-- Füge 2-4 zusätzliche autoritative deutschsprachige Quellen hinzu (z.B. heise.de, spiegel.de, handelsblatt.com, faz.net, golem.de, t3n.de, manager-magazin.de)
-- Verknüpfe Quellen natürlich im Text
+- Verlinke jede Quelle aus der untenstehenden Liste, die für deinen Text relevant ist — und keine andere
+- Verknüpfe Quellen natürlich im Text; eine Quelle im Fließtext zu nennen erfordert keinen Link
+${allowedSourcesBlock}
 
 SCHRITT 3 - VISUELLE ELEMENTE (KRITISCH):
 Füge genau 2 Pexels-Bilder ein (NICHT mehr als 2) mit diesem Format:
@@ -444,13 +482,10 @@ STEP 1 - REWRITING:
 - Add relevant context for English readers
 ${customInstructions ? `\nSTEP 1B - EXTRA INSTRUCTIONS:\n${customInstructions}\n` : ''}
 STEP 2 - SOURCES (CRITICAL):
-- You MUST include at least 3-5 different sources in the article
-- Include the original source: ${originalUrl || '[Original article URL]'}
-- Add 2-4 additional authoritative sources from your knowledge (industry reports, vendor websites, research papers, major news outlets)
-- Each source must be a real, plausible URL from a known domain (e.g., reuters.com, techcrunch.com, wired.com, arxiv.org, statista.com, gartner.com, mckinsey.com, etc.)
-- Weave source references naturally into the article text (e.g., "According to a Gartner report..." or "Research published in Nature...")
-- Also list ALL sources at the end in the Sources section with clickable HTML links
-- NEVER have just 1 source — this is a well-researched article
+- Link to every source on the allowed list below that is relevant to what you write, and to no others
+- Weave source references naturally into the article text (e.g., "According to a Gartner report..." or "Research published in Nature...") — naming a source in prose needs no link
+- Also list the sources you linked at the end in the Sources section with clickable HTML links
+${allowedSourcesBlock}
 
 STEP 3 - VISUAL ELEMENTS AND IMAGES (CRITICAL):
 Include ALL of the following in a longform article (at least 3-4 visual elements total):
@@ -492,7 +527,7 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
 5. NO META INSTRUCTIONS: Do NOT include any "CHECK:" or review instructions in the output
 6. VISUAL ELEMENTS: MUST include exactly 2 images (no more), plus 1 stat block or table — never write without visual breaks
 7. NO HEADER IMAGE: Do NOT place an image at the very top of the article (before or directly after the first heading). The CMS adds a separate header image automatically. Start with text content, then place the first image after the first 1-2 paragraphs
-8. SOURCES: MUST include at least 3-5 different sources — never just 1
+8. SOURCES: Link ONLY to URLs on the allowed-sources list. Never invent, guess or complete a URL. Fewer links is always better than one fabricated link
 9. SEO: Focus keyword must appear in title, first paragraph, and at least one h2. Meta description must be 140-155 characters.
 
 FORMAT YOUR ANSWER AS FOLLOWS:
@@ -573,9 +608,10 @@ STAP 1 - HERSCHRIJVEN:
 - Voeg relevante context toe voor Nederlandse lezers
 ${customInstructions ? `\nSTAP 1B - EXTRA INSTRUCTIES:\n${customInstructions}\n` : ''}
 STAP 2 - BRONNEN:
-- Voeg aan het einde een bronnenlijst toe
-- Include originele bron: ${originalUrl || '[Originele artikel URL]'}
-- Format als clickbare HTML links
+- Link naar elke bron uit onderstaande lijst die relevant is voor wat je schrijft, en naar geen enkele andere
+- Verwerk bronvermeldingen natuurlijk in de tekst; een bron bij naam noemen hoeft geen link te zijn
+- Voeg aan het einde een bronnenlijst toe als klikbare HTML links
+${allowedSourcesBlock}
 
 STAP 3 - VISUELE ELEMENTEN:
 Voeg minimaal 1-2 van de volgende visuele elementen toe waar relevant (met inline CSS voor portabiliteit):

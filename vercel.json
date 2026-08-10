@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/deploy-sites",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/longread",
+      "schedule": "0 8 * * *"
     }
   ]
 }

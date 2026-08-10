@@ -66,6 +66,10 @@ export default async function handler(req, res) {
       faq: a.faq ? (typeof a.faq === 'string' ? JSON.parse(a.faq) : a.faq) : [],
       publishedAt: a.publishedAt,
       automation_id: a.automation_id || null,
+      // 'news' | 'longread', plus the reading time for the deep dives. Older consuming
+      // sites just ignore both fields.
+      article_type: a.article_type || 'news',
+      reading_time: a.reading_time || null,
     }))
 
     return res.status(200).json({

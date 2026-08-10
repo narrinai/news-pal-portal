@@ -23,33 +23,50 @@ const deepseek = process.env.DEEPSEEK_API_KEY
 const LENGTH_TIERS = ['short', 'medium', 'long', 'extra-long', 'longform'] as const
 type LengthTier = typeof LENGTH_TIERS[number]
 
-// Roughly the upper word count each tier asks for.
-const TIER_MAX_WORDS: Record<LengthTier, number> = {
-  short: 300,
-  medium: 600,
-  long: 1000,
-  'extra-long': 1500,
-  longform: 3500,
+// The word range each tier asks the model for, matching the prompt text below.
+const TIER_RANGE: Record<LengthTier, { min: number; max: number }> = {
+  short: { min: 200, max: 300 },
+  medium: { min: 400, max: 600 },
+  long: { min: 700, max: 1000 },
+  'extra-long': { min: 1200, max: 1500 },
+  longform: { min: 2500, max: 3500 },
 }
 
 /**
- * How far a rewrite may legitimately expand its source. Rewriting, restructuring and
- * explaining is real work that adds words; going far beyond this ratio means the extra
- * words are coming from the model's imagination rather than the source.
+ * How long an honest rewrite of a given source actually turns out.
+ *
+ * Fitted to measurements taken with the current prompt: a 15-word wire item yields ~199
+ * words, a 1085-word central-bank summary yields ~296. Deliberately not an expansion
+ * ratio — a thin item gets contextualised upward while a dense one gets condensed, so
+ * the curve is nearly flat with a high floor.
+ *
+ * Re-measure and refit these two constants if the length or anti-invention wording in
+ * the prompts changes materially; the model tracks those instructions closely.
  */
-const MAX_EXPANSION_RATIO = 5
-const MIN_ACHIEVABLE_WORDS = 250
+const BASE_OUTPUT_WORDS = 198
+const SOURCE_YIELD = 0.09
 
 /**
- * Pick the longest tier the source can actually support. A 74-word RSS snippet cannot
- * honestly become a 3000-word article, and demanding it anyway is what produced invented
- * figures and fabricated "expert perspectives".
+ * Round the requested tier DOWN to one the source can realistically fill.
+ *
+ * The point is to close the gap between what the prompt promises and what honestly comes
+ * out. Asking for 700-1000 words and getting 450 leaves the model 300 words short of its
+ * instruction every time — steady pressure to pad. Asking for 400-600 and getting 450
+ * removes that pressure entirely. Never rounds up: the operator's setting stays a ceiling.
  */
 export function effectiveLength(requested: LengthTier, sourceWords: number): LengthTier {
-  const budget = Math.max(MIN_ACHIEVABLE_WORDS, sourceWords * MAX_EXPANSION_RATIO)
-  let idx = Math.max(0, LENGTH_TIERS.indexOf(requested))
-  while (idx > 0 && TIER_MAX_WORDS[LENGTH_TIERS[idx]] > budget) idx--
-  return LENGTH_TIERS[idx]
+  const expected = BASE_OUTPUT_WORDS + SOURCE_YIELD * sourceWords
+
+  let idx = 0
+  for (let i = LENGTH_TIERS.length - 1; i >= 0; i--) {
+    if (TIER_RANGE[LENGTH_TIERS[i]].min <= expected) {
+      idx = i
+      break
+    }
+  }
+
+  const requestedIdx = Math.max(0, LENGTH_TIERS.indexOf(requested))
+  return LENGTH_TIERS[Math.min(idx, requestedIdx)]
 }
 
 /** Does the source carry figures worth putting in a stat block or chart? */
@@ -96,7 +113,18 @@ export async function rewriteArticle(
   // survive the link sanitizer even though they aren't scraped sources.
   const operatorUrls = (customInstructions || '').match(/https?:\/\/[^\s"'<>)\]]+/g) || []
 
-  const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl, sources)
+  // Round the tier down to what this source can honestly fill, ONCE, and drive everything
+  // downstream from it — prompt, token budget, model routing and image count. Keying any
+  // of those off the operator's requested tier instead re-opens the padding pressure the
+  // rounding exists to remove: a 15-word wire item would still be handed a longform-sized
+  // token budget and the long-form model path.
+  const sourceWords = (originalContent || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length
+  const targetLength = effectiveLength(options.length as LengthTier, sourceWords)
+  if (targetLength !== options.length) {
+    console.log(`[rewrite] Source has ~${sourceWords} words — writing "${targetLength}" instead of "${options.length}" rather than padding with invented detail`)
+  }
+
+  const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl, sources, targetLength)
   const baseSystemPrompt = options.language === 'en'
     ? `You are a professional journalist who rewrites news articles for a broad audience.
 
@@ -138,10 +166,10 @@ CRUCIAAL — feitelijke nauwkeurigheid: Verzin of gok NOOIT feiten, jaartallen, 
   // For longform, go directly to Claude (better at long-form content)
   let response = ''
   let usedModel = 'gpt-4o'
-  const maxTokens = options.length === 'longform' ? 8000 : options.length === 'extra-long' ? 4000 : 2000
+  const maxTokens = targetLength === 'longform' ? 8000 : targetLength === 'extra-long' ? 4000 : 2000
 
-  if ((options.length === 'longform' || options.length === 'extra-long') && anthropic) {
-    console.log(`🔄 Using Claude directly for ${options.length} content`)
+  if ((targetLength === 'longform' || targetLength === 'extra-long') && anthropic) {
+    console.log(`🔄 Using Claude directly for ${targetLength} content`)
     usedModel = 'claude-sonnet-4-6'
     try {
       const message = await anthropic.messages.create({
@@ -246,7 +274,7 @@ CRUCIAAL — feitelijke nauwkeurigheid: Verzin of gok NOOIT feiten, jaartallen, 
     console.log(`[rewrite] Dropped ${strayImages} model-written image(s) in favour of searched images`)
   }
 
-  const imageCount = options.length === 'longform' || options.length === 'extra-long' ? 2 : 1
+  const imageCount = targetLength === 'longform' || targetLength === 'extra-long' ? 2 : 1
   try {
     parsed.content_html = await injectInlineImages(parsed.content_html, {
       count: imageCount,
@@ -397,20 +425,23 @@ export function createRewritePrompt(
   options: RewriteOptions,
   customInstructions?: string,
   originalUrl?: string,
-  sources: SourceLink[] = []
+  sources: SourceLink[] = [],
+  /** Tier already rounded down by the caller; recomputed here only for direct callers. */
+  scaledLength?: LengthTier
 ): string {
   const isEnglish = options.language === 'en'
   const isGerman = options.language === 'de'
   const allowedSourcesBlock = buildAllowedSourcesBlock(sources, options.language)
 
-  // Scale the ask to what the source can carry, and only offer data visuals when there
-  // are real figures to put in them.
-  const sourceWords = (content || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length
-  const targetLength = effectiveLength(options.length as LengthTier, sourceWords)
+  // Ask only for what the source can carry, and offer data visuals only when there are
+  // real figures to put in them.
+  const targetLength =
+    scaledLength ??
+    effectiveLength(
+      options.length as LengthTier,
+      (content || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length
+    )
   const showFigures = hasUsableFigures(content)
-  if (targetLength !== options.length) {
-    console.log(`[rewrite] Source has ~${sourceWords} words — writing "${targetLength}" instead of "${options.length}" rather than padding with invented detail`)
-  }
 
   const lengthInstructions = {
     short: isEnglish ? 'Keep the text short and concise (200-300 words)' : isGerman ? 'Halte den Text kurz und prägnant (200-300 Wörter)' : 'Houd de tekst kort en bondig (200-300 woorden)',

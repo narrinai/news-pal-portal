@@ -372,6 +372,50 @@ export default function AutomationEditPage() {
     return null
   }
 
+  // Manual pipeline trigger, shared by the top "Fetch" button and the bottom save bar.
+  // With auto-schedule ON we run the FULL pipeline (fetchOnly: false) so the settings on
+  // this page — articles per day, instant publish, rewrite language — are actually applied
+  // to this run instead of only on the next cron. With it OFF the run stays fetch-only:
+  // articles land as `pending` and you pick which ones to schedule yourself.
+  const runPipeline = async (autoSchedule: boolean) => {
+    setRunningPipeline(true)
+    const initialTotal = articleCounts.total
+    try {
+      const res = await fetch('/api/cron/auto-pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: true, fetchOnly: !autoSchedule, automation_id: id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.details || data.error || 'Unknown error')
+      showNotification({
+        type: 'info',
+        title: 'Pipeline gestart',
+        message: autoSchedule
+          ? 'Artikelen worden opgehaald, herschreven en ingepland (~3-4 min)'
+          : 'Artikelen worden op de achtergrond opgehaald (~1-2 min)',
+        duration: 4000,
+      })
+      const newTotal = await pollForNewArticles(initialTotal)
+      if (newTotal !== null) {
+        showNotification({
+          type: 'success',
+          title: 'Articles fetched',
+          message: autoSchedule
+            ? `${newTotal - initialTotal} nieuwe artikelen — herschrijven en inplannen loopt nog door`
+            : `${newTotal - initialTotal} nieuwe artikelen toegevoegd`,
+          duration: 4000,
+        })
+      } else {
+        showNotification({ type: 'warning', title: 'No articles found', message: 'Pipeline draait mogelijk nog — ververs later, of voeg meer feeds/keywords toe', duration: 4000 })
+      }
+    } catch (err: any) {
+      showNotification({ type: 'error', title: 'Pipeline failed', message: err.message || 'Unknown error' })
+    } finally {
+      setRunningPipeline(false)
+    }
+  }
+
   const handleDeleteArticle = async (article: Article) => {
     const confirmed = await showConfirm({
       title: 'Delete article',
@@ -1005,31 +1049,16 @@ export default function AutomationEditPage() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={async () => {
-                  setRunningPipeline(true)
-                  const initialTotal = articleCounts.total
-                  try {
-                    const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true, automation_id: id }) })
-                    const data = await res.json()
-                    if (!res.ok) throw new Error(data.details || data.error || 'Unknown error')
-                    showNotification({ type: 'info', title: 'Pipeline gestart', message: 'Artikelen worden op de achtergrond opgehaald (~1-2 min)', duration: 4000 })
-                    const newTotal = await pollForNewArticles(initialTotal)
-                    if (newTotal !== null) {
-                      showNotification({ type: 'success', title: 'Pipeline klaar', message: `${newTotal - initialTotal} nieuwe artikelen toegevoegd`, duration: 4000 })
-                    } else {
-                      showNotification({ type: 'warning', title: 'Geen nieuwe artikelen', message: 'Pipeline draait mogelijk nog — ververs later', duration: 4000 })
-                    }
-                  } catch (err: any) {
-                    showNotification({ type: 'error', title: 'Pipeline failed', message: err.message || 'Unknown error' })
-                  } finally {
-                    setRunningPipeline(false)
-                  }
-                }}
+                onClick={() => runPipeline(automation.auto_schedule === true)}
                 disabled={runningPipeline || !automation.enabled}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors disabled:opacity-50"
               >
                 <Loader2 className={`w-3 h-3 ${runningPipeline ? 'animate-spin' : ''}`} />
-                {runningPipeline ? 'Fetching & rewriting articles — this takes about 3-4 min...' : 'Fetch articles'}
+                {runningPipeline
+                  ? (automation.auto_schedule
+                      ? 'Fetching & rewriting articles — this takes about 3-4 min...'
+                      : 'Fetching articles — this takes about 1-2 min...')
+                  : (automation.auto_schedule ? 'Fetch & rewrite' : 'Fetch articles')}
               </button>
               <button
                 onClick={() => loadArticles()}
@@ -1895,7 +1924,7 @@ export default function AutomationEditPage() {
             <div>
               <p className="text-sm font-medium text-slate-700">Auto-schedule articles</p>
               <p className="text-xs text-slate-400 mt-0.5">
-                When enabled, the daily pipeline automatically selects, rewrites, and schedules the top articles based on your settings above.
+                When enabled, the daily pipeline — and the button at the bottom of this page — automatically selects, rewrites, and schedules the top articles based on your settings above.
                 When disabled, articles are only fetched into the pipeline — you choose which ones to schedule manually.
               </p>
             </div>
@@ -3565,29 +3594,15 @@ const { articles } = await res.json();
                 await save(undefined, true)
               }
               window.scrollTo({ top: 0, behavior: 'smooth' })
-              setRunningPipeline(true)
-              const initialTotal = articleCounts.total
-              try {
-                const res = await fetch('/api/cron/auto-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, fetchOnly: true, automation_id: id }) })
-                const data = await res.json()
-                if (!res.ok) throw new Error(data.details || data.error || 'Unknown error')
-                showNotification({ type: 'info', title: 'Pipeline gestart', message: 'Artikelen worden op de achtergrond opgehaald (~1-2 min)', duration: 4000 })
-                const newTotal = await pollForNewArticles(initialTotal)
-                if (newTotal !== null) {
-                  showNotification({ type: 'success', title: 'Articles fetched', message: `${newTotal - initialTotal} nieuwe artikelen toegevoegd`, duration: 4000 })
-                } else {
-                  showNotification({ type: 'warning', title: 'No articles found', message: 'Pipeline draait mogelijk nog — ververs later, of voeg meer feeds/keywords toe', duration: 4000 })
-                }
-              } catch (err: any) {
-                showNotification({ type: 'error', title: 'Pipeline failed', message: err.message || 'Unknown error' })
-              } finally {
-                setRunningPipeline(false)
-              }
+              // Save is awaited above, so the pipeline re-reads the just-saved settings.
+              await runPipeline(automation.auto_schedule === true)
             }}
             disabled={saving || runningPipeline}
             className="inline-flex items-center gap-2 px-6 py-2 bg-white text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-600 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
-            {runningPipeline ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Fetching...</> : 'Save & Fetch Articles'}
+            {runningPipeline
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{automation.auto_schedule ? 'Rewriting & scheduling...' : 'Fetching...'}</>
+              : (automation.auto_schedule ? 'Save & Run Pipeline' : 'Save & Fetch Articles')}
           </button>
           {automation.enabled && (
             <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 font-medium">

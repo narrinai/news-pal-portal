@@ -31,6 +31,81 @@ export async function findHeaderImage(title: string, keywords?: string[]): Promi
   return generatePlaceholder(title)
 }
 
+/**
+ * Place inline images into an article's section HTML with a live image search per
+ * section heading.
+ *
+ * Done in code rather than in the prompt for two reasons: the model routinely ignored
+ * the instruction and shipped articles with no images at all, and the prompt version
+ * had to hand it a hardcoded list of photo IDs, so every article recycled the same few
+ * stock photos. Searching per heading keeps the picture related to the section it sits
+ * in, and the caller's `count` is honoured exactly.
+ *
+ * Skips the first section (an article should open with text, and the CMS adds its own
+ * header image) and the sources section.
+ */
+export async function injectInlineImages(
+  html: string,
+  { count, topic = '' }: { count: number; topic?: string }
+): Promise<string> {
+  if (!html || count < 1) return html
+
+  const sectionRe = /<section\b[^>]*>[\s\S]*?<\/section>/gi
+  const sections = html.match(sectionRe)
+  if (!sections || sections.length < 2) return html
+
+  const isSourceSection = (s: string) => /id=["'](?:sources|bronnen|quellen)["']/i.test(s)
+
+  const candidates: number[] = []
+  for (let i = 1; i < sections.length; i++) {
+    if (isSourceSection(sections[i])) continue
+    if (/<figure/i.test(sections[i])) continue
+    candidates.push(i)
+  }
+  if (!candidates.length) return html
+
+  // Spread the images through the article instead of clustering them at the top.
+  const wanted = Math.min(count, candidates.length)
+  const step = candidates.length / wanted
+  const targets = Array.from({ length: wanted }, (_, n) => candidates[Math.floor(n * step)])
+
+  const replacements = new Map<number, string>()
+
+  for (const idx of targets) {
+    const heading = sections[idx].match(/<h2[^>]*>([\s\S]*?)<\/h2>/i)?.[1]?.replace(/<[^>]+>/g, '').trim() || topic
+    if (!heading) continue
+
+    let url: string
+    try {
+      url = await findHeaderImage(`${heading} ${topic}`.trim())
+    } catch {
+      continue
+    }
+    // A generated placeholder looks broken inside the body — better no image.
+    if (!url || url.includes('placehold.co')) continue
+
+    const alt = heading.replace(/"/g, '')
+    const figure = `<figure style="margin:2rem 0"><img src="${url}" alt="${alt}" style="width:100%;border-radius:12px;height:400px;object-fit:cover" loading="lazy" /><figcaption style="text-align:center;font-size:13px;color:#64748b;margin-top:8px">${alt}</figcaption></figure>`
+
+    // After the first paragraph, so the section still opens with prose.
+    const paraEnd = sections[idx].indexOf('</p>')
+    replacements.set(
+      idx,
+      paraEnd === -1
+        ? sections[idx].replace(/<\/section>\s*$/i, `${figure}\n</section>`)
+        : sections[idx].slice(0, paraEnd + 4) + '\n' + figure + sections[idx].slice(paraEnd + 4)
+    )
+  }
+
+  if (!replacements.size) return html
+
+  let n = -1
+  return html.replace(sectionRe, (match) => {
+    n++
+    return replacements.get(n) ?? match
+  })
+}
+
 function buildSearchQuery(title: string, keywords?: string[]): string {
   // Map brand/company names to relevant visual search terms
   const brandMap: Record<string, string> = {

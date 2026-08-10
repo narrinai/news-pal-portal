@@ -1,6 +1,6 @@
 import OpenAI from 'openai'
 import { parseRewriteResponse } from './ai-rewriter'
-import { findHeaderImage } from './image-search'
+import { injectInlineImages } from './image-search'
 import { SourceLink, buildAllowedSourcesBlock, dedupeSources } from './source-links'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -179,15 +179,10 @@ function labelsFor(lang: LongreadOptions['language']) {
     : { sources: 'Sources', key: 'The short version', sectionId: 'sources' }
 }
 
-/** Sections that get an inline image. Images are injected in code, not by the model. */
-function imageSectionIndices(total: number): number[] {
-  return [...new Set([1, total - 2])].filter(i => i >= 1 && i < total)
-}
-
 /**
  * Which visual element each section carries. Assigning them up front is what stops every
  * section from opening with an image, or none of them having one. Images are absent here
- * on purpose — the model kept dropping them, so injectImages() places them afterwards
+ * on purpose — the model kept dropping them, so injectInlineImages() places them afterwards
  * from a real image search, which also keeps the photos relevant instead of recycling a
  * hardcoded ID list.
  */
@@ -208,34 +203,6 @@ function visualBriefFor(index: number, total: number, labels: ReturnType<typeof 
   return 'No visual element in this section — plain prose. Do NOT insert an image; images are added separately.'
 }
 
-/**
- * Place inline images into the assigned sections after the fact. Doing this in code
- * rather than in the prompt guarantees the count, and searching for a real photo per
- * section heading beats a fixed list of stock IDs that every article would reuse.
- */
-async function injectImages(sectionHtml: string[], angle: LongreadAngle, topic: string): Promise<void> {
-  for (const i of imageSectionIndices(sectionHtml.length)) {
-    if (/<figure/i.test(sectionHtml[i])) continue
-
-    const heading = angle.sections[i]?.heading || topic
-    let url: string
-    try {
-      url = await findHeaderImage(`${heading} ${topic}`)
-    } catch {
-      continue
-    }
-    // A generated placeholder is worse than no image inside the body.
-    if (!url || url.includes('placehold.co')) continue
-
-    const figure = `<figure style="margin:2rem 0"><img src="${url}" alt="${heading.replace(/"/g, '')}" style="width:100%;border-radius:12px;height:400px;object-fit:cover" loading="lazy" /><figcaption style="text-align:center;font-size:13px;color:#64748b;margin-top:8px">${heading}</figcaption></figure>`
-
-    // After the first paragraph, so the section still opens with text.
-    const firstParaEnd = sectionHtml[i].indexOf('</p>')
-    sectionHtml[i] = firstParaEnd === -1
-      ? sectionHtml[i].replace(/<\/section>\s*$/i, `${figure}\n</section>`)
-      : sectionHtml[i].slice(0, firstParaEnd + 4) + '\n' + figure + sectionHtml[i].slice(firstParaEnd + 4)
-  }
-}
 
 /**
  * Prompt for a single section. Sections are written one at a time because a single call
@@ -430,8 +397,6 @@ export async function writeLongread(
 
   if (!sectionHtml.length) throw new Error('Longread write stage produced no sections')
 
-  await injectImages(sectionHtml, angle, topic)
-
   const labels = labelsFor(options.language)
   const bodyText = sectionHtml.join('\n\n').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 
@@ -486,6 +451,15 @@ ${sourcesSection}${faqBlock}`
   // Operator-supplied URLs (internal links, keyword rules) stay citable alongside the dossier.
   const operatorUrls = (options.extraInstructions || '').match(/https?:\/\/[^\s"'<>)\]]+/g) || []
   const parsed = parseRewriteResponse(response, topic, sources, operatorUrls)
+
+  try {
+    parsed.content_html = await injectInlineImages(parsed.content_html, {
+      count: 2,
+      topic: parsed.focus_keyword || topic,
+    })
+  } catch (e: any) {
+    console.warn('[longread] Inline image injection failed:', e?.message)
+  }
 
   const wordCount = (parsed.content || '').split(/\s+/).filter(Boolean).length
   const reading_time = Math.max(1, Math.round(wordCount / WPM))

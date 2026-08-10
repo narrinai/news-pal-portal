@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
+import { injectInlineImages } from './image-search'
 import {
   SourceLink,
   buildAllowedSourcesBlock,
@@ -18,6 +19,50 @@ const anthropic = process.env.ANTHROPIC_API_KEY
 const deepseek = process.env.DEEPSEEK_API_KEY
   ? new OpenAI({ apiKey: process.env.DEEPSEEK_API_KEY, baseURL: 'https://api.deepseek.com' })
   : null
+
+const LENGTH_TIERS = ['short', 'medium', 'long', 'extra-long', 'longform'] as const
+type LengthTier = typeof LENGTH_TIERS[number]
+
+// Roughly the upper word count each tier asks for.
+const TIER_MAX_WORDS: Record<LengthTier, number> = {
+  short: 300,
+  medium: 600,
+  long: 1000,
+  'extra-long': 1500,
+  longform: 3500,
+}
+
+/**
+ * How far a rewrite may legitimately expand its source. Rewriting, restructuring and
+ * explaining is real work that adds words; going far beyond this ratio means the extra
+ * words are coming from the model's imagination rather than the source.
+ */
+const MAX_EXPANSION_RATIO = 5
+const MIN_ACHIEVABLE_WORDS = 250
+
+/**
+ * Pick the longest tier the source can actually support. A 74-word RSS snippet cannot
+ * honestly become a 3000-word article, and demanding it anyway is what produced invented
+ * figures and fabricated "expert perspectives".
+ */
+export function effectiveLength(requested: LengthTier, sourceWords: number): LengthTier {
+  const budget = Math.max(MIN_ACHIEVABLE_WORDS, sourceWords * MAX_EXPANSION_RATIO)
+  let idx = Math.max(0, LENGTH_TIERS.indexOf(requested))
+  while (idx > 0 && TIER_MAX_WORDS[LENGTH_TIERS[idx]] > budget) idx--
+  return LENGTH_TIERS[idx]
+}
+
+/** Does the source carry figures worth putting in a stat block or chart? */
+export function hasUsableFigures(content: string): boolean {
+  const text = (content || '').replace(/<[^>]+>/g, ' ')
+  // Percentages (symbol or spelled out), currency amounts, basis points and scale words.
+  // A bare year doesn't count — "in 2026" is not a statistic.
+  const matches =
+    text.match(
+      /\d+(?:[.,]\d+)?\s*(?:%|percent|procent|Prozent|pct|basispunten|basis points|bps)|[€$£¥]\s*\d|\d+(?:[.,]\d+)?\s*(?:miljard|miljoen|billion|million|trillion|bn|mln|Mrd|Mio)/gi
+    ) || []
+  return matches.length >= 2
+}
 
 export interface RewriteOptions {
   style: 'professional' | 'engaging' | 'technical' | 'news'
@@ -188,7 +233,30 @@ CRUCIAAL — feitelijke nauwkeurigheid: Verzin of gok NOOIT feiten, jaartallen, 
   console.log(`✅ Article rewritten with ${usedModel}: ${originalTitle.substring(0, 50)}...`)
 
   // Parse the response to extract title and content
-  return parseRewriteResponse(response, originalTitle, sources, operatorUrls)
+  const parsed = parseRewriteResponse(response, originalTitle, sources, operatorUrls)
+
+  // Images are placed here, not by the model: it used to be handed a fixed list of Pexels
+  // photo IDs, so every article recycled the same stock photos, and it often skipped them
+  // entirely. A live search per section heading keeps them varied and on-topic.
+  // The prompt tells the model its own images will be discarded — honour that, so a
+  // stale hallucinated Pexels ID can never reach a page.
+  const strayImages = (parsed.content_html.match(/<figure[\s\S]*?<\/figure>|<img\b[^>]*>/gi) || []).length
+  if (strayImages) {
+    parsed.content_html = parsed.content_html.replace(/<figure[\s\S]*?<\/figure>/gi, '').replace(/<img\b[^>]*>/gi, '')
+    console.log(`[rewrite] Dropped ${strayImages} model-written image(s) in favour of searched images`)
+  }
+
+  const imageCount = options.length === 'longform' || options.length === 'extra-long' ? 2 : 1
+  try {
+    parsed.content_html = await injectInlineImages(parsed.content_html, {
+      count: imageCount,
+      topic: parsed.focus_keyword || parsed.title,
+    })
+  } catch (e: any) {
+    console.warn('[rewrite] Inline image injection failed:', e?.message)
+  }
+
+  return parsed
 }
 
 /**
@@ -319,7 +387,11 @@ div[style*="gap:1rem"]{gap:0.5rem!important}
   return { title, content, content_html, subtitle, category, faq, focus_keyword: focus_keyword || undefined, meta_description: meta_description || undefined, seo_keywords: seo_keywords.length ? seo_keywords : undefined }
 }
 
-function createRewritePrompt(
+/**
+ * Build the exact user prompt sent to the model. Exported so the prompt an automation
+ * produces can be inspected without spending a generation.
+ */
+export function createRewritePrompt(
   title: string,
   content: string,
   options: RewriteOptions,
@@ -330,6 +402,15 @@ function createRewritePrompt(
   const isEnglish = options.language === 'en'
   const isGerman = options.language === 'de'
   const allowedSourcesBlock = buildAllowedSourcesBlock(sources, options.language)
+
+  // Scale the ask to what the source can carry, and only offer data visuals when there
+  // are real figures to put in them.
+  const sourceWords = (content || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length
+  const targetLength = effectiveLength(options.length as LengthTier, sourceWords)
+  const showFigures = hasUsableFigures(content)
+  if (targetLength !== options.length) {
+    console.log(`[rewrite] Source has ~${sourceWords} words — writing "${targetLength}" instead of "${options.length}" rather than padding with invented detail`)
+  }
 
   const lengthInstructions = {
     short: isEnglish ? 'Keep the text short and concise (200-300 words)' : isGerman ? 'Halte den Text kurz und prägnant (200-300 Wörter)' : 'Houd de tekst kort en bondig (200-300 woorden)',
@@ -371,11 +452,14 @@ ${audienceBlock}
 ANWEISUNGEN:
 SCHRITT 1 - UMSCHREIBEN:
 - ${styleInstructions[options.style]}
-- ${lengthInstructions[options.length]}
+- ${lengthInstructions[targetLength]}
 - ${toneInstructions[options.tone]}
 - Schreibe auf Deutsch als Nachrichtenartikel/Pressemitteilung
 - Behalte die Kernbotschaft bei und bereichere mit Kontext wo möglich
-- WICHTIG: Wenn der Originalinhalt kurz ist (z.B. nur eine Überschrift oder kurze Zusammenfassung), MUSST du den Artikel selbstständig auf die geforderte Wortanzahl erweitern. Recherchiere das Thema eigenständig — füge Hintergrund, Kontext, Branchentrends, Expertenperspektiven, Auswirkungen und Analyse hinzu. Die Quelle ist ein Ausgangspunkt, keine Grenze. Erreiche IMMER die geforderte Wortanzahl, unabhängig davon, wie kurz das Quellmaterial ist.
+- EIGENSTÄNDIGE NEUFASSUNG (entscheidend): Dies muss ein origineller Text sein, keine leicht bearbeitete Kopie. Ordne das Material in deine eigene Struktur, formuliere jeden Satz neu und beginne mit dem Aspekt, der für dieses Publikum am wichtigsten ist. Übernimm NICHT die Formulierungen, die Satzreihenfolge oder die Überschriften der Quelle.
+- LÄNGE: Der angegebene Bereich ist bereits auf den Umfang dieser Quelle abgestimmt. Schöpfe ihn voll aus, solange du aus dem schöpfst, was in der Quelle steht — lass nichts ungenutzt. Müsstest du etwas erfinden, um den Bereich zu erreichen, höre stattdessen früher auf: ein präziser Artikel schlägt immer einen aufgeblähten.
+- Du DARFST ergänzen: Erklärung von Fachbegriffen, warum das für den Leser relevant ist, wie die Teile der Quelle zusammenhängen, und was sie aussagt und was nicht. Du DARFST NICHT ergänzen: Zahlen, Daten, Geschäftszahlen, Zitate, namentliche Experten, Studien, Marktgrößen oder Prognosen, die nicht im Quelltext stehen. Wenn du nach einer Statistik greifst, um Platz zu füllen, lass sie weg und schreibe kürzer.
+- Schreibe niemals Floskeln wie "Experten sagen", "Studien zeigen" oder "Analysten erwarten", sofern die Quelle diesen Experten, diese Studie oder diesen Analysten nicht benennt.
 - ORIGINALE ÜBERSCHRIFTEN: Erstelle einzigartige Überschriften basierend auf dem tatsächlichen Inhalt
 - ZITATE: Wenn Personen erwähnt werden, generiere 1 relevantes Zitat basierend auf dem Kontext
 - Vermeide Unternehmens-Jargon
@@ -386,19 +470,15 @@ SCHRITT 2 - QUELLEN (KRITISCH):
 - Verknüpfe Quellen natürlich im Text; eine Quelle im Fließtext zu nennen erfordert keinen Link
 ${allowedSourcesBlock}
 
-SCHRITT 3 - VISUELLE ELEMENTE (KRITISCH):
-Füge genau 2 Pexels-Bilder ein (NICHT mehr als 2) mit diesem Format:
-<figure style="margin:2rem 0"><img src="https://images.pexels.com/photos/PHOTO_ID/pexels-photo-PHOTO_ID.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="[Beschreibung]" style="width:100%;border-radius:12px;height:400px;object-fit:cover" /><figcaption style="text-align:center;font-size:13px;color:#64748b;margin-top:8px">[Bildunterschrift]</figcaption></figure>
-Verwende diese Pexels Photo-IDs (wähle 2 VERSCHIEDENE pro Artikel, variiere die Auswahl):
-- Technologie/KI: 8386440, 17483868, 546819, 3861969, 8386434, 373543, 1148820, 2599244, 3183150, 4164418
-- Cybersicherheit: 5380642, 60504, 5380603, 5240547, 207580, 5474295, 1089438, 2882630, 5380659, 4508751
-- Handel/E-Commerce: 1005638, 3962294, 2292953, 3747468, 264636, 953862, 1239291, 230544, 1884581, 135620
-- Business/Marketing: 3184292, 7688336, 3182812, 590016, 265087, 3153198, 1181622, 3183197, 5673488, 7176026
-WICHTIG: Wähle 2 IDs die zum Artikelthema passen. Variiere die Auswahl — verwende NICHT immer die erste ID einer Liste.
-
-Füge außerdem mindestens eines dieser Elemente ein:
+SCHRITT 3 - VISUELLE ELEMENTE:
+Füge KEINE Bilder ein. Bilder werden nach dir automatisch aus einer echten Bildsuche ergänzt — jedes <img> oder <figure>, das du selbst schreibst, wird verworfen.
+${showFigures ? `
+Die Quelle enthält echte Zahlen. Füge GENAU EIN Datenelement ein, das ausschließlich aus Zahlen des obigen Quelltextes besteht. Runde, extrapoliere oder erfinde niemals einen Wert, um es zu vervollständigen:
 - DATENTABELLE: <table style="width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:14px">
 - KERNZAHLEN: <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:1.5rem 0"> mit Statistikkarten
+
+Lässt es sich nicht allein aus der Quelle füllen, lass es ganz weg.` : `
+Die Quelle enthält keine verwertbaren Zahlen. Füge KEINE Statistikblöcke, Diagramme oder Datentabellen ein — es gibt nichts Belegbares hineinzuschreiben, und Zahlen zu erfinden, um eine Vorlage zu füllen, ist ein schwerer Fehler. Gliedere den Artikel stattdessen mit klaren <h2>-Überschriften.`}
 
 SCHRITT 4 - SEO-OPTIMIERUNG (KRITISCH):
 - Bestimme ein FOCUS KEYWORD: eine Suchphrase aus 2-4 Wörtern, die Menschen bei Google eingeben würden, um diesen Artikel zu finden (z.B. "Netflix Kinder Spiele App", "KI Marketing Automatisierung"). Denke an Suchintention und Volumen.
@@ -411,7 +491,8 @@ KRITISCHE ANWEISUNGEN:
 1. KEIN DATUM: Kein Veröffentlichungsdatum im Artikel
 2. ORIGINALE ÜBERSCHRIFTEN: Einzigartige Überschriften basierend auf tatsächlichem Inhalt
 3. KEIN META: Keine "CHECK:" oder Review-Anweisungen in der Ausgabe
-4. VISUELLE ELEMENTE: Genau 2 Bilder (nicht mehr), plus 1 Statistikblock oder Tabelle
+4. VISUELLE ELEMENTE: Schreibe gar keine Bilder — sie werden anschließend automatisch ergänzt${showFigures ? '. Füge ein Datenelement ein, ausschließlich mit Zahlen aus der Quelle' : '; keine Statistikblöcke, Diagramme oder Tabellen, da die Quelle keine Zahlen enthält'}
+5. LÄNGE UND REDLICHKEIT: Erfinde niemals Details, um eine Länge zu erreichen — arbeite aber alles durch, was die Quelle hergibt. Eine gehaltvolle Quelle verdient einen vollständigen Artikel im angegebenen Bereich; nur eine dünne Quelle ergibt einen kurzen
 5. SEO: Focus Keyword muss im Titel, ersten Absatz und mindestens einer h2 vorkommen. Meta Description muss 140-155 Zeichen lang sein.
 
 FORMATIERE DEINE ANTWORT WIE FOLGT:
@@ -470,11 +551,14 @@ ${audienceBlock}
 INSTRUCTIONS:
 STEP 1 - REWRITING:
 - ${styleInstructions[options.style]}
-- ${lengthInstructions[options.length]}
+- ${lengthInstructions[targetLength]}
 - ${toneInstructions[options.tone]}
 - Write in English as a news article/press release
 - Maintain the core message and enrich with context where possible
-- IMPORTANT: If the original content is short (e.g. just a headline or brief summary), you MUST use your knowledge to expand the article to the required word count. Research the topic independently — add background, context, industry trends, expert perspectives, implications, and analysis. The source is a starting point, not a limit. ALWAYS meet the required word count regardless of how short the source material is.
+- UNIQUE REWRITE (essential): this must be an original piece of writing, not a lightly edited copy. Reorganise the material into your own structure, write every sentence in your own words, and lead with the angle that matters most to this audience. Do NOT reuse the source's phrasing, sentence order or headings.
+- LENGTH: the range given has already been matched to the size of this source. Use it fully as long as you are drawing on what the source actually contains — do not leave material unused. If you find you would have to invent something to reach the range, stop earlier instead: a tight, accurate article always beats a padded one.
+- You may add: explanation of terms, why this matters to the reader, how the parts of the source connect, and what it does and does not tell us. You may NOT add: figures, dates, company results, quotes, named experts, studies, market sizes or forecasts that are not in the source text. If you find yourself reaching for a statistic to fill space, leave it out and write less.
+- Never write filler such as "experts say", "studies show" or "analysts expect" unless the source names that expert, study or analyst.
 - ORIGINAL HEADINGS: Create unique headings based on actual content - NEVER standard formulas
 - QUOTES: If people are mentioned, generate 1 relevant quote based on context
 - Avoid corporate jargon like 'Executive Summary' or 'Business Impact'
@@ -487,28 +571,18 @@ STEP 2 - SOURCES (CRITICAL):
 - Also list the sources you linked at the end in the Sources section with clickable HTML links
 ${allowedSourcesBlock}
 
-STEP 3 - VISUAL ELEMENTS AND IMAGES (CRITICAL):
-Include ALL of the following in a longform article (at least 3-4 visual elements total):
+STEP 3 - VISUAL ELEMENTS:
+Do NOT insert any images. Images are added automatically after you finish, from a real image search — any <img> or <figure> you write yourself will be discarded.
+${showFigures ? `
+The source contains real figures, so include ONE data element built ONLY from numbers that appear in the source text above. Never round, extrapolate or invent a value to complete it:
 
-A) INLINE IMAGES: Add exactly 2 relevant images throughout the article using Pexels (NOT more than 2):
-   <figure style="margin:2rem 0"><img src="https://images.pexels.com/photos/PHOTO_ID/pexels-photo-PHOTO_ID.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="descriptive alt text" style="width:100%;border-radius:12px;height:400px;object-fit:cover" /><figcaption style="text-align:center;font-size:13px;color:#64748b;margin-top:8px">Caption describing the image</figcaption></figure>
-   Use these Pexels photo IDs for common topics (pick 2 DIFFERENT IDs per article, vary your choices):
-   - Technology/AI: 8386440, 17483868, 546819, 3861969, 8386434, 373543, 1148820, 2599244, 3183150, 4164418
-   - Cybersecurity/hacking: 5380642, 60504, 5380603, 5240547, 207580, 5474295, 1089438, 2882630, 5380659, 4508751
-   - Marketing/business: 3184292, 7688336, 3182812, 590016, 265087, 3153198, 1181622, 3183197, 5673488, 7176026
-   - Data/analytics: 669615, 186461, 590022, 7947541, 6801648, 7788009, 5935791, 590020, 4050291, 7172837
-   - Science/research: 2280571, 256381, 2280547, 3825527, 60582, 2166, 325229, 356040, 2280549, 3912477
-   - Retail/ecommerce: 1005638, 3962294, 2292953, 3747468, 264636, 953862, 1239291, 230544, 1884581, 135620
-   IMPORTANT: Pick 2 IDs that you have NOT used recently. Vary your choices across articles — do NOT always pick the first ID in a list.
+- DATA TABLE: <table style="width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:14px"><thead><tr style="background:#f1f5f9;text-align:left"><th style="padding:10px 14px;border-bottom:2px solid #e2e8f0;font-weight:600">Header</th></tr></thead><tbody><tr style="border-bottom:1px solid #e2e8f0"><td style="padding:10px 14px">Data</td></tr></tbody></table>
+- KEY STATS BLOCK: <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:1.5rem 0"> with stat cards: <div style="flex:1;min-width:140px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.25rem;text-align:center"><span style="display:block;font-size:28px;font-weight:700;color:#4f46e5">[figure from the source]</span><span style="font-size:13px;color:#64748b">[what it measures]</span></div>
+- CSS BAR CHART, only for figures that are genuinely comparable:
+  <div style="margin:1.5rem 0"><div style="display:flex;align-items:center;margin-bottom:8px"><span style="width:120px;font-size:13px;color:#374151">Label</span><div style="flex:1;background:#e2e8f0;border-radius:4px;height:24px"><div style="width:[actual proportion]%;background:#4f46e5;border-radius:4px;height:24px;display:flex;align-items:center;padding-left:8px"><span style="font-size:12px;color:white;font-weight:600">[value]</span></div></div></div></div>
 
-B) DATA TABLE: <table style="width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:14px"><thead><tr style="background:#f1f5f9;text-align:left"><th style="padding:10px 14px;border-bottom:2px solid #e2e8f0;font-weight:600">Header</th></tr></thead><tbody><tr style="border-bottom:1px solid #e2e8f0"><td style="padding:10px 14px">Data</td></tr></tbody></table>
-
-C) KEY STATS BLOCK: <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:1.5rem 0"> with stat cards: <div style="flex:1;min-width:140px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.25rem;text-align:center"><span style="display:block;font-size:28px;font-weight:700;color:#4f46e5">$4.2B</span><span style="font-size:13px;color:#64748b">Market size 2025</span></div>
-
-D) CSS BAR CHART for market data or comparisons:
-   <div style="margin:1.5rem 0">
-   <div style="display:flex;align-items:center;margin-bottom:8px"><span style="width:120px;font-size:13px;color:#374151">Label</span><div style="flex:1;background:#e2e8f0;border-radius:4px;height:24px"><div style="width:75%;background:#4f46e5;border-radius:4px;height:24px;display:flex;align-items:center;padding-left:8px"><span style="font-size:12px;color:white;font-weight:600">75%</span></div></div></div>
-   </div>
+If you cannot fill the element from the source alone, omit it entirely.` : `
+The source contains no usable figures. Do NOT include stat blocks, charts or data tables — there is nothing factual to put in them, and inventing numbers to fill a template is a serious error. Structure the article with clear <h2> headings and, where it genuinely helps, a bulleted list of points taken from the source.`}
 
 STEP 4 - SEO OPTIMIZATION (CRITICAL):
 - Determine a FOCUS KEYWORD: a 2-4 word search phrase that people would Google to find this article (e.g. "Netflix kids games app", "AI marketing automation tools"). Think about search intent and volume.
@@ -525,8 +599,8 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
 3. QUOTES: If people are mentioned, generate 1-2 relevant quotes
 4. LINKS: Integrate subtly in the text, no "Source:" labels
 5. NO META INSTRUCTIONS: Do NOT include any "CHECK:" or review instructions in the output
-6. VISUAL ELEMENTS: MUST include exactly 2 images (no more), plus 1 stat block or table — never write without visual breaks
-7. NO HEADER IMAGE: Do NOT place an image at the very top of the article (before or directly after the first heading). The CMS adds a separate header image automatically. Start with text content, then place the first image after the first 1-2 paragraphs
+6. VISUAL ELEMENTS: write no images at all — they are added automatically afterwards${showFigures ? '. Include one data element, filled only with figures from the source' : ', and include no stat blocks, charts or tables since the source has no figures'}
+7. LENGTH AND HONESTY: never invent detail to reach a length — but do work through everything the source offers. A substantial source deserves a full article within the given range; only a thin source produces a short one
 8. SOURCES: Link ONLY to URLs on the allowed-sources list. Never invent, guess or complete a URL. Fewer links is always better than one fabricated link
 9. SEO: Focus keyword must appear in title, first paragraph, and at least one h2. Meta description must be 140-155 characters.
 
@@ -595,11 +669,14 @@ ${audienceBlock}
 INSTRUCTIES:
 STAP 1 - HERSCHRIJVEN:
 - ${styleInstructions[options.style]}
-- ${lengthInstructions[options.length]}
+- ${lengthInstructions[targetLength]}
 - ${toneInstructions[options.tone]}
 - Schrijf in het Nederlands als een nieuwsbericht/persbericht
 - Behoud de kernboodschap en verrijk met context waar mogelijk
-- BELANGRIJK: Als de originele content kort is (bijv. alleen een kop of korte samenvatting), MOET je het artikel zelfstandig uitbreiden tot het vereiste aantal woorden. Onderzoek het onderwerp onafhankelijk — voeg achtergrond, context, trends, expertperspectieven, implicaties en analyse toe. De bron is een startpunt, geen limiet. Haal ALTIJD het vereiste aantal woorden, ongeacht hoe kort het bronmateriaal is.
+- UNIEK HERSCHRIJVEN (essentieel): dit moet een origineel stuk zijn, geen licht geredigeerde kopie. Herorden het materiaal in je eigen structuur, formuleer elke zin opnieuw, en begin met de invalshoek die voor deze doelgroep het meest telt. Neem NIET de formuleringen, zinsvolgorde of koppen van de bron over.
+- LENGTE: het opgegeven bereik is al afgestemd op de omvang van deze bron. Benut het volledig zolang je put uit wat er in de bron staat — laat niets liggen wat de bron wél biedt. Merk je dat je zou moeten verzinnen om het bereik te halen, stop dan eerder: een strak, kloppend artikel is altijd beter dan een opgerekt artikel.
+- Je MAG toevoegen: uitleg van vaktermen, waarom dit ertoe doet voor de lezer, hoe de onderdelen van de bron samenhangen, en wat de bron wel en niet zegt. Je MAG NIET toevoegen: cijfers, datums, bedrijfsresultaten, quotes, met naam genoemde experts, onderzoeken, marktomvang of voorspellingen die niet in de brontekst staan. Grijp je naar een statistiek om ruimte te vullen, laat hem dan weg en schrijf korter.
+- Schrijf nooit vulzinnen als "experts zeggen", "onderzoek toont aan" of "analisten verwachten", tenzij de bron die expert, dat onderzoek of die analist bij naam noemt.
 - ORIGINELE KOPPEN: Creëer unieke koppen op basis van de werkelijke inhoud - NOOIT standaard formules
 - QUOTES: Als er personen worden genoemd, genereer 1 relevante quote gebaseerd op de context
 - Vermijd corporate jargon zoals 'Executive Summary' of 'Business Impact'
@@ -614,12 +691,16 @@ STAP 2 - BRONNEN:
 ${allowedSourcesBlock}
 
 STAP 3 - VISUELE ELEMENTEN:
-Voeg minimaal 1-2 van de volgende visuele elementen toe waar relevant (met inline CSS voor portabiliteit):
-- DATATABEL: Gebruik <table style="width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:14px"> met <thead>, <tbody> en inline styling
-- VERGELIJKING: Gebruik een tweekolomstabel om tools, aanpakken, of voor/na scenario's te vergelijken
-- KERNCIJFERS: Gebruik <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:1.5rem 0"> met statblokken (grote cijfers + beschrijving)
-- TIJDLIJN: Gebruik een genummerde lijst met vetgedrukte datums/mijlpalen
-- PRO/CON of CHECKLIST: Gebruik <ul> met ✅ en ❌ emoji prefixes
+Voeg GEEN afbeeldingen toe. Beelden worden na jou automatisch toegevoegd op basis van een echte beeldzoekopdracht — elke <img> of <figure> die je zelf schrijft wordt weggegooid.
+${showFigures ? `
+De bron bevat echte cijfers. Voeg PRECIES ÉÉN data-element toe, uitsluitend opgebouwd uit cijfers die in de brontekst hierboven staan. Rond nooit af, extrapoleer niet en verzin geen waarde om het compleet te maken:
+- DATATABEL: <table style="width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:14px"> met <thead>, <tbody> en inline styling
+- VERGELIJKING: een tweekolomstabel, alleen als de bron beide kanten beschrijft
+- KERNCIJFERS: <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:1.5rem 0"> met statblokken (groot cijfer uit de bron + wat het meet)
+- TIJDLIJN: een genummerde lijst met vetgedrukte datums die in de bron staan
+
+Lukt het niet om het alleen uit de bron te vullen, laat het dan helemaal weg.` : `
+De bron bevat geen bruikbare cijfers. Voeg GEEN statblokken, grafieken of datatabellen toe — er is niets feitelijks om erin te zetten, en cijfers verzinnen om een sjabloon te vullen is een ernstige fout. Structureer het artikel in plaats daarvan met heldere <h2>-koppen, en gebruik alleen een opsomming als die punten letterlijk uit de bron komen.`}
 
 STAP 4 - SEO OPTIMALISATIE (KRITIEK):
 - Bepaal een FOCUS KEYWORD: een zoekterm van 2-4 woorden die mensen zouden Googlen om dit artikel te vinden (bijv. "Netflix kids games app", "AI marketing automation tools"). Denk na over zoekintentie en volume. Gebruik de taal van de doelgroep (Engels is prima voor vakjargon).
@@ -636,7 +717,8 @@ KRITIEKE INSTRUCTIES - LEES ZORGVULDIG:
 3. QUOTES: Als er personen worden genoemd, genereer 1 relevante quote
 4. LINKS: Verwerk subtiel in de tekst, geen "Bron:" labels
 5. GEEN META INSTRUCTIES: Voeg GEEN "CONTROLEER:" of review instructies toe aan de output
-6. VISUELE ELEMENTEN: Voeg minimaal 1 tabel of statistiekblok toe — nooit een longform artikel zonder visuele onderbrekingen
+6. VISUELE ELEMENTEN: schrijf zelf geen afbeeldingen — die worden na afloop automatisch toegevoegd${showFigures ? '. Voeg één data-element toe, uitsluitend gevuld met cijfers uit de bron' : '; geen statblokken, grafieken of tabellen, want de bron bevat geen cijfers'}
+7. LENGTE EN EERLIJKHEID: verzin nooit details om een lengte te halen — maar verwerk wél alles wat de bron te bieden heeft. Een bron met veel inhoud verdient een volledig artikel binnen het opgegeven bereik; alleen een dunne bron levert een kort artikel op
 7. SEO: Focus keyword moet in titel, eerste paragraaf, en minimaal één h2 staan. Meta description moet 140-155 tekens zijn.
 
 FORMAT JE ANTWOORD ALS VOLGT:

@@ -54,8 +54,13 @@ const SOURCE_YIELD = 0.09
  * instruction every time — steady pressure to pad. Asking for 400-600 and getting 450
  * removes that pressure entirely. Never rounds up: the operator's setting stays a ceiling.
  */
-export function effectiveLength(requested: LengthTier, sourceWords: number): LengthTier {
-  const expected = BASE_OUTPUT_WORDS + SOURCE_YIELD * sourceWords
+export function effectiveLength(requested: LengthTier, sourceWords: number, sourceCount = 1): LengthTier {
+  // Independent reports on one story carry genuinely different detail — one outlet has a
+  // quote another lacks, one contradicts a third — so the honest yield per source word
+  // rises with the number of sources. A single feed snippet has one angle and nothing to
+  // compare it against.
+  const yieldRate = SOURCE_YIELD * (1 + 0.6 * Math.max(0, sourceCount - 1))
+  const expected = BASE_OUTPUT_WORDS + yieldRate * sourceWords
 
   let idx = 0
   for (let i = LENGTH_TIERS.length - 1; i >= 0; i--) {
@@ -81,6 +86,57 @@ export function hasUsableFigures(content: string): boolean {
   return matches.length >= 2
 }
 
+/** Another report on the same story, merged into one article rather than published apart. */
+export interface RelatedSource {
+  title: string
+  url: string
+  outlet?: string
+  content: string
+}
+
+/**
+ * Fold several reports on one story into a single source text. This is what makes a
+ * longer article honest: three reports of 400 words carry enough material for a real
+ * piece, where one 74-word wire snippet only ever supported a short one.
+ */
+function buildMultiSourceContent(primary: string, primaryTitle: string, related: RelatedSource[]): string {
+  const blocks = [
+    `[REPORT 1 — primary]\nHEADLINE: ${primaryTitle}\n${primary}`,
+    ...related.map(
+      (r, i) => `[REPORT ${i + 2}${r.outlet ? ` — ${r.outlet}` : ''}]\nHEADLINE: ${r.title}\n${(r.content || '').slice(0, 6000)}`
+    ),
+  ]
+  return blocks.join('\n\n')
+}
+
+function synthesisInstructions(language: 'nl' | 'en' | 'de', count: number): string {
+  if (language === 'en') {
+    return `
+SYNTHESIS — you have ${count} reports on the SAME story, not one:
+- Write ONE article that draws on all of them. It is not a summary of each in turn.
+- Where reports agree, state the fact once. Never repeat the same detail because two outlets carried it.
+- Where reports differ or one adds a detail the others lack, that is the most valuable material you have — say who reported what.
+- Where reports contradict each other, say so plainly instead of silently picking one.
+- The result must read as a single original piece, with its own structure and ordering.`
+  }
+  if (language === 'de') {
+    return `
+SYNTHESE — dir liegen ${count} Berichte über DIESELBE Nachricht vor, nicht einer:
+- Schreibe EINEN Artikel, der sich auf alle stützt. Es ist keine Zusammenfassung nacheinander.
+- Wo die Berichte übereinstimmen, nenne die Tatsache einmal. Wiederhole ein Detail nie, nur weil zwei Medien es brachten.
+- Wo Berichte abweichen oder einer ein Detail ergänzt, ist das dein wertvollstes Material — nenne, wer was berichtet hat.
+- Widersprechen sich Berichte, sage das offen, statt still einen auszuwählen.
+- Das Ergebnis muss als ein einziger origineller Text mit eigener Struktur lesbar sein.`
+  }
+  return `
+SYNTHESE — je hebt ${count} berichten over HETZELFDE nieuwsfeit, niet één:
+- Schrijf ÉÉN artikel dat uit alle berichten put. Het is geen samenvatting van elk bericht na elkaar.
+- Waar de berichten het eens zijn, noem je het feit één keer. Herhaal een detail nooit omdat twee media het brachten.
+- Waar berichten verschillen, of waar één bericht een detail heeft dat de andere missen: dat is je waardevolste materiaal — vermeld wie wat meldde.
+- Spreken berichten elkaar tegen, benoem dat dan expliciet in plaats van er stilzwijgend één te kiezen.
+- Het resultaat moet lezen als één origineel stuk, met een eigen structuur en volgorde.`
+}
+
 export interface RewriteOptions {
   style: 'professional' | 'engaging' | 'technical' | 'news'
   length: 'short' | 'medium' | 'long' | 'extra-long' | 'longform'
@@ -100,13 +156,24 @@ export async function rewriteArticle(
   },
   customInstructions?: string,
   originalUrl?: string,
-  allowedSources: SourceLink[] = []
+  allowedSources: SourceLink[] = [],
+  relatedSources: RelatedSource[] = []
 ): Promise<{ title: string; content: string; content_html: string; subtitle?: string; category?: string; faq?: { question: string; answer: string }[]; focus_keyword?: string; meta_description?: string; seo_keywords?: string[] }> {
   // The original article is always citable; anything else must have been really seen.
   const sources = dedupeSources([
     ...(originalUrl ? [{ url: originalUrl, title: originalTitle, origin: 'source' as const }] : []),
+    ...relatedSources.map(r => ({ url: r.url, title: `${r.outlet ? `${r.outlet} — ` : ''}${r.title}`, origin: 'cluster' as const })),
     ...allowedSources,
   ])
+
+  // Reports on the same story are folded into one source text, so the length scaling
+  // below sees the material that is genuinely available rather than one thin snippet.
+  const effectiveContent = relatedSources.length
+    ? buildMultiSourceContent(originalContent, originalTitle, relatedSources)
+    : originalContent
+  if (relatedSources.length) {
+    console.log(`[rewrite] Synthesising ${relatedSources.length + 1} reports on the same story into one article`)
+  }
 
   // URLs written into the custom instructions are supplied by the operator (internal
   // linking rules, keyword links, the site's own pages) — they are known-good and must
@@ -118,13 +185,22 @@ export async function rewriteArticle(
   // of those off the operator's requested tier instead re-opens the padding pressure the
   // rounding exists to remove: a 15-word wire item would still be handed a longform-sized
   // token budget and the long-form model path.
-  const sourceWords = (originalContent || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length
-  const targetLength = effectiveLength(options.length as LengthTier, sourceWords)
+  const sourceWords = (effectiveContent || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length
+  const targetLength = effectiveLength(options.length as LengthTier, sourceWords, relatedSources.length + 1)
   if (targetLength !== options.length) {
     console.log(`[rewrite] Source has ~${sourceWords} words — writing "${targetLength}" instead of "${options.length}" rather than padding with invented detail`)
   }
 
-  const prompt = createRewritePrompt(originalTitle, originalContent, options, customInstructions, originalUrl, sources, targetLength)
+  const prompt = createRewritePrompt(
+    originalTitle,
+    effectiveContent,
+    options,
+    customInstructions,
+    originalUrl,
+    sources,
+    targetLength,
+    relatedSources.length
+  )
   const baseSystemPrompt = options.language === 'en'
     ? `You are a professional journalist who rewrites news articles for a broad audience.
 
@@ -427,7 +503,9 @@ export function createRewritePrompt(
   originalUrl?: string,
   sources: SourceLink[] = [],
   /** Tier already rounded down by the caller; recomputed here only for direct callers. */
-  scaledLength?: LengthTier
+  scaledLength?: LengthTier,
+  /** Number of additional same-story reports folded into `content`, if any. */
+  relatedCount = 0
 ): string {
   const isEnglish = options.language === 'en'
   const isGerman = options.language === 'de'
@@ -442,6 +520,7 @@ export function createRewritePrompt(
       (content || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length
     )
   const showFigures = hasUsableFigures(content)
+  const synthesis = relatedCount > 0 ? synthesisInstructions(options.language, relatedCount + 1) : ''
 
   const lengthInstructions = {
     short: isEnglish ? 'Keep the text short and concise (200-300 words)' : isGerman ? 'Halte den Text kurz und prägnant (200-300 Wörter)' : 'Houd de tekst kort en bondig (200-300 woorden)',
@@ -474,13 +553,16 @@ export function createRewritePrompt(
 
   if (isGerman) {
     return `
-Schreibe den folgenden Nachrichtenartikel für ein deutschsprachiges Publikum um:
+${relatedCount > 0
+  ? `Schreibe aus den ${relatedCount + 1} untenstehenden Berichten, die alle dieselbe Nachricht behandeln, EINEN originellen Artikel für ein deutschsprachiges Publikum:`
+  : 'Schreibe den folgenden Nachrichtenartikel für ein deutschsprachiges Publikum um:'}
 
 ORIGINALTITEL: ${title}
 ORIGINALINHALT: ${content}
 ${originalUrl ? `ORIGINAL-URL: ${originalUrl}` : ''}
 ${audienceBlock}
 ANWEISUNGEN:
+${synthesis}
 SCHRITT 1 - UMSCHREIBEN:
 - ${styleInstructions[options.style]}
 - ${lengthInstructions[targetLength]}
@@ -573,13 +655,16 @@ Beginne jetzt mit dem Umschreiben:
 
   if (isEnglish) {
     return `
-Rewrite the following news article for an English-speaking audience:
+${relatedCount > 0
+  ? `Write one original news article for an English-speaking audience from the ${relatedCount + 1} reports below, which all cover the same story:`
+  : 'Rewrite the following news article for an English-speaking audience:'}
 
 ORIGINAL TITLE: ${title}
 ORIGINAL CONTENT: ${content}
 ${originalUrl ? `ORIGINAL URL: ${originalUrl}` : ''}
 ${audienceBlock}
 INSTRUCTIONS:
+${synthesis}
 STEP 1 - REWRITING:
 - ${styleInstructions[options.style]}
 - ${lengthInstructions[targetLength]}
@@ -691,13 +776,16 @@ Start rewriting now:
   }
 
   return `
-Herschrijf het volgende nieuwsartikel voor een Nederlandse doelgroep:
+${relatedCount > 0
+  ? `Schrijf één origineel nieuwsartikel voor een Nederlandse doelgroep op basis van de ${relatedCount + 1} onderstaande berichten, die allemaal over hetzelfde nieuwsfeit gaan:`
+  : 'Herschrijf het volgende nieuwsartikel voor een Nederlandse doelgroep:'}
 
 ORIGINELE TITEL: ${title}
 ORIGINELE CONTENT: ${content}
 ${originalUrl ? `ORIGINELE URL: ${originalUrl}` : ''}
 ${audienceBlock}
 INSTRUCTIES:
+${synthesis}
 STAP 1 - HERSCHRIJVEN:
 - ${styleInstructions[options.style]}
 - ${lengthInstructions[targetLength]}

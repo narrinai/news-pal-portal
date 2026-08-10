@@ -48,6 +48,11 @@ export interface NewsArticle {
   reading_time?: number
   /** JSON array of the real sources a longread was built from (audit trail). */
   longread_sources?: string
+  /**
+   * Set on a source item that was folded into another article covering the same story.
+   * Holds the surviving article's id; such items are never published on their own.
+   */
+  merged_into?: string
   createdAt?: string
 }
 
@@ -267,6 +272,7 @@ function mapArticleRecord(record: any): NewsArticle {
     article_type: (record.fields.article_type as NewsArticle['article_type']) || 'news',
     reading_time: record.fields.reading_time as number | undefined,
     longread_sources: record.fields.longread_sources as string | undefined,
+    merged_into: record.fields.merged_into as string | undefined,
     createdAt: record.fields.createdAt as string,
   } as NewsArticle
 }
@@ -278,7 +284,7 @@ const LIST_FIELDS = [
   'title', 'description', 'url', 'source', 'publishedAt', 'status', 'category',
   'content_rewritten', 'content_html', 'imageUrl', 'subtitle', 'faq',
   'matchedKeywords', 'automation_id', 'focus_keyword', 'meta_description',
-  'seo_keywords', 'article_type', 'reading_time', 'createdAt',
+  'seo_keywords', 'article_type', 'reading_time', 'merged_into', 'createdAt',
 ]
 
 /**

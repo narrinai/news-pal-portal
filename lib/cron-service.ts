@@ -1,8 +1,6 @@
 import * as cron from 'node-cron'
 import { fetchAllFeeds } from './rss-parser'
-import { createArticle, getArticles, updateArticle, getAutomations } from './airtable'
-import { rewriteArticle } from './ai-rewriter'
-import { scrapeArticleWithLinks } from './article-scraper'
+import { createArticle, getArticles } from './airtable'
 
 class CronService {
   private jobs: Map<string, cron.ScheduledTask> = new Map()
@@ -110,110 +108,19 @@ class CronService {
     }
   }
 
+  /**
+   * The in-process 7:00 job. It delegates to the one real pipeline
+   * (lib/run-auto-pipeline.js) rather than keeping a second, simpler copy of it: that copy
+   * published straight past the site's custom instructions, the same-story merge, the
+   * relevance gate and the figure guard, so anything it produced was off-brand at best.
+   */
   async executeAutoPipeline(): Promise<{success: boolean, published: number, error?: string}> {
     try {
-      // Get all enabled automations
-      const automations = await getAutomations()
-      const enabled = automations.filter(a => a.enabled)
-
-      console.log(`[AUTO-PIPELINE] Found ${automations.length} automations, ${enabled.length} enabled`)
-
-      if (enabled.length === 0) {
-        console.log('[AUTO-PIPELINE] No enabled automations, skipping')
-        return { success: true, published: 0 }
-      }
-
-      // Fetch articles from RSS feeds (once, shared across automations)
-      const articles = await fetchAllFeeds()
-      console.log(`[AUTO-PIPELINE] Fetched ${articles.length} articles from RSS feeds`)
-
-      // Get existing articles to avoid duplicates
-      const existingArticles = await getArticles()
-      const existingUrls = new Set(existingArticles.map(a => a.url))
-
-      let totalPublished = 0
-
-      for (const automation of enabled) {
-        console.log(`[AUTO-PIPELINE] Processing automation: ${automation.name} (${automation.id})`)
-
-        const maxArticles = automation.articles_per_day || 2
-        const enabledCategories = automation.categories
-          ? automation.categories.split(',').map((c: string) => c.trim()).filter(Boolean)
-          : []
-
-        // Filter for this automation
-        let newArticles = articles.filter(a => !existingUrls.has(a.url))
-
-        if (enabledCategories.length > 0) {
-          newArticles = newArticles.filter(a => enabledCategories.includes((a as any).category))
-        }
-
-        console.log(`[AUTO-PIPELINE] [${automation.name}] ${newArticles.length} new articles after filter`)
-
-        if (newArticles.length === 0) continue
-
-        // Rank by keyword count and pick top N
-        const ranked = newArticles
-          .map(a => ({ ...a, keywordCount: (a as any).matchedKeywords?.length || 0 }))
-          .sort((a: any, b: any) => b.keywordCount - a.keywordCount)
-          .slice(0, maxArticles)
-
-        for (const article of ranked) {
-          try {
-            const created = await createArticle({
-              title: article.title,
-              description: article.description,
-              url: article.url,
-              source: article.source,
-              publishedAt: article.publishedAt,
-              status: 'selected' as const,
-              category: (article as any).category,
-              originalContent: (article as any).originalContent || '',
-              imageUrl: (article as any).imageUrl || '',
-              matchedKeywords: (article as any).matchedKeywords || [],
-              automation_id: automation.id,
-            })
-
-            const rewritten = await rewriteArticle(
-              article.title,
-              (article as any).originalContent || article.description,
-              {
-                style: (automation.style || 'news') as any,
-                length: (automation.length || 'medium') as any,
-                language: (automation.language || 'nl') as any,
-                tone: 'informative' as any,
-              },
-              undefined,
-              article.url,
-              // Only the source's own outbound links may be cited — no invented URLs.
-              await scrapeArticleWithLinks(article.url).then(r => r.links).catch(() => [])
-            )
-
-            await updateArticle(created.id, {
-              title: rewritten.title,
-              subtitle: rewritten.subtitle || '',
-              content_rewritten: rewritten.content,
-              content_html: rewritten.content_html,
-              faq: rewritten.faq ? JSON.stringify(rewritten.faq) : '',
-              ...(rewritten.focus_keyword ? { focus_keyword: rewritten.focus_keyword } : {}),
-              ...(rewritten.meta_description ? { meta_description: rewritten.meta_description } : {}),
-              ...(rewritten.seo_keywords?.length ? { seo_keywords: rewritten.seo_keywords.join(', ') } : {}),
-              status: 'published',
-            })
-
-            // Prevent other automations from duplicating
-            existingUrls.add(article.url)
-
-            console.log(`[AUTO-PIPELINE] [${automation.name}] Published: ${rewritten.title}`)
-            totalPublished++
-          } catch (error) {
-            console.error(`[AUTO-PIPELINE] [${automation.name}] Error processing "${article.title}":`, error)
-          }
-        }
-      }
-
-      console.log(`[AUTO-PIPELINE] Completed: ${totalPublished} articles published across ${enabled.length} automations`)
-      return { success: true, published: totalPublished }
+      const { runAutoPipeline } = require('./run-auto-pipeline')
+      const result = await runAutoPipeline({})
+      const published = (result.automations || []).reduce((sum: number, a: any) => sum + (a.rewritten || 0), 0)
+      console.log(`[AUTO-PIPELINE] Completed: ${published} articles published across ${(result.automations || []).length} automations`)
+      return { success: result.success !== false, published }
     } catch (error) {
       console.error('[AUTO-PIPELINE] Fatal error:', error)
       return { success: false, published: 0, error: error instanceof Error ? error.message : 'Unknown error' }

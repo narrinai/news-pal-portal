@@ -2,6 +2,7 @@ import OpenAI from 'openai'
 import { parseRewriteResponse } from './ai-rewriter'
 import { injectInlineImages } from './image-search'
 import { SourceLink, buildAllowedSourcesBlock, dedupeSources } from './source-links'
+import { guardFigures, guardText, guardFaq } from './figure-guard'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
@@ -451,6 +452,42 @@ ${sourcesSection}${faqBlock}`
   // Operator-supplied URLs (internal links, keyword rules) stay citable alongside the dossier.
   const operatorUrls = (options.extraInstructions || '').match(/https?:\/\/[^\s"'<>)\]]+/g) || []
   const parsed = parseRewriteResponse(response, topic, sources, operatorUrls)
+
+  // A 3000-word piece written across several calls is exactly where invented statistics
+  // creep in, so every figure has to trace back to the dossier — same rule as the rewriter.
+  const trustedText = [
+    ...dossier.map(d => `${d.title}\n${d.content || ''}`),
+    options.extraInstructions || '',
+  ].join('\n')
+  // A longread is sectioned, so losing one passage costs proportionally less than in a
+  // 300-word news item — but a piece whose argument rests on invented numbers is still spiked.
+  const guard = guardFigures(parsed.content_html, trustedText, {
+    maxLossRatio: 0.25,
+    minWords: 800,
+    maxUnsupported: 8,
+  })
+  if (guard.unsupported.length) {
+    if (guard.severe) {
+      throw new Error(
+        `Longread rejected: it relies on figures that are not in the dossier (${guard.unsupported.slice(0, 8).join(', ')})`
+      )
+    }
+    console.warn(
+      `⚠️ [longread] Removed ${guard.unsupported.length} unsupported figure(s) (${guard.removedBlocks} block(s), ${guard.removedSentences} sentence(s)): ${guard.unsupported.slice(0, 8).join(', ')}`
+    )
+    parsed.content_html = guard.html
+    parsed.content = guardText(parsed.content, trustedText)
+    if (parsed.subtitle) parsed.subtitle = guardText(parsed.subtitle, trustedText)
+    if (parsed.meta_description) {
+      const cleaned = guardText(parsed.meta_description, trustedText)
+      parsed.meta_description = cleaned.length >= 40 ? cleaned : undefined
+    }
+    const faqGuard = guardFaq(parsed.faq, trustedText)
+    if (faqGuard.dropped) {
+      console.warn(`⚠️ [longread] Dropped ${faqGuard.dropped} FAQ item(s) built on unsupported figures`)
+      parsed.faq = faqGuard.faq
+    }
+  }
 
   try {
     parsed.content_html = await injectInlineImages(parsed.content_html, {

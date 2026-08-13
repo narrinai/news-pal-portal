@@ -53,6 +53,14 @@ export interface NewsArticle {
    * Holds the surviving article's id; such items are never published on their own.
    */
   merged_into?: string
+  /**
+   * 0-100 fit with the site the automation publishes to, from the editorial gate
+   * (lib/relevance-gate.ts). Below the automation's threshold the article is kept as a
+   * pending record but never auto-scheduled — an off-topic article costs the site more
+   * than an empty publishing day.
+   */
+  relevance_score?: number
+  relevance_reason?: string
   createdAt?: string
 }
 
@@ -120,6 +128,8 @@ export async function createArticle(article: Omit<NewsArticle, 'id' | 'createdAt
           ...(article.article_type ? { article_type: article.article_type } : {}),
           ...(article.reading_time ? { reading_time: article.reading_time } : {}),
           ...(article.longread_sources ? { longread_sources: article.longread_sources } : {}),
+          ...(typeof article.relevance_score === 'number' ? { relevance_score: article.relevance_score } : {}),
+          ...(article.relevance_reason ? { relevance_reason: article.relevance_reason } : {}),
         }
       }
     ], { typecast: true }) // typecast: per-automation feed categories are dynamic, so auto-create the category option instead of rejecting the article
@@ -159,6 +169,8 @@ export async function createArticlesBatch(articles: Omit<NewsArticle, 'id' | 'cr
         imageUrl: article.imageUrl || '',
         matchedKeywords: article.matchedKeywords ? article.matchedKeywords.join(', ') : '',
         ...(article.automation_id ? { automation_id: article.automation_id } : {}),
+        ...(typeof article.relevance_score === 'number' ? { relevance_score: article.relevance_score } : {}),
+        ...(article.relevance_reason ? { relevance_reason: article.relevance_reason } : {}),
       }
     }))
     try {
@@ -273,6 +285,8 @@ function mapArticleRecord(record: any): NewsArticle {
     reading_time: record.fields.reading_time as number | undefined,
     longread_sources: record.fields.longread_sources as string | undefined,
     merged_into: record.fields.merged_into as string | undefined,
+    relevance_score: record.fields.relevance_score as number | undefined,
+    relevance_reason: record.fields.relevance_reason as string | undefined,
     createdAt: record.fields.createdAt as string,
   } as NewsArticle
 }
@@ -284,7 +298,8 @@ const LIST_FIELDS = [
   'title', 'description', 'url', 'source', 'publishedAt', 'status', 'category',
   'content_rewritten', 'content_html', 'imageUrl', 'subtitle', 'faq',
   'matchedKeywords', 'automation_id', 'focus_keyword', 'meta_description',
-  'seo_keywords', 'article_type', 'reading_time', 'merged_into', 'createdAt',
+  'seo_keywords', 'article_type', 'reading_time', 'merged_into', 'relevance_score',
+  'relevance_reason', 'createdAt',
 ]
 
 /**

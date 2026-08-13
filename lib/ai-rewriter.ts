@@ -7,6 +7,7 @@ import {
   dedupeSources,
   sanitizeArticleLinks,
 } from './source-links'
+import { guardFigures, guardText, guardFaq } from './figure-guard'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -239,58 +240,19 @@ CRUCIAAL — feitelijke nauwkeurigheid: Verzin of gok NOOIT feiten, jaartallen, 
     /violates? (my|our|the) (content |usage )?polic/i,
   ]
 
-  // For longform, go directly to Claude (better at long-form content)
-  let response = ''
-  let usedModel = 'gpt-4o'
   const maxTokens = targetLength === 'longform' ? 8000 : targetLength === 'extra-long' ? 4000 : 2000
 
-  if ((targetLength === 'longform' || targetLength === 'extra-long') && anthropic) {
-    console.log(`🔄 Using Claude directly for ${targetLength} content`)
-    usedModel = 'claude-sonnet-4-6'
-    try {
-      const message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: maxTokens,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: prompt }],
-      })
-      response = message.content[0]?.type === 'text' ? message.content[0].text : ''
-      if (!response) throw new Error('Claude returned empty response')
-      if (refusalPatterns.some(p => p.test(response))) {
-        console.warn('⚠️ Claude longform refused, falling back to OpenAI:', originalTitle)
-        response = ''
-      }
-    } catch (claudeError: any) {
-      console.error('Claude longform failed, falling back to OpenAI:', claudeError.message)
-      // Fall through to OpenAI below
-      response = ''
-    }
-  }
+  // One generation attempt across the whole fallback chain. Wrapped in a function so the
+  // figure guard below can ask for a second, corrected draft without duplicating the chain.
+  async function generate(systemPrompt: string): Promise<string> {
+    // For longform, go directly to Claude (better at long-form content)
+    let response = ''
+    let usedModel = 'gpt-4o'
 
-  // Fallback chain: OpenAI → Claude → DeepSeek
-  if (!response) {
-    try {
-      usedModel = 'gpt-4o'
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }],
-        temperature: 0.7,
-        max_tokens: maxTokens
-      }, { timeout: 90000 })
-      response = completion.choices[0]?.message?.content || ''
-      if (response && refusalPatterns.some(p => p.test(response))) {
-        console.warn('⚠️ OpenAI refused:', originalTitle)
-        response = ''
-      }
-    } catch (e: any) {
-      console.error('OpenAI failed:', e.message)
-      response = ''
-    }
-
-    if (!response && anthropic) {
+    if ((targetLength === 'longform' || targetLength === 'extra-long') && anthropic) {
+      console.log(`🔄 Using Claude directly for ${targetLength} content`)
+      usedModel = 'claude-sonnet-4-6'
       try {
-        console.log('🔄 Falling back to Claude for:', originalTitle.substring(0, 50))
-        usedModel = 'claude-sonnet-4-6'
         const message = await anthropic.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: maxTokens,
@@ -298,46 +260,145 @@ CRUCIAAL — feitelijke nauwkeurigheid: Verzin of gok NOOIT feiten, jaartallen, 
           messages: [{ role: 'user', content: prompt }],
         })
         response = message.content[0]?.type === 'text' ? message.content[0].text : ''
-        if (response && refusalPatterns.some(p => p.test(response))) {
-          console.warn('⚠️ Claude also refused:', originalTitle)
+        if (!response) throw new Error('Claude returned empty response')
+        if (refusalPatterns.some(p => p.test(response))) {
+          console.warn('⚠️ Claude longform refused, falling back to OpenAI:', originalTitle)
           response = ''
         }
-      } catch (e: any) {
-        console.error('Claude failed:', e.message)
+      } catch (claudeError: any) {
+        console.error('Claude longform failed, falling back to OpenAI:', claudeError.message)
+        // Fall through to OpenAI below
         response = ''
       }
     }
 
-    if (!response && deepseek) {
+    // Fallback chain: OpenAI → Claude → DeepSeek
+    if (!response) {
       try {
-        console.log('🔄 Falling back to DeepSeek for:', originalTitle.substring(0, 50))
-        usedModel = 'deepseek-chat'
-        const completion = await deepseek.chat.completions.create({
-          model: 'deepseek-chat',
+        usedModel = 'gpt-4o'
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o',
           messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }],
           temperature: 0.7,
           max_tokens: maxTokens
         }, { timeout: 90000 })
         response = completion.choices[0]?.message?.content || ''
         if (response && refusalPatterns.some(p => p.test(response))) {
-          console.warn('⚠️ DeepSeek also refused:', originalTitle)
+          console.warn('⚠️ OpenAI refused:', originalTitle)
           response = ''
         }
       } catch (e: any) {
-        console.error('DeepSeek failed:', e.message)
+        console.error('OpenAI failed:', e.message)
         response = ''
+      }
+
+      if (!response && anthropic) {
+        try {
+          console.log('🔄 Falling back to Claude for:', originalTitle.substring(0, 50))
+          usedModel = 'claude-sonnet-4-6'
+          const message = await anthropic.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: maxTokens,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: prompt }],
+          })
+          response = message.content[0]?.type === 'text' ? message.content[0].text : ''
+          if (response && refusalPatterns.some(p => p.test(response))) {
+            console.warn('⚠️ Claude also refused:', originalTitle)
+            response = ''
+          }
+        } catch (e: any) {
+          console.error('Claude failed:', e.message)
+          response = ''
+        }
+      }
+
+      if (!response && deepseek) {
+        try {
+          console.log('🔄 Falling back to DeepSeek for:', originalTitle.substring(0, 50))
+          usedModel = 'deepseek-chat'
+          const completion = await deepseek.chat.completions.create({
+            model: 'deepseek-chat',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }],
+            temperature: 0.7,
+            max_tokens: maxTokens
+          }, { timeout: 90000 })
+          response = completion.choices[0]?.message?.content || ''
+          if (response && refusalPatterns.some(p => p.test(response))) {
+            console.warn('⚠️ DeepSeek also refused:', originalTitle)
+            response = ''
+          }
+        } catch (e: any) {
+          console.error('DeepSeek failed:', e.message)
+          response = ''
+        }
+      }
+
+      if (!response) {
+        throw new Error('All models (OpenAI, Claude, DeepSeek) refused or failed to rewrite this article')
       }
     }
 
-    if (!response) {
-      throw new Error('All models (OpenAI, Claude, DeepSeek) refused or failed to rewrite this article')
+    console.log(`✅ Article rewritten with ${usedModel}: ${originalTitle.substring(0, 50)}...`)
+    return response
+  }
+
+  // Text a figure may be quoted from: the source material itself plus the operator's own
+  // instructions (which legitimately carry the site's own numbers — prices, plan tiers).
+  const trustedText = [
+    originalTitle,
+    effectiveContent,
+    ...relatedSources.map(r => `${r.title} ${r.content}`),
+    customInstructions || '',
+  ].join('\n')
+
+  let parsed = parseRewriteResponse(await generate(systemPrompt), originalTitle, sources, operatorUrls)
+  let guard = guardFigures(parsed.content_html, trustedText)
+
+  // A draft built on invented numbers can't be salvaged by deleting them — ask once for a
+  // clean draft, naming exactly what it made up, before giving up on the article.
+  if (guard.severe) {
+    console.warn(
+      `⚠️ [figures] "${originalTitle.substring(0, 50)}" invented ${guard.unsupported.length} figure(s) — retrying: ${guard.unsupported.slice(0, 8).join(', ')}`
+    )
+    const correction = `\n\nYOUR PREVIOUS DRAFT WAS REJECTED. It contained these figures, none of which appear anywhere in the source text: ${guard.unsupported.slice(0, 15).join(', ')}.\nWrite the article again. Use ONLY numbers that appear literally in the source text above. Do not estimate, extrapolate, annualise, convert or round into a new figure, and do not fill a stat block, chart or table with anything the source does not state. If a passage needs a number you do not have, write the passage without one.`
+    try {
+      const retryResponse = await generate(systemPrompt + correction)
+      const retryParsed = parseRewriteResponse(retryResponse, originalTitle, sources, operatorUrls)
+      const retryGuard = guardFigures(retryParsed.content_html, trustedText)
+      // Keep the retry when it is genuinely cleaner; otherwise stay with the first draft.
+      if (retryGuard.unsupported.length < guard.unsupported.length || !retryGuard.severe) {
+        parsed = retryParsed
+        guard = retryGuard
+      }
+    } catch (e: any) {
+      console.warn('[figures] Retry failed:', e?.message)
     }
   }
 
-  console.log(`✅ Article rewritten with ${usedModel}: ${originalTitle.substring(0, 50)}...`)
+  if (guard.severe) {
+    throw new Error(
+      `Rewrite rejected: article relies on figures that are not in the source (${guard.unsupported.slice(0, 8).join(', ')})`
+    )
+  }
 
-  // Parse the response to extract title and content
-  const parsed = parseRewriteResponse(response, originalTitle, sources, operatorUrls)
+  if (guard.unsupported.length) {
+    console.warn(
+      `⚠️ [figures] Removed ${guard.unsupported.length} unsupported figure(s) from "${originalTitle.substring(0, 50)}" (${guard.removedBlocks} block(s), ${guard.removedSentences} sentence(s)): ${guard.unsupported.slice(0, 8).join(', ')}`
+    )
+    parsed.content_html = guard.html
+    parsed.content = guardText(parsed.content, trustedText)
+    if (parsed.subtitle) parsed.subtitle = guardText(parsed.subtitle, trustedText)
+    if (parsed.meta_description) {
+      const cleaned = guardText(parsed.meta_description, trustedText)
+      parsed.meta_description = cleaned.length >= 40 ? cleaned : undefined
+    }
+    const faqGuard = guardFaq(parsed.faq, trustedText)
+    if (faqGuard.dropped) {
+      console.warn(`⚠️ [figures] Dropped ${faqGuard.dropped} FAQ item(s) built on unsupported figures`)
+      parsed.faq = faqGuard.faq
+    }
+  }
 
   // Images are placed here, not by the model: it used to be handed a fixed list of Pexels
   // photo IDs, so every article recycled the same stock photos, and it often skipped them
@@ -389,10 +450,12 @@ export function parseRewriteResponse(
     }
   }
 
-  // Parse title, subtitle, and content from main section
-  const sections = mainContent.split(/^---$/m)
+  // Parse title, subtitle, and content from main section. The separator is matched loosely
+  // because models write "----" or leave trailing spaces often enough to matter — when the
+  // split missed, the entire SEO header used to be rendered as the article's first paragraph.
+  const sections = mainContent.split(/^[ \t]*-{3,}[ \t]*$/m)
   let headerPart = sections[0]?.trim() || ''
-  let content = sections[1]?.replace(/^CONTENT:\s*/i, '').trim() || (sections.length === 1 ? '' : '')
+  let content = sections.slice(1).join('\n---\n').replace(/^CONTENT:\s*/i, '').trim()
 
   // Extract title, subtitle, category, and SEO fields from header
   let title = originalTitle
@@ -402,43 +465,64 @@ export function parseRewriteResponse(
   let meta_description = ''
   let seo_keywords: string[] = []
 
-  const headerLines = headerPart.split('\n').filter(l => l.trim())
+  /**
+   * Consume `LABEL: value` lines into the SEO fields and return what's left. Run over the
+   * header, and again over anything before the article's first HTML tag, so a header the
+   * model put on the wrong side of the separator is still captured rather than published
+   * as body copy. Labels that ran together on one line are split apart first.
+   */
+  function absorbMetaLines(text: string): string {
+    const normalised = text.replace(
+      /(?!^)[ \t]*\b(SUBTITLE|CATEGORY|FOCUS_KEYWORD|META_DESCRIPTION|SEO_KEYWORDS|CONTENT)\s*:/gi,
+      '\n$1:'
+    )
+    const kept: string[] = []
+    for (const line of normalised.split('\n')) {
+      const m = line.match(/^\s*(SUBTITLE|CATEGORY|FOCUS_KEYWORD|META_DESCRIPTION|SEO_KEYWORDS|CONTENT)\s*:\s*(.*)$/i)
+      if (!m) {
+        kept.push(line)
+        continue
+      }
+      const value = m[2].trim()
+      switch (m[1].toUpperCase()) {
+        case 'SUBTITLE': subtitle ||= value; break
+        case 'CATEGORY': category ||= value; break
+        case 'FOCUS_KEYWORD': focus_keyword ||= value; break
+        case 'META_DESCRIPTION': meta_description ||= value; break
+        case 'SEO_KEYWORDS':
+          if (!seo_keywords.length) seo_keywords = value.split(',').map(k => k.trim()).filter(Boolean)
+          break
+        case 'CONTENT': if (value) kept.push(value); break
+      }
+    }
+    return kept.join('\n').trim()
+  }
+
+  const headerRest = absorbMetaLines(headerPart)
+  const headerLines = headerRest.split('\n').filter(l => l.trim())
   if (headerLines.length >= 1) {
     title = headerLines[0].replace(/^(TITEL|Titel|TITLE|Title):\s*/i, '').trim()
   }
-  for (const line of headerLines) {
-    const subMatch = line.match(/^SUBTITLE:\s*(.+)/i)
-    if (subMatch) {
-      subtitle = subMatch[1].trim()
-    }
-    const catMatch = line.match(/^CATEGORY:\s*(.+)/i)
-    if (catMatch) {
-      category = catMatch[1].trim()
-    }
-    const fkMatch = line.match(/^FOCUS_KEYWORD:\s*(.+)/i)
-    if (fkMatch) {
-      focus_keyword = fkMatch[1].trim()
-    }
-    const mdMatch = line.match(/^META_DESCRIPTION:\s*(.+)/i)
-    if (mdMatch) {
-      meta_description = mdMatch[1].trim()
-    }
-    const skMatch = line.match(/^SEO_KEYWORDS:\s*(.+)/i)
-    if (skMatch) {
-      seo_keywords = skMatch[1].split(',').map(k => k.trim()).filter(k => k)
-    }
-  }
 
-  // If no --- separator found, try first line as title
+  // If no --- separator was found, the whole response is one block: first line is the title
+  // and the rest is the body, with the SEO lines pulled out of it.
   if (sections.length === 1) {
-    const lines = mainContent.split('\n')
+    const lines = headerRest.split('\n')
     const firstLine = lines[0]?.replace(/^(TITEL|Titel|TITLE|Title):\s*/i, '').trim()
     if (firstLine && firstLine.length > 0 && firstLine.length < 200) {
       title = firstLine
-      // Find content start (skip title and subtitle lines)
-      let startIdx = 1
-      if (lines[1]?.match(/^SUBTITLE:/i)) startIdx = 2
-      content = lines.slice(startIdx).join('\n').replace(/^CONTENT:\s*/i, '').trim()
+      content = lines.slice(1).join('\n').trim()
+    }
+  }
+
+  // A header written after the separator ends up at the top of the body — strip it there
+  // too, but only from the preamble before the first HTML tag, so body prose is untouched.
+  const firstTag = content.indexOf('<')
+  if (firstTag !== 0) {
+    const preamble = firstTag > 0 ? content.slice(0, firstTag) : content
+    if (/\b(SUBTITLE|CATEGORY|FOCUS_KEYWORD|META_DESCRIPTION|SEO_KEYWORDS)\s*:/i.test(preamble)) {
+      const cleanedPreamble = absorbMetaLines(preamble)
+      content = (firstTag > 0 ? `${cleanedPreamble}\n${content.slice(firstTag)}` : cleanedPreamble).trim()
     }
   }
 

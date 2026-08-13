@@ -55,13 +55,18 @@ Return ONLY valid JSON with three keys: "card_template", "detail_template", and 
             role: 'user',
             content: `Analyze this article page HTML. Extract two templates:
 
-1. **Card template**: How this article would look as a card/summary in a listing (title, description, date, category, source).
-   Use these placeholders: {{title}}, {{description}}, {{date}}, {{category}}, {{source}}, {{url}}, {{imageUrl}}
+1. **Card template**: How this article would look as a card/summary in a listing (title, description, date).
+   Use these placeholders: {{title}}, {{description}}, {{date}}, {{url}}, {{imageUrl}}
    Keep the EXACT CSS classes and HTML structure from the original page.
 
 2. **Detail template**: How the full article page is structured (header, body, meta, sidebar).
-   Use these placeholders: {{title}}, {{description}}, {{date}}, {{category}}, {{source}}, {{url}}, {{imageUrl}}, {{content}}
+   Use these placeholders: {{title}}, {{description}}, {{date}}, {{url}}, {{imageUrl}}, {{content}}
    Keep the EXACT CSS classes and HTML structure from the original page.
+
+IMPORTANT — leave these out of BOTH templates, elements and all: the author/byline slot, the
+source or outlet name, and any category/tag/topic badge. News Pal supplies no value for them,
+so an author element would be filled with a feed name and a tag element would be left empty.
+Delete those elements rather than emitting an empty placeholder for them.
 
 3. **Brand colors**: Extract the primary accent color, secondary color, and text color used on the page (from CSS, inline styles, or dominant visual elements). Return as hex codes.
 

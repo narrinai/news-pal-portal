@@ -128,14 +128,6 @@ export default async function handler(req, res) {
         console.error(`[push-articles] Image search failed for ${a.title?.substring(0, 50)}:`, err.message)
       }
     }
-    // Derive site category from the site_url path segment
-    // e.g. https://repricing.de/news/retail → "Retail"
-    // This ensures pushed articles appear under the correct section on the site
-    const siteUrlPath = (() => { try { return new URL(automation.site_url).pathname } catch { return '' } })()
-    const lastSegment = siteUrlPath.split('/').filter(Boolean).pop()
-    const primaryCategory = lastSegment
-      ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1)
-      : (automation.categories ? automation.categories.split(',')[0].trim() : undefined)
     const publishedArticles = allArticles
       .filter(a => {
         if (idsFilter) {
@@ -153,7 +145,7 @@ export default async function handler(req, res) {
         }
         return true
       })
-      .map(a => buildArticlePayload(a, { category: primaryCategory }))
+      .map(a => buildArticlePayload(a))
 
     if (publishedArticles.length === 0) {
       return res.status(200).json({ success: true, pushed: 0, message: 'No published articles to push' })

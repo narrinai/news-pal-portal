@@ -27,15 +27,14 @@
   var CACHE_KEY = 'newspal_cache_' + automationId;
   var CACHE_TTL = 1 * 60 * 1000; // 1 minute
 
-  // Default card template
+  // Default card template. No feed name and no feed category: the feed name read as the
+  // article's author ("RSS Feed") and the category as a shouty tag.
   var DEFAULT_TEMPLATE =
     '<article class="newspal-card">' +
-    '<div class="newspal-source">{{source}}</div>' +
     '<h3><a href="{{url}}" target="_blank" rel="noopener">{{title}}</a></h3>' +
     '<p>{{description}}</p>' +
     '<div class="newspal-meta">' +
     '<span class="newspal-date">{{date}}</span>' +
-    '<span class="newspal-category">{{category}}</span>' +
     '</div>' +
     '</article>';
 
@@ -52,8 +51,9 @@
       .replace(/\{\{title\}\}/g, escapeHtml(article.title || ''))
       .replace(/\{\{description\}\}/g, escapeHtml(article.description || ''))
       .replace(/\{\{date\}\}/g, escapeHtml(date))
-      .replace(/\{\{category\}\}/g, escapeHtml(article.category || ''))
-      .replace(/\{\{source\}\}/g, escapeHtml(article.source || ''))
+      // Kept so a site whose stored template still has them renders blanks, not literals.
+      .replace(/\{\{category\}\}/g, '')
+      .replace(/\{\{source\}\}/g, '')
       .replace(/\{\{url\}\}/g, escapeAttr(article.sourceUrl || '#'))
       .replace(/\{\{imageUrl\}\}/g, escapeAttr(article.imageUrl || ''))
       .replace(/\{\{content\}\}/g, article.html || article.content || '');

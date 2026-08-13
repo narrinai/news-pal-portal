@@ -1,4 +1,4 @@
-import { getArticles, getAutomation } from '../../../lib/airtable'
+import { getArticles } from '../../../lib/airtable'
 
 export default async function handler(req, res) {
   // Handle CORS preflight
@@ -37,20 +37,6 @@ export default async function handler(req, res) {
 
     const total = articles.length
 
-    // Derive site category from automation's site_url path segment
-    // e.g. https://repricing.de/news/retail → "Retail"
-    let primaryCategory = undefined
-    if (automation_id) {
-      try {
-        const automation = await getAutomation(automation_id)
-        if (automation?.site_url) {
-          const siteUrlPath = new URL(automation.site_url).pathname
-          const lastSegment = siteUrlPath.split('/').filter(Boolean).pop()
-          if (lastSegment) primaryCategory = lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1)
-        }
-      } catch {}
-    }
-
     // Return only the fields the consuming site needs
     const publicArticles = articles.slice(startOffset, startOffset + maxArticles).map(a => ({
       id: a.id,
@@ -58,8 +44,9 @@ export default async function handler(req, res) {
       description: ((a.description || '').replace(/<[^>]+>/g, '').substring(0, 200).trim() + ((a.description || '').length > 200 ? '...' : '')),
       content: a.content_rewritten || a.description,
       html: a.content_html || '',
-      category: primaryCategory || a.topic || a.category,
-      source: a.source,
+      // No `category` and no `source`: sites rendered the feed name as the article's
+      // author ("RSS Feed") and the feed category as a tag ("COMPANION"). The original is
+      // credited through sourceUrl instead. `?category=` still filters server-side.
       sourceUrl: a.url,
       imageUrl: a.imageUrl || '',
       subtitle: a.subtitle || '',

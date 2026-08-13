@@ -2615,8 +2615,6 @@ Returns JSON:
       "description": "Short summary (max 200 chars)",
       "content": "Plain text content",
       "html": "<section><h2>Heading</h2><p>Paragraph</p></section>",
-      "category": "Category Name",
-      "source": "Source Name",
       "sourceUrl": "https://original-url.com",
       "imageUrl": "https://...",
       "subtitle": "One-line subtitle under the title",
@@ -2881,14 +2879,14 @@ Returns: { success: true, total: number, articles: [...] }
 
 ## Requirements
 - Store articles in a PERSISTENT SQL DATABASE. If this project already has a PostgreSQL/SQL database (e.g. via Drizzle or Prisma — the same DB that serves the existing articles), use that. If it has none, provision Replit's built-in PostgreSQL. Do NOT use @replit/database / the Replit key-value store — REPLIT_DB_URL is NOT injected into production Deployments, so it works in dev but THROWS in production (this is the #1 cause of /newspal/receive returning a 500). Do NOT use JSON files — they are wiped on every redeploy.
-- Create a \`newspal_articles\` table keyed by a unique \`slug\`, columns: slug, title, description, body_html, category, source, source_url, image_url, subtitle, published_at, faq (json), created_at. Run the migration against the PRODUCTION database.
+- Create a \`newspal_articles\` table keyed by a unique \`slug\`, columns: slug, title, description, body_html, source_url, image_url, subtitle, published_at, faq (json), created_at. Run the migration against the PRODUCTION database.
 - Upsert by slug (insert new, update existing). Keep News Pal articles in this table — separate from, but rendered alongside, existing content.
 
 ### Routes to create:
 - GET /newspal/sync — fetch articles from the API, generate slug from each title (lowercase, replace non-alphanumeric with hyphens), upsert into newspal_articles (insert new, update existing by slug). Return { synced: number, total: number }.
 - POST /newspal/receive — accepts { articles: [...] } with header x-newspal-key validated against env var NEWSPAL_API_KEY. Upsert into newspal_articles by slug (same as sync). WRAP all DB work in try/catch and on error return res.status(500).json({ error: err.message }) — never let it throw a bare HTML 500. An empty articles array must succeed with received:0. Return { success: true, received, total }. This is the primary push endpoint.
 - POST /newspal/delete — accepts { slugs: ["slug1", "slug2"] } with header x-newspal-key validated against NEWSPAL_API_KEY. Delete the specified slugs from newspal_articles. Return { success, deleted: number, remaining: number }.
-- GET ${sitePath} — read all articles from newspal_articles, render a listing page showing BOTH existing site articles AND News Pal articles together, sorted by date. Use cards (image, category badge, title linking to ${slugPath}, description, date). Style it to match the existing site design. CRITICAL: If the listing has a featured/highlight/hero section AND a grid section, the same article must NEVER appear in both — exclude the featured article(s) from the grid below by slug.
+- GET ${sitePath} — read all articles from newspal_articles, render a listing page showing BOTH existing site articles AND News Pal articles together, sorted by date. Use cards (image, title linking to ${slugPath}, description, date). Do NOT render an author/byline or a category/tag badge on cards or article pages — News Pal sends neither, and the original is credited by the source link inside the article body. Style it to match the existing site design. CRITICAL: If the listing has a featured/highlight/hero section AND a grid section, the same article must NEVER appear in both — exclude the featured article(s) from the grid below by slug.
 - GET ${slugPath} — read single article from newspal_articles by slug, render a full article detail page with title, subtitle, meta info, image, HTML content, and FAQ section (collapsible). Must work for both existing articles and News Pal articles. Style it to match the existing site. Include ALL page elements that existing article pages have — such as sidebars, breadcrumbs, social share buttons, navigation between articles, etc. Also emit ALL SEO tags from the "SEO & indexing" section below (indexable — NO noindex, canonical, OG/Twitter, NewsArticle JSON-LD), server-rendered.
 - Register the /newspal/receive route BEFORE any security middleware (helmet, cors, csrf, etc.)
 - Add NEWSPAL_API_KEY to the secrets — and make sure it is ALSO set in the DEPLOYMENT secrets (separate from dev), value: ${automation.site_api_key || '(generate key in News Pal first)'}
@@ -2939,8 +2937,6 @@ Each article has:
   "description": "Short summary",
   "content": "Plain text content",
   "html": "<section>...</section>",
-  "category": "${lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : 'News'}",
-  "source": "Original Source",
   "sourceUrl": "https://original-url.com",
   "imageUrl": "https://...",
   "subtitle": "One-line subtitle",
@@ -2997,12 +2993,12 @@ function toSlug(title) {
 }
 
 async function init() {
-  await pool.query('CREATE TABLE IF NOT EXISTS newspal_articles (slug text PRIMARY KEY, title text, description text, body_html text, category text, source text, source_url text, image_url text, subtitle text, published_at timestamptz, faq jsonb, created_at timestamptz DEFAULT now())');
+  await pool.query('CREATE TABLE IF NOT EXISTS newspal_articles (slug text PRIMARY KEY, title text, description text, body_html text, source_url text, image_url text, subtitle text, published_at timestamptz, faq jsonb, created_at timestamptz DEFAULT now())');
 }
 
 async function upsert(a) {
   const slug = a.slug || toSlug(a.title);
-  await pool.query('INSERT INTO newspal_articles (slug,title,description,body_html,category,source,source_url,image_url,subtitle,published_at,faq) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (slug) DO UPDATE SET title=EXCLUDED.title, description=EXCLUDED.description, body_html=EXCLUDED.body_html, category=EXCLUDED.category, source=EXCLUDED.source, source_url=EXCLUDED.source_url, image_url=EXCLUDED.image_url, subtitle=EXCLUDED.subtitle, published_at=EXCLUDED.published_at, faq=EXCLUDED.faq', [slug, a.title, a.description, a.html || a.content_html, a.category, a.source, a.sourceUrl, a.imageUrl, a.subtitle, a.publishedAt, JSON.stringify(a.faq || null)]);
+  await pool.query('INSERT INTO newspal_articles (slug,title,description,body_html,source_url,image_url,subtitle,published_at,faq) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (slug) DO UPDATE SET title=EXCLUDED.title, description=EXCLUDED.description, body_html=EXCLUDED.body_html, source_url=EXCLUDED.source_url, image_url=EXCLUDED.image_url, subtitle=EXCLUDED.subtitle, published_at=EXCLUDED.published_at, faq=EXCLUDED.faq', [slug, a.title, a.description, a.html || a.content_html, a.sourceUrl, a.imageUrl, a.subtitle, a.publishedAt, JSON.stringify(a.faq || null)]);
   return slug;
 }
 
@@ -3454,7 +3450,7 @@ NEWSPAL_LIMIT=50`}</code></pre>
                     <p className="text-xs font-medium text-slate-700 mb-1">Use this code in your site to fetch and display articles:</p>
                     <pre className="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto mt-2"><code>{`const res = await fetch('${typeof window !== 'undefined' ? window.location.origin : 'https://newspal.vercel.app'}/api/articles/public?automation_id=${id}&limit=20');
 const { articles } = await res.json();
-// articles[] = { title, description, content, html, category, source, sourceUrl, imageUrl, publishedAt }`}</code></pre>
+// articles[] = { title, description, content, html, sourceUrl, imageUrl, publishedAt }`}</code></pre>
                   </div>
                 )}
               </div>
